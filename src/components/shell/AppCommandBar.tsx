@@ -26,12 +26,12 @@ export function AppCommandBar() {
           <DropdownMenu>
             <DropdownMenuTrigger className="px-2 py-1 rounded hover:bg-[var(--panel-muted)] outline-none data-[state=open]:bg-[var(--panel-muted)] cursor-default">File</DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem onSelect={() => setImportOpen(true)}>Import...</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setImportOpen(true)}>Import...</DropdownMenuItem>
               {activeDocumentId && (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => closeDocumentTab(activeDocumentId)}>Close Document</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => useWorkspaceStore.getState().closeAllDocuments()}>Close All Documents</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => closeDocumentTab(activeDocumentId)}>Close Document</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => useWorkspaceStore.getState().closeAllDocuments()}>Close All Documents</DropdownMenuItem>
                 </>
               )}
             </DropdownMenuContent>
@@ -50,15 +50,15 @@ export function AppCommandBar() {
           <DropdownMenu>
             <DropdownMenuTrigger className="px-2 py-1 rounded hover:bg-[var(--panel-muted)] outline-none data-[state=open]:bg-[var(--panel-muted)] cursor-default">View</DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem onSelect={() => setActiveView('map')}>Map</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setActiveView('sequence')}>Sequence</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setActiveView('features')}>Features</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setActiveView('primers')}>Primers</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setActiveView('enzymes')}>Enzymes</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setActiveView('history')}>History</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('map')}>Map</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('sequence')}>Sequence</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('features')}>Features</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('primers')}>Primers</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('enzymes')}>Enzymes</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('history')}>History</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => useWorkspaceStore.getState().setSidebarOpen(!useWorkspaceStore.getState().sidebarOpen)}>Toggle Project Panel</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => useWorkspaceStore.getState().setInspectorOpen(!useWorkspaceStore.getState().inspectorOpen)}>Toggle Inspector</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => useWorkspaceStore.getState().setSidebarOpen(!useWorkspaceStore.getState().sidebarOpen)}>Toggle Project Panel</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => useWorkspaceStore.getState().setInspectorOpen(!useWorkspaceStore.getState().inspectorOpen)}>Toggle Inspector</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -77,7 +77,7 @@ export function AppCommandBar() {
               <DropdownMenuItem disabled>Translate Selection</DropdownMenuItem>
               <DropdownMenuItem disabled>Primer Analysis...</DropdownMenuItem>
               <DropdownMenuItem disabled>Restriction Analysis...</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setActiveView('compare')}>Compare Sequences...</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('compare')}>Compare Sequences...</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

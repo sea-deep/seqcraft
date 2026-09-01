@@ -1,0 +1,298 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { 
+  registerSeqCraftTools, 
+  seqcraftGetActiveDocumentTool,
+  seqcraftAnalyzeRestrictionSitesTool,
+  seqcraftSimulateDigestTool,
+  seqcraftAnalyzePrimerTool,
+  seqcraftSimulatePcrTool,
+  seqcraftFocusRegionTool,
+  seqcraftShowRestrictionSiteTool,
+  seqcraftShowFeatureTool
+} from '../../src/webmcp/register-seqcraft-tools';
+import { useWorkspaceStore } from '../../src/state/workspace-store';
+import { useActivityStore } from '../../src/state/activity-store';
+import { importGenBank } from '../../src/import/genbank';
+import { DEMO_GENBANK } from '../../src/data/demo-workspace';
+import { reverseComplementIupac } from '../../src/scientific/restriction-analysis';
+
+describe('WebMCP Tool Registration and Execution', () => {
+  let registeredTools = new Map<string, any>();
+  let mockMcp: any;
+
+  beforeEach(() => {
+    registeredTools.clear();
+    mockMcp = {
+      registerTool: vi.fn(async (tool: any, options: any) => {
+        expect(typeof tool.name).toBe('string');
+        expect(typeof tool.description).toBe('string');
+        expect(tool.inputSchema).toBeDefined();
+        expect(typeof tool.execute).toBe('function');
+        expect(tool.annotations.untrustedContentHint).toBe(false);
+        expect(options.signal).toBeInstanceOf(AbortSignal);
+        
+        // fail if it uses handler
+        expect(tool.handler).toBeUndefined();
+
+        registeredTools.set(tool.name, tool);
+        return undefined;
+      })
+    };
+    useWorkspaceStore.setState({
+      documents: [],
+      activeDocumentId: null,
+      selection: null,
+      selectedFeatureId: null,
+      selectedRestrictionSiteId: null,
+      activeView: 'sequence',
+    });
+    useActivityStore.getState().clearEvents();
+  });
+
+  it('registers exactly 10 tools asynchronously', async () => {
+    const controller = new AbortController();
+    await registerSeqCraftTools(mockMcp, controller.signal);
+    
+    expect(mockMcp.registerTool).toHaveBeenCalledTimes(10);
+    
+    const expectedNames = [
+      'seqcraft_analyze_primer',
+      'seqcraft_analyze_restriction_sites',
+      'seqcraft_focus_region',
+      'seqcraft_get_active_document',
+      'seqcraft_show_feature',
+      'seqcraft_show_restriction_site',
+      'seqcraft_simulate_digest',
+      'seqcraft_simulate_pcr',
+      'seqcraft_list_documents',
+      'seqcraft_prepare_restriction_clone',
+    ].sort();
+    
+    const actualNames = [...registeredTools.keys()].sort();
+    expect(actualNames).toEqual(expectedNames);
+  });
+
+  it('scientific tools have readOnlyHint=true, action tools have readOnlyHint=false', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    
+    // Scientific (read-only)
+    const readOnlyTools = [
+      'seqcraft_get_active_document',
+      'seqcraft_analyze_restriction_sites',
+      'seqcraft_simulate_digest',
+      'seqcraft_analyze_primer',
+      'seqcraft_simulate_pcr',
+    ];
+    for (const name of readOnlyTools) {
+      expect(registeredTools.get(name)!.annotations.readOnlyHint).toBe(true);
+    }
+
+    // Action (navigation)
+    const actionTools = [
+      'seqcraft_focus_region',
+      'seqcraft_show_restriction_site',
+      'seqcraft_show_feature',
+    ];
+    for (const name of actionTools) {
+      expect(registeredTools.get(name)!.annotations.readOnlyHint).toBe(false);
+    }
+  });
+
+  it('active document resolves at execution time and missing active document produces structured error', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const getActiveDoc = registeredTools.get('seqcraft_get_active_document')!.execute;
+    
+    // initially no active doc
+    let res = await getActiveDoc({});
+    expect(res.ok).toBe(false);
+    expect(res.error.code).toBe('NO_ACTIVE_DOCUMENT');
+    
+    // add doc
+    const pUC19 = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(pUC19);
+    
+    res = await getActiveDoc({});
+    expect(res.ok).toBe(true);
+    expect(res.result.lengthBp).toBe(2686);
+    expect(res.result.topology).toBe('circular');
+  });
+
+  it('restriction tool invokes existing restriction engine (and unknown enzyme produces structured error)', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const pUC19 = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(pUC19);
+    
+    const analyzeRes = registeredTools.get('seqcraft_analyze_restriction_sites')!.execute;
+    
+    // error
+    const errRes = await analyzeRes({ enzymeNames: ['NotAnEnzyme'] });
+    expect(errRes.ok).toBe(false);
+    expect(errRes.error.code).toBe('UNKNOWN_ENZYME');
+    expect(errRes.error.details.availableBuiltinEnzymes).toContain('EcoRI');
+    
+    // success
+    const res = await analyzeRes({ enzymeNames: ['EcoRI', 'HindIII'] });
+    expect(res.ok).toBe(true);
+    expect(res.result.sites.length).toBe(2);
+    expect(res.result.sites[0].start1).toBeGreaterThan(0);
+  });
+
+  it('digest tool returns expected pUC19 fragment sizes', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const pUC19 = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(pUC19);
+    
+    const digest = registeredTools.get('seqcraft_simulate_digest')!.execute;
+    const res = await digest({ enzymeNames: ['EcoRI', 'HindIII'] });
+    
+    expect(res.ok).toBe(true);
+    expect(res.result.fragments.length).toBe(2);
+    
+    const lengths = res.result.fragments.map((f: any) => f.lengthBp).sort((a: number, b: number) => a - b);
+    expect(lengths).toEqual([51, 2635]);
+  });
+
+  it('primer tool returns expected pUC19 binding', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const pUC19 = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(pUC19);
+    
+    const analyzePrimer = registeredTools.get('seqcraft_analyze_primer')!.execute;
+    const seq = pUC19.sequence.raw.substring(99, 121);
+    
+    const res = await analyzePrimer({ sequence: seq });
+    expect(res.ok).toBe(true);
+    expect(res.result.bindingCount).toBe(1);
+    expect(res.result.bindings[0].start1).toBe(100);
+    expect(res.result.bindings[0].end1).toBe(121);
+  });
+
+  it('PCR tool returns the known pUC19 422 bp product', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const pUC19 = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(pUC19);
+    
+    const fwd = pUC19.sequence.raw.substring(99, 121);
+    const rev = reverseComplementIupac(pUC19.sequence.raw.substring(499, 521));
+    
+    const pcr = registeredTools.get('seqcraft_simulate_pcr')!.execute;
+    const res = await pcr({ forwardPrimerSequence: fwd, reversePrimerSequence: rev });
+    
+    expect(res.ok).toBe(true);
+    expect(res.result.productCount).toBe(1);
+    expect(res.result.products[0].lengthBp).toBe(422);
+  });
+
+  // ─── New action tool tests ──────────────────────────────────
+
+  it('seqcraft_focus_region changes shared selection state', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const pUC19 = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(pUC19);
+
+    const focus = registeredTools.get('seqcraft_focus_region')!.execute;
+    const res = await focus({ start1: 400, end1: 500 });
+
+    expect(res.ok).toBe(true);
+    expect(res.result.start1).toBe(400);
+    expect(res.result.end1).toBe(500);
+    expect(res.result.lengthBp).toBe(101);
+
+    const sel = useWorkspaceStore.getState().selection;
+    expect(sel).not.toBeNull();
+    expect(sel!.start0).toBe(399);
+    expect(sel!.end0Exclusive).toBe(500);
+  });
+
+  it('seqcraft_focus_region with view=map switches activeView', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const pUC19 = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(pUC19);
+
+    expect(useWorkspaceStore.getState().activeView).toBe('sequence');
+    
+    await registeredTools.get('seqcraft_focus_region')!.execute({ start1: 100, end1: 200, view: 'map' });
+    
+    expect(useWorkspaceStore.getState().activeView).toBe('map');
+  });
+
+  it('seqcraft_show_restriction_site selects the real EcoRI site on pUC19', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const pUC19 = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(pUC19);
+
+    const showSite = registeredTools.get('seqcraft_show_restriction_site')!.execute;
+    const res = await showSite({ enzymeName: 'EcoRI', occurrence: 1, view: 'map' });
+
+    expect(res.ok).toBe(true);
+    expect(res.result.enzymeName).toBe('EcoRI');
+    expect(res.result.selectedRestrictionSiteId).toBeTruthy();
+    expect(useWorkspaceStore.getState().selectedRestrictionSiteId).toBe(res.result.selectedRestrictionSiteId);
+    expect(useWorkspaceStore.getState().activeView).toBe('map');
+  });
+
+  it('seqcraft_show_feature with AmpR selects the real pUC19 feature', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const pUC19 = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(pUC19);
+
+    const showFeat = registeredTools.get('seqcraft_show_feature')!.execute;
+    const res = await showFeat({ featureName: 'AmpR', view: 'map' });
+
+    expect(res.ok).toBe(true);
+    expect(res.result.name).toMatch(/amp/i);
+    expect(res.result.selectedFeatureId).toBeTruthy();
+    expect(useWorkspaceStore.getState().selectedFeatureId).toBe(res.result.selectedFeatureId);
+    expect(useWorkspaceStore.getState().activeView).toBe('map');
+  });
+
+  it('activity event appears after each action tool execution', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const pUC19 = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(pUC19);
+
+    await registeredTools.get('seqcraft_focus_region')!.execute({ start1: 100, end1: 200 });
+    await registeredTools.get('seqcraft_show_restriction_site')!.execute({ enzymeName: 'EcoRI' });
+    await registeredTools.get('seqcraft_show_feature')!.execute({ featureName: 'AmpR' });
+    
+    const events = useActivityStore.getState().events;
+    expect(events.length).toBe(3);
+
+    const toolNames = events.map(e => e.toolName);
+    expect(toolNames).toContain('seqcraft_focus_region');
+    expect(toolNames).toContain('seqcraft_show_restriction_site');
+    expect(toolNames).toContain('seqcraft_show_feature');
+
+    // All succeeded
+    events.forEach(e => expect(e.status).toBe('success'));
+  });
+
+  it('active document is resolved at execution time for action tools', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    
+    // No doc — should fail
+    const focusTool = registeredTools.get('seqcraft_focus_region')!.execute;
+    const res1 = await focusTool({ start1: 1, end1: 100 });
+    expect(res1.ok).toBe(false);
+    expect(res1.error.code).toBe('NO_ACTIVE_DOCUMENT');
+
+    // Add doc — same tool should succeed
+    const pUC19 = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(pUC19);
+    
+    const res2 = await focusTool({ start1: 1, end1: 100 });
+    expect(res2.ok).toBe(true);
+  });
+
+  it('registration uses AbortSignal', async () => {
+    const controller = new AbortController();
+    await registerSeqCraftTools(mockMcp, controller.signal);
+    
+    // Every call received the signal
+    const calls = mockMcp.registerTool.mock.calls;
+    expect(calls.length).toBe(10);
+    calls.forEach((call: any[]) => {
+      expect(call[1].signal).toBe(controller.signal);
+    });
+  });
+});

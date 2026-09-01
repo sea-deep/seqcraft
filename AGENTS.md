@@ -1,0 +1,131 @@
+# SeqCraft Agent Notes
+
+## Non-negotiable contracts
+- FEATURES.md controls scope.
+- DESIGN.md controls UI/UX.
+- IMPLEMENTATION.md controls architecture.
+- Internal coordinates are 0-based half-open.
+- Persistent agent changes are staged for human approval.
+
+## Current phase
+Phase 2 — Scientific Visualization
+
+## Completed
+- Phase 0: Repository audit, domain types.
+- Phase 1: Documents and Import (AppShell, bio-parsers integration, correctness gates).
+- Phase 2 (Linear Viewer): SequenceViewer virtualization, canonical ch-based base geometry, exact circular boundary validation, multi-segment feature separation, programmatic selection store.
+
+## In progress
+- Phase 2: Scientific Visualization
+
+## Next
+- Circular map integration.
+
+## Decisions
+- Linear viewer uses `ch` units and CSS monospace metrics for deterministic coordinate-to-screen mapping instead of pixel measuring.
+- Alphabet inference is strictly rule-based based on IUPAC U and T boundaries.
+- Circular origin-spanning features are correctly split into two logical segments `[start, len]` and `[0, end]`.
+
+## UI Phase Execution Rule
+During UI phases, implement only the atomic task explicitly requested by the user. Do not automatically continue to the next PLAN item. Stop after verification and report the result.
+
+## Workspace Navigation
+- Center workspace navigation completed (Sequence, Map, Compare).
+- Active view is driven by `useWorkspaceStore` string state.
+- Empty states implemented for upcoming Map and Compare modes.
+- Next task left unspecified until the next user instruction.
+
+## Inspector Synchronization
+- Contextual Inspector completed.
+- Precedence model established: Feature > Selection > Document.
+- Selected feature architecture implemented, synchronizing visual selection in `SequenceViewer` and right-side metadata.
+
+## 3D Map Rendering
+- Installed `three`, `@react-three/fiber`, and `@react-three/drei`.
+- Created basic 3D rendering pipeline for the Map view.
+- Added `plasmid-geometry.ts` for polar coordinate resolution.
+- Rendered basic `<PlasmidRing />` inside `<PlasmidMap3D />`.
+- 3D biological feature arcs completed
+- canonical clockwise plasmid coordinate mapping
+- deterministic overlapping feature lanes
+- 3D feature geometry upgraded to flat annular ribbons
+- directional 3D feature ribbons completed
+- segment-level ribbon component established
+- circular biological endpoint semantics verified
+- 3D ribbon arrow proportions refined
+- 3D feature hover interaction completed
+- floating feature labels completed
+- Map and Sequence feature selection unified
+- 3D persistent selected-feature state completed
+- bounded 3D zoom controls completed
+- feature-driven camera focus completed
+- canonical Map reset view completed
+- Sequence and 3D nucleotide selection synchronized
+- circular selection geometry established
+- coordinate ↔ angle round-trip established
+- direct 3D nucleotide selection completed
+- circular drag-selection semantics established
+- Map and Sequence nucleotide interaction unified
+- 3D pointer interaction priority finalized
+- feature / nucleotide / camera gestures unified
+
+## Restriction Analysis
+- restriction enzyme domain established
+- IUPAC-aware linear/circular site detection completed
+- restriction cut coordinates normalized
+- linear restriction-site track completed
+- restriction-site Inspector context completed
+- restriction end-type classification established
+- 3D restriction-site markers completed
+- restriction-site Map/Sequence selection unified
+- restriction-site camera focus completed
+- restriction digest engine completed
+- linear/circular fragment simulation completed
+- sticky/blunt digest-end semantics established
+- digest-end orientation semantics completed
+- sticky ends cloning-ready
+- primer domain established
+- primer scientific properties completed
+- linear/circular exact primer binding completed
+- PCR simulation engine completed
+- linear/circular amplicon generation completed
+- multi-binding PCR ambiguity detection completed
+- two-primer PCR participation invariant established
+- WebMCP bridge established
+- read-only scientific WebMCP tools exposed
+- active-document WebMCP context established
+- WebMCP activity logging established
+- current document.modelContext WebMCP contract adopted
+- WebMCP execute callbacks verified
+- WebMCP async registration lifecycle verified
+- real browser WebMCP discovery verified
+- local WebMCP runtime verified
+- five SeqCraft tools discovered through document.modelContext
+- agent-controlled scientific navigation completed
+- focusSequenceRegion / showRestrictionSite / showFeature application commands
+- seqcraft_focus_region / seqcraft_show_restriction_site / seqcraft_show_feature WebMCP tools
+- eight SeqCraft tools discovered through document.modelContext
+- navigation tools use readOnlyHint: false (UI state mutation)
+- activity drawer with expandable tool execution history
+- real browser agent navigation verified (EcoRI site, AmpR feature, region focus)
+
+## Restriction Cloning
+- restriction cloning domain established (proposals, candidates, ends)
+- ligation compatibility engine completed (sticky/blunt end analysis)
+- restriction cloning planner completed
+- vector backbone / insert extraction logic established
+- directional insertion simulation (forward/reverse complement logic) completed
+- coordinate-aware feature mapping to recombinant circular vector completed
+- human-in-the-loop cloning state management established (useCloningStore)
+- application-level cloning actions exposed (prepare, approve, cancel)
+- WebMCP `seqcraft_list_documents` completed
+- WebMCP `seqcraft_prepare_restriction_clone` completed
+- agent cloning requests correctly staged awaiting human approval
+- `CloningApprovalModal` rendering candidate fragments, lengths, compatibility, and orientation toggle completed
+- WebMCP tests expanded to 10 tools
+- demo cloning donor generated successfully
+
+## Deployment Notes
+- Production deployments must serve `Origin-Agent-Cluster: ?1` and `Permissions-Policy: tools=(self)` to comply with WebMCP isolation requirements.
+
+- real local browser WebMCP registration verified

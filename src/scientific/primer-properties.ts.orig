@@ -1,0 +1,19 @@
+import { Seq } from 'nucleotide-sequence';
+import type { Primer } from '../domain/primer';
+
+export interface PrimerProperties {
+  length: number;
+  gcPercent: number;
+  meltingTemperature: number;
+  molecularWeight: number;
+}
+
+export function analyzePrimerProperties(primerSequence: string): PrimerProperties {
+  const seq = new Seq(primerSequence.toUpperCase());
+  return {
+    length: primerSequence.length,
+    gcPercent: seq.gcContent(),
+    meltingTemperature: seq.meltingTemperature(),
+    molecularWeight: seq.molecularWeight(),
+  };
+}

@@ -1,0 +1,14 @@
+--- src/scientific/digest.ts
++++ src/scientific/digest.ts
+@@ -62,8 +62,10 @@
+     if (f === r) return '';
+     
+     let dist = r - f;
+-    if (dist > sequenceLength / 2) dist -= sequenceLength;
+-    if (dist < -sequenceLength / 2) dist += sequenceLength;
++    if (topology === 'circular') {
++      if (dist > sequenceLength / 2) dist -= sequenceLength;
++      if (dist < -sequenceLength / 2) dist += sequenceLength;
++    }
+     
+     const absDist = Math.abs(dist);

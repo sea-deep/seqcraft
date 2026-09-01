@@ -2,6 +2,7 @@ import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "reac
 import { useWorkspaceStore } from "../state/workspace-store";
 import { Info, X } from 'lucide-react';
 import { useEffect, useRef, useState } from "react";
+import { useHotkeys } from 'react-hotkeys-hook';
 
 import { loadDemoWorkspace } from "../data/demo-workspace";
 import { WorkspaceCenter } from "../components/workspace/WorkspaceCenter";
@@ -17,10 +18,28 @@ import { EditorStatusBar } from '../components/shell/EditorStatusBar';
 export function AppShell() {
   const documents = useWorkspaceStore(s => s.documents);
   const sidebarOpen = useWorkspaceStore(s => s.sidebarOpen);
+  const setSidebarOpen = useWorkspaceStore(s => s.setSidebarOpen);
   const inspectorOpen = useWorkspaceStore(s => s.inspectorOpen);
   const setInspectorOpen = useWorkspaceStore(s => s.setInspectorOpen);
+  const setActiveView = useWorkspaceStore(s => s.setActiveView);
+  const activeDocumentId = useWorkspaceStore(s => s.activeDocumentId);
+  const closeDocumentTab = useWorkspaceStore(s => s.closeDocumentTab);
   const initialized = useRef(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Keyboard Shortcuts
+  useHotkeys('mod+b', (e) => { e.preventDefault(); setSidebarOpen(!sidebarOpen); }, [sidebarOpen]);
+  useHotkeys('mod+i', (e) => { e.preventDefault(); setInspectorOpen(!inspectorOpen); }, [inspectorOpen]);
+  useHotkeys('mod+w', (e) => { 
+    e.preventDefault(); 
+    if (activeDocumentId) closeDocumentTab(activeDocumentId);
+  }, [activeDocumentId]);
+  
+  useHotkeys('1', () => setActiveView('map'));
+  useHotkeys('2', () => setActiveView('sequence'));
+  useHotkeys('3', () => setActiveView('features'));
+  useHotkeys('4', () => setActiveView('primers'));
+  useHotkeys('5', () => setActiveView('enzymes'));
 
   useEffect(() => {
     if (!initialized.current && documents.length === 0) {
@@ -34,24 +53,24 @@ export function AppShell() {
       <AppCommandBar />
 
       <div className="flex-1 min-h-0">
-        <PanelGroup orientation="horizontal">
+        <PanelGroup autoSaveId="seqcraft-main-layout" orientation="horizontal">
           {sidebarOpen && (
             <>
-              <Panel defaultSize={18} minSize={12} maxSize={30} className="bg-[var(--panel-muted)] flex flex-col">
+              <Panel id="sidebar" order={1} defaultSize={220} minSize={200} maxSize={320} className="bg-[var(--panel-muted)] flex flex-col">
                 <ProjectSidebar />
               </Panel>
               <PanelResizeHandle className="w-px bg-[var(--border)] hover:bg-[var(--accent)] transition-colors cursor-col-resize" />
             </>
           )}
 
-          <Panel className="bg-[var(--bg)] relative">
+          <Panel id="center" order={2} className="bg-[var(--bg)] relative">
             <WorkspaceCenter />
           </Panel>
 
           {inspectorOpen && (
             <>
               <PanelResizeHandle className="w-px bg-[var(--border)] hover:bg-[var(--accent)] transition-colors cursor-col-resize" />
-              <Panel defaultSize={22} minSize={15} maxSize={35} className="bg-[var(--panel)] flex flex-col">
+              <Panel id="inspector" order={3} defaultSize={260} minSize={220} maxSize={380} className="bg-[var(--panel)] flex flex-col">
                 <div className="h-[36px] border-b border-[var(--border)] flex items-center justify-between px-3 shrink-0 bg-[var(--panel-muted)]">
                   <div className="flex items-center text-[var(--text-muted)] text-[11px] font-semibold tracking-wider uppercase">
                     <Info className="w-3.5 h-3.5 mr-1.5" />

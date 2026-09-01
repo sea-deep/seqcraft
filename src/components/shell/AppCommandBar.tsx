@@ -6,7 +6,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator
+  DropdownMenuSeparator,
+  DropdownMenuShortcut
 } from '../ui/dropdown-menu';
 
 import { useState } from 'react';
@@ -30,7 +31,7 @@ export function AppCommandBar() {
               {activeDocumentId && (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => closeDocumentTab(activeDocumentId)}>Close Document</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => closeDocumentTab(activeDocumentId)}>Close Document<DropdownMenuShortcut>⌘W</DropdownMenuShortcut></DropdownMenuItem>
                   <DropdownMenuItem onClick={() => useWorkspaceStore.getState().closeAllDocuments()}>Close All Documents</DropdownMenuItem>
                 </>
               )}
@@ -50,15 +51,15 @@ export function AppCommandBar() {
           <DropdownMenu>
             <DropdownMenuTrigger className="px-2 py-1 rounded hover:bg-[var(--panel-muted)] outline-none data-[state=open]:bg-[var(--panel-muted)] cursor-default">View</DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => setActiveView('map')}>Map</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveView('sequence')}>Sequence</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveView('features')}>Features</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveView('primers')}>Primers</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveView('enzymes')}>Enzymes</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('map')}>Map<DropdownMenuShortcut>1</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('sequence')}>Sequence<DropdownMenuShortcut>2</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('features')}>Features<DropdownMenuShortcut>3</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('primers')}>Primers<DropdownMenuShortcut>4</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('enzymes')}>Enzymes<DropdownMenuShortcut>5</DropdownMenuShortcut></DropdownMenuItem>
               <DropdownMenuItem onClick={() => setActiveView('history')}>History</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => useWorkspaceStore.getState().setSidebarOpen(!useWorkspaceStore.getState().sidebarOpen)}>Toggle Project Panel</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => useWorkspaceStore.getState().setInspectorOpen(!useWorkspaceStore.getState().inspectorOpen)}>Toggle Inspector</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => useWorkspaceStore.getState().setSidebarOpen(!useWorkspaceStore.getState().sidebarOpen)}>Toggle Project Panel<DropdownMenuShortcut>⌘B</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuItem onClick={() => useWorkspaceStore.getState().setInspectorOpen(!useWorkspaceStore.getState().inspectorOpen)}>Toggle Inspector<DropdownMenuShortcut>⌘I</DropdownMenuShortcut></DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 

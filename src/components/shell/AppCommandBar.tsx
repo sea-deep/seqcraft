@@ -31,7 +31,7 @@ export function AppCommandBar() {
               {activeDocumentId && (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => closeDocumentTab(activeDocumentId)}>Close Document<DropdownMenuShortcut>⌘W</DropdownMenuShortcut></DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => closeDocumentTab(activeDocumentId)}>Close Document<DropdownMenuShortcut>Alt+W</DropdownMenuShortcut></DropdownMenuItem>
                   <DropdownMenuItem onClick={() => useWorkspaceStore.getState().closeAllDocuments()}>Close All Documents</DropdownMenuItem>
                 </>
               )}
@@ -58,8 +58,8 @@ export function AppCommandBar() {
               <DropdownMenuItem onClick={() => setActiveView('enzymes')}>Enzymes<DropdownMenuShortcut>5</DropdownMenuShortcut></DropdownMenuItem>
               <DropdownMenuItem onClick={() => setActiveView('history')}>History</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => useWorkspaceStore.getState().setSidebarOpen(!useWorkspaceStore.getState().sidebarOpen)}>Toggle Project Panel<DropdownMenuShortcut>⌘B</DropdownMenuShortcut></DropdownMenuItem>
-              <DropdownMenuItem onClick={() => useWorkspaceStore.getState().setInspectorOpen(!useWorkspaceStore.getState().inspectorOpen)}>Toggle Inspector<DropdownMenuShortcut>⌘I</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuItem onClick={() => useWorkspaceStore.getState().setSidebarOpen(!useWorkspaceStore.getState().sidebarOpen)}>Toggle Project Panel<DropdownMenuShortcut>Alt+B</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuItem onClick={() => useWorkspaceStore.getState().setInspectorOpen(!useWorkspaceStore.getState().inspectorOpen)}>Toggle Inspector<DropdownMenuShortcut>Alt+I</DropdownMenuShortcut></DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 

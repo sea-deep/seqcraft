@@ -28,9 +28,9 @@ export function AppShell() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Keyboard Shortcuts
-  useHotkeys('mod+b', (e) => { e.preventDefault(); setSidebarOpen(!sidebarOpen); }, [sidebarOpen]);
-  useHotkeys('mod+i', (e) => { e.preventDefault(); setInspectorOpen(!inspectorOpen); }, [inspectorOpen]);
-  useHotkeys('mod+w', (e) => { 
+  useHotkeys('alt+b', (e) => { e.preventDefault(); setSidebarOpen(!sidebarOpen); }, [sidebarOpen]);
+  useHotkeys('alt+i', (e) => { e.preventDefault(); setInspectorOpen(!inspectorOpen); }, [inspectorOpen]);
+  useHotkeys('alt+w', (e) => { 
     e.preventDefault(); 
     if (activeDocumentId) closeDocumentTab(activeDocumentId);
   }, [activeDocumentId]);

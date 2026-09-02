@@ -1,10 +1,22 @@
-
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Dna, Plus, Search, FileUp, Circle, Minus, BookOpen, Trash2, CheckSquare, Square, Cloud, CloudOff, RefreshCw } from 'lucide-react';
+import { 
+  Dna, Plus, Search, FileUp, Circle, Minus, BookOpen, Trash2, 
+  CheckSquare, Square, Cloud, CloudOff, RefreshCw, X, ArrowUpRight,
+  Filter
+} from 'lucide-react';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { ImportDialog } from '../components/ui/ImportDialog';
 import { useWorkspaceCloudSync } from '../platform/workspace-sync';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '../components/ui/dialog';
+import { Button } from '../components/ui/button';
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -13,186 +25,333 @@ export function DashboardPage() {
   const removeDocument = useWorkspaceStore(s => s.removeDocument);
   const cloud = useWorkspaceCloudSync();
 
+  const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [confirmBulkDeleteOpen, setConfirmBulkDeleteOpen] = useState(false);
+  const [docToDelete, setDocToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  const filteredDocuments = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return documents;
+    return documents.filter(doc => 
+      doc.name.toLowerCase().includes(q) ||
+      doc.topology.toLowerCase().includes(q) ||
+      doc.features.some(f => f.name.toLowerCase().includes(q) || f.type.toLowerCase().includes(q))
+    );
+  }, [documents, searchQuery]);
 
   const openDocument = (id: string) => {
     setActiveDocument(id);
     navigate('/editor');
   };
 
-  const handleDelete = (e: React.MouseEvent, id: string, name: string) => {
-    e.stopPropagation();
-    if (window.confirm(`Are you sure you want to delete ${name}?`)) {
-      removeDocument(id);
-      if (selectedIds.has(id)) {
-        const next = new Set(selectedIds);
-        next.delete(id);
-        setSelectedIds(next);
-      }
+  const handleCardClick = (id: string) => {
+    if (isSelectMode) {
+      toggleSelection(id);
+    } else {
+      openDocument(id);
     }
   };
 
-  const toggleSelection = (e: React.MouseEvent | React.ChangeEvent, id: string) => {
-    e.stopPropagation();
+  const toggleSelection = (id: string) => {
     const next = new Set(selectedIds);
     if (next.has(id)) next.delete(id);
     else next.add(id);
     setSelectedIds(next);
   };
 
-  const handleBulkDelete = () => {
-    if (window.confirm(`Are you sure you want to delete ${selectedIds.size} selected sequences?`)) {
-      const remaining = documents.filter(d => !selectedIds.has(d.id));
-      useWorkspaceStore.setState({ 
-        documents: remaining, 
-        activeDocumentId: useWorkspaceStore.getState().activeDocumentId && selectedIds.has(useWorkspaceStore.getState().activeDocumentId!) ? null : useWorkspaceStore.getState().activeDocumentId 
-      });
+  const handleSelectAllToggle = () => {
+    if (selectedIds.size === documents.length) {
       setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(documents.map(d => d.id)));
     }
   };
 
-  const handleSelectAll = () => {
-    if (selectedIds.size === documents.length) {
-      setSelectedIds(new Set()); // Deselect all
-    } else {
-      setSelectedIds(new Set(documents.map(d => d.id))); // Select all
+  const handleExecuteBulkDelete = () => {
+    const remaining = documents.filter(d => !selectedIds.has(d.id));
+    const activeDocId = useWorkspaceStore.getState().activeDocumentId;
+    useWorkspaceStore.setState({ 
+      documents: remaining, 
+      activeDocumentId: activeDocId && selectedIds.has(activeDocId) ? null : activeDocId 
+    });
+    setSelectedIds(new Set());
+    setIsSelectMode(false);
+    setConfirmBulkDeleteOpen(false);
+  };
+
+  const handleExecuteSingleDelete = () => {
+    if (!docToDelete) return;
+    removeDocument(docToDelete.id);
+    if (selectedIds.has(docToDelete.id)) {
+      const next = new Set(selectedIds);
+      next.delete(docToDelete.id);
+      setSelectedIds(next);
     }
+    setDocToDelete(null);
+  };
+
+  const exitSelectMode = () => {
+    setIsSelectMode(false);
+    setSelectedIds(new Set());
   };
 
   return (
     <div className="min-h-screen bg-[var(--bg)] flex flex-col font-sans text-[var(--text)]">
       {/* Top Navigation */}
       <nav className="flex items-center justify-between px-6 py-3 border-b border-[var(--border)] bg-[var(--panel)]">
-        <div className="flex items-center gap-2 font-semibold">
-          <div className="w-8 h-8 rounded bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center">
+        <div className="flex items-center gap-2.5 font-semibold text-[15px]">
+          <div className="w-8 h-8 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center border border-[var(--accent)]/20">
             <Dna size={18} />
           </div>
-          Workspace
+          <span className="tracking-tight">SeqCraft</span>
+          <span className="text-[11px] font-mono uppercase px-1.5 py-0.5 rounded bg-[var(--panel-muted)] text-[var(--text-muted)] border border-[var(--border)]">
+            Workspace
+          </span>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)]" title={cloud.accountName ?? 'Sequences remain private in this browser'}>
-            {cloud.status === 'syncing' ? <RefreshCw size={14} className="animate-spin" /> : cloud.status === 'synced' ? <Cloud size={14} className="text-[var(--success)]" /> : <CloudOff size={14} />}
-            {cloud.status === 'synced' ? 'Metadata synced' : cloud.status === 'syncing' ? 'Syncing metadata' : cloud.status === 'error' ? 'Sync unavailable' : 'Private guest'}
+            {cloud.status === 'syncing' ? <RefreshCw size={14} className="animate-spin text-[var(--accent)]" /> : cloud.status === 'synced' ? <Cloud size={14} className="text-[var(--success)]" /> : <CloudOff size={14} />}
+            {cloud.status === 'synced' ? 'Metadata synced' : cloud.status === 'syncing' ? 'Syncing metadata' : cloud.status === 'error' ? 'Sync unavailable' : 'Private local'}
           </div>
-          <Link to="/docs" className="text-[13px] text-[var(--text-muted)] hover:text-[var(--text)] flex items-center gap-1.5">
+          <Link to="/docs" className="text-[13px] text-[var(--text-muted)] hover:text-[var(--text)] flex items-center gap-1.5 transition-colors">
             <BookOpen size={14} /> Documentation
           </Link>
           <div className="w-px h-4 bg-[var(--border)]" />
-          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500 to-[var(--accent)] cursor-pointer" title="My Account" />
+          <Link 
+            to="/editor" 
+            className="h-8 px-3 text-[12px] font-medium rounded bg-[var(--panel)] hover:bg-[var(--panel-muted)] border border-[var(--border)] text-[var(--text)] flex items-center gap-1.5 transition-colors"
+          >
+            Open Editor <ArrowUpRight size={13} />
+          </Link>
         </div>
       </nav>
 
       {/* Main Content */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-8">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold">Your Sequences</h1>
-            {documents.length > 0 && (
-              <button 
-                onClick={handleSelectAll}
-                className="text-[13px] text-[var(--text-muted)] hover:text-[var(--text)] flex items-center gap-1.5 ml-4"
-              >
-                {selectedIds.size === documents.length ? <CheckSquare size={16} /> : <Square size={16} />}
-                Select All
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {selectedIds.size > 0 && (
-              <button 
-                onClick={handleBulkDelete}
-                className="text-white bg-[var(--danger)] hover:bg-[var(--danger)]/90 px-3 py-2 rounded-md text-[13px] font-medium transition-colors flex items-center gap-2"
-                title="Delete selected sequences"
-              >
-                <Trash2 size={16} /> Delete Selected ({selectedIds.size})
-              </button>
-            )}
-            
-            {documents.length > 0 && selectedIds.size === 0 && (
-              <button 
-                onClick={() => {
-                  if (window.confirm(`Are you sure you want to delete all ${documents.length} sequences? This cannot be undone.`)) {
-                    useWorkspaceStore.setState({ documents: [], activeDocumentId: null });
-                  }
-                }}
-                className="text-[var(--danger)] hover:bg-[var(--danger)]/10 px-3 py-2 rounded-md text-[13px] font-medium transition-colors flex items-center gap-2"
-                title="Delete all sequences"
-              >
-                <Trash2 size={16} /> Delete All
-              </button>
-            )}
-
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] w-4 h-4" />
-              <input 
-                type="text" 
-                placeholder="Search projects..." 
-                className="pl-9 pr-4 py-2 text-[13px] rounded-md border border-[var(--border)] bg-[var(--panel)] outline-none focus:border-[var(--accent)] w-64"
-              />
-            </div>
-            <ImportDialog>
-              <div className="cursor-pointer bg-[var(--accent)] text-white px-4 py-2 rounded-md text-[13px] font-medium flex items-center gap-2 hover:bg-[var(--accent)]/90 transition-colors">
-                <Plus size={16} /> New Sequence
+        {/* Header and Contextual Toolbar */}
+        <div className="mb-6">
+          {isSelectMode ? (
+            /* Contextual Selection Action Bar */
+            <div className="flex items-center justify-between bg-[var(--panel)] border border-[var(--accent)]/40 rounded-lg px-4 py-3 shadow-sm animate-in fade-in-50 duration-150">
+              <div className="flex items-center gap-3">
+                <div className="size-8 rounded-md bg-[var(--accent)]/15 text-[var(--accent)] flex items-center justify-center">
+                  <CheckSquare size={17} />
+                </div>
+                <div>
+                  <div className="font-semibold text-[14px]">
+                    {selectedIds.size} of {documents.length} selected
+                  </div>
+                  <div className="text-[11px] text-[var(--text-muted)]">
+                    Click sequences to toggle selection
+                  </div>
+                </div>
+                <div className="w-px h-6 bg-[var(--border)] mx-1" />
+                <button 
+                  onClick={handleSelectAllToggle}
+                  className="text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text)] px-2.5 py-1.5 rounded hover:bg-[var(--panel-muted)] flex items-center gap-1.5 transition-colors"
+                >
+                  {selectedIds.size === documents.length ? (
+                    <>
+                      <Square size={15} /> Deselect All
+                    </>
+                  ) : (
+                    <>
+                      <CheckSquare size={15} /> Select All
+                    </>
+                  )}
+                </button>
               </div>
-            </ImportDialog>
-          </div>
+
+              <div className="flex items-center gap-2">
+                {selectedIds.size > 0 && (
+                  <button 
+                    onClick={() => setConfirmBulkDeleteOpen(true)}
+                    className="h-9 px-3.5 text-[13px] font-medium rounded-md bg-[var(--danger)] hover:bg-[var(--danger)]/90 text-white transition-colors flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Trash2 size={14} />
+                    Delete {selectedIds.size === documents.length ? 'All' : 'Selected'} ({selectedIds.size})
+                  </button>
+                )}
+                <button 
+                  onClick={exitSelectMode}
+                  className="h-9 px-3.5 text-[13px] font-medium rounded-md border border-[var(--border)] bg-[var(--panel)] hover:bg-[var(--panel-muted)] text-[var(--text)] transition-colors flex items-center gap-1.5"
+                >
+                  <X size={14} /> Done
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Normal Browsing Header */
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold tracking-tight">Your Sequences</h1>
+                <span className="text-[12px] font-medium text-[var(--text-muted)] bg-[var(--panel-muted)] border border-[var(--border)] px-2 py-0.5 rounded-full">
+                  {documents.length}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                {documents.length > 0 && (
+                  <>
+                    {/* Live Search Filter */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] w-3.5 h-3.5" />
+                      <input 
+                        type="text" 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search sequences..." 
+                        className="pl-8 pr-7 py-1.5 text-[13px] rounded-md border border-[var(--border)] bg-[var(--panel)] outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] w-52 transition-all placeholder:text-[var(--text-muted)]"
+                      />
+                      {searchQuery && (
+                        <button 
+                          onClick={() => setSearchQuery('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] p-0.5 rounded"
+                          title="Clear search"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Enter Selection Mode */}
+                    <button 
+                      onClick={() => setIsSelectMode(true)}
+                      className="h-9 px-3 text-[13px] font-medium rounded-md border border-[var(--border)] bg-[var(--panel)] hover:bg-[var(--panel-muted)] text-[var(--text-secondary)] hover:text-[var(--text)] transition-colors flex items-center gap-1.5"
+                      title="Select sequences to manage or delete"
+                    >
+                      <CheckSquare size={14} /> Select
+                    </button>
+                  </>
+                )}
+
+                {/* Primary New Sequence Action */}
+                <ImportDialog>
+                  <button className="h-9 px-3.5 text-[13px] font-medium rounded-md bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors flex items-center gap-1.5 shadow-sm">
+                    <Plus size={15} /> New Sequence
+                  </button>
+                </ImportDialog>
+              </div>
+            </div>
+          )}
         </div>
 
+        {/* Sequences Content */}
         {documents.length === 0 ? (
-          <div className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--border)] rounded-xl py-24 text-center">
-            <div className="w-16 h-16 bg-[var(--panel-muted)] rounded-full flex items-center justify-center mb-4 text-[var(--text-muted)]">
-              <FileUp size={28} />
+          /* Empty State */
+          <div className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--border)] rounded-xl py-24 text-center bg-[var(--panel)]/40">
+            <div className="w-14 h-14 bg-[var(--panel-muted)] border border-[var(--border)] rounded-full flex items-center justify-center mb-4 text-[var(--text-muted)]">
+              <FileUp size={24} />
             </div>
-            <h3 className="text-lg font-semibold mb-2">No sequences yet</h3>
-            <p className="text-[var(--text-muted)] text-[14px] max-w-sm mb-6">
-              Get started by importing a FASTA, GenBank, or raw sequence file to begin designing.
+            <h3 className="text-lg font-semibold mb-1.5">No sequences in workspace</h3>
+            <p className="text-[var(--text-muted)] text-[14px] max-w-sm mb-6 leading-relaxed">
+              Import a GenBank, FASTA, or raw nucleotide sequence to begin inspecting, annotating, and designing.
             </p>
             <ImportDialog>
-              <div className="cursor-pointer bg-[var(--panel)] border border-[var(--border)] text-[var(--text)] px-4 py-2 rounded-md text-[13px] font-medium flex items-center gap-2 hover:bg-[var(--panel-muted)] transition-colors">
-                <FileUp size={16} /> Import File
-              </div>
+              <button className="h-10 px-5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-md text-[13px] font-medium flex items-center gap-2 transition-colors shadow-sm">
+                <FileUp size={15} /> Import FASTA / GenBank
+              </button>
             </ImportDialog>
           </div>
+        ) : filteredDocuments.length === 0 ? (
+          /* Search Empty State */
+          <div className="py-16 text-center border border-[var(--border)] rounded-lg bg-[var(--panel)]/40">
+            <Filter size={24} className="mx-auto text-[var(--text-muted)] mb-3" />
+            <p className="text-[14px] font-medium text-[var(--text)]">No sequences match "{searchQuery}"</p>
+            <p className="text-[12px] text-[var(--text-muted)] mt-1">Try searching by sequence name, topology, or feature name.</p>
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="mt-4 px-3 py-1.5 text-[12px] font-medium text-[var(--accent)] hover:underline"
+            >
+              Clear search filter
+            </button>
+          </div>
         ) : (
+          /* Grid of Sequences */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {documents.map(doc => {
+            {filteredDocuments.map(doc => {
               const isSelected = selectedIds.has(doc.id);
               return (
                 <div 
                   key={doc.id}
-                  onClick={() => openDocument(doc.id)}
-                  className={`group relative border bg-[var(--panel)] rounded-lg p-5 cursor-pointer transition-colors flex flex-col h-40 ${isSelected ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]' : 'border-[var(--border)] hover:border-[var(--accent)]/50'}`}
+                  onClick={() => handleCardClick(doc.id)}
+                  className={`group relative border rounded-lg p-5 cursor-pointer transition-all flex flex-col justify-between h-44 ${
+                    isSelected 
+                      ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/30 bg-[var(--accent)]/5' 
+                      : 'border-[var(--border)] bg-[var(--panel)] hover:border-[var(--accent)]/50 hover:shadow-sm'
+                  }`}
                 >
-                  <div className="flex items-start gap-3 mb-2">
-                    <div className="pt-0.5" onClick={(e) => toggleSelection(e, doc.id)}>
-                      {isSelected ? (
-                        <CheckSquare size={16} className="text-[var(--accent)] cursor-pointer" />
-                      ) : (
-                        <Square size={16} className="text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" />
+                  <div>
+                    {/* Top Row: Checkbox / Name / Delete */}
+                    <div className="flex items-start gap-2.5 mb-2">
+                      {isSelectMode && (
+                        <div className="pt-0.5 shrink-0">
+                          {isSelected ? (
+                            <CheckSquare size={17} className="text-[var(--accent)]" />
+                          ) : (
+                            <Square size={17} className="text-[var(--text-muted)]" />
+                          )}
+                        </div>
+                      )}
+                      <div className="flex-1 overflow-hidden pr-6">
+                        <h3 className="font-semibold text-[15px] truncate text-[var(--text)] group-hover:text-[var(--accent)] transition-colors" title={doc.name}>
+                          {doc.name}
+                        </h3>
+                      </div>
+                      {!isSelectMode && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDocToDelete({ id: doc.id, name: doc.name });
+                          }}
+                          className="absolute top-3.5 right-3.5 text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded"
+                          title={`Delete ${doc.name}`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       )}
                     </div>
-                    <div className="flex-1 overflow-hidden pr-8">
-                      <h3 className="font-semibold text-[15px] truncate" title={doc.name}>{doc.name}</h3>
-                    </div>
-                    {!isSelected && (
-                      <button 
-                        onClick={(e) => handleDelete(e, doc.id, doc.name)}
-                        className="absolute top-4 right-4 text-[var(--text-muted)] hover:text-[var(--danger)] opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-[var(--bg)]"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+
+                    {/* Features Preview */}
+                    {doc.features.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {doc.features.slice(0, 3).map((f) => (
+                          <span 
+                            key={f.id} 
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--panel-muted)] text-[var(--text-secondary)] border border-[var(--border)] max-w-[120px] truncate"
+                          >
+                            {f.name}
+                          </span>
+                        ))}
+                        {doc.features.length > 3 && (
+                          <span className="text-[10px] px-1 py-0.5 text-[var(--text-muted)]">
+                            +{doc.features.length - 3} more
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                   
-                  <div className="flex items-center gap-2 text-[12px] text-[var(--text-muted)] mt-auto border-t border-[var(--border)] pt-3">
-                    <span className="flex items-center gap-1">
-                      {doc.topology === 'circular' ? <Circle size={12} /> : <Minus size={12} />}
-                      {doc.topology === 'circular' ? 'Circular' : 'Linear'}
+                  {/* Bottom Row: Metadata Badges */}
+                  <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] border-t border-[var(--border)] pt-2.5 mt-2">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 font-medium text-[var(--text-secondary)]">
+                        {doc.topology === 'circular' ? (
+                          <Circle size={11} className="text-[var(--accent)]" />
+                        ) : (
+                          <Minus size={11} />
+                        )}
+                        {doc.topology === 'circular' ? 'Circular' : 'Linear'}
+                      </span>
+                      <span>•</span>
+                      <span>{new Intl.NumberFormat('en-US').format(doc.length)} bp</span>
+                    </div>
+
+                    <span className="font-mono text-[10px] text-[var(--text-muted)]">
+                      {doc.features.length} {doc.features.length === 1 ? 'feature' : 'features'}
                     </span>
-                    <span>•</span>
-                    <span>{new Intl.NumberFormat('en-US').format(doc.length)} bp</span>
-                    <span>•</span>
-                    <span>{doc.features.length} features</span>
                   </div>
                 </div>
               );
@@ -200,6 +359,66 @@ export function DashboardPage() {
           </div>
         )}
       </main>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog open={confirmBulkDeleteOpen} onOpenChange={setConfirmBulkDeleteOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[var(--danger)]">
+              <Trash2 size={18} />
+              Delete {selectedIds.size} {selectedIds.size === 1 ? 'Sequence' : 'Sequences'}
+            </DialogTitle>
+            <DialogDescription className="pt-2 text-[13px] leading-relaxed">
+              Are you sure you want to delete <span className="font-semibold text-[var(--text)]">{selectedIds.size}</span> selected {selectedIds.size === 1 ? 'sequence' : 'sequences'}? 
+              This will remove all associated annotations, history, and metadata from your browser workspace. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2">
+            <Button variant="outline" size="sm" onClick={() => setConfirmBulkDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={handleExecuteBulkDelete}
+              className="gap-1.5"
+            >
+              <Trash2 size={14} />
+              Delete {selectedIds.size === 1 ? 'Sequence' : `${selectedIds.size} Sequences`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Single Delete Confirmation Dialog */}
+      <Dialog open={Boolean(docToDelete)} onOpenChange={(open) => !open && setDocToDelete(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[var(--danger)]">
+              <Trash2 size={18} />
+              Delete Sequence
+            </DialogTitle>
+            <DialogDescription className="pt-2 text-[13px] leading-relaxed">
+              Are you sure you want to delete <span className="font-semibold text-[var(--text)]">"{docToDelete?.name}"</span>? 
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2">
+            <Button variant="outline" size="sm" onClick={() => setDocToDelete(null)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={handleExecuteSingleDelete}
+              className="gap-1.5"
+            >
+              <Trash2 size={14} />
+              Delete Sequence
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

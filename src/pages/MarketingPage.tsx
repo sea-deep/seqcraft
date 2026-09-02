@@ -39,7 +39,7 @@ export function MarketingPage() {
                 Inspect plasmids, simulate PCR and restriction digests, compare constructs, and prepare cloning proposals in one exact, private workspace. Every agent result stays visible and verifiable.
               </p>
               <div className="mt-9 flex flex-wrap gap-3">
-                <Link to="/editor" className="h-11 inline-flex items-center gap-2 px-5 rounded-md bg-[var(--accent)] text-white text-[14px] font-medium hover:bg-[var(--accent-hover)] transition-colors">
+                <Link to="/dashboard" className="h-11 inline-flex items-center gap-2 px-5 rounded-md bg-[var(--accent)] text-white text-[14px] font-medium hover:bg-[var(--accent-hover)] transition-colors">
                   Launch SeqCraft <ArrowRight size={17} />
                 </Link>
                 <Link to="/docs" className="h-11 inline-flex items-center gap-2 px-5 rounded-md border border-[var(--border)] bg-[var(--panel)] text-[14px] font-medium hover:bg-[var(--panel-muted)] transition-colors">
@@ -71,7 +71,7 @@ export function MarketingPage() {
                 </div>
               </div>
               <div className="px-5 py-3 border-t border-[var(--border)] bg-[var(--panel-muted)] font-mono text-[11px] text-[var(--text-muted)] flex justify-between">
-                <span>Internal: [start0, end0)</span><span>Display: start1–end1</span>
+                <span>Coordinates: 0-based half-open</span><span>Verified in-browser</span>
               </div>
             </div>
           </div>

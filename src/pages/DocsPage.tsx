@@ -58,32 +58,35 @@ export function DocsPage() {
           {/* Section 2 */}
           <section id="visualizations" className="space-y-4">
             <h2 className="text-2xl font-bold flex items-center gap-3">
-              <Eye size={24} className="text-blue-500" /> 2. Core Visualizations
+              <Eye size={24} className="text-[var(--accent)]" /> 2. Core Visualizations
             </h2>
-            <div className="prose prose-invert max-w-none text-[15px] text-[var(--text-muted)] space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-[15px] text-[var(--text-muted)]">
               
-              <div>
-                <h3 className="text-lg font-semibold text-[var(--text)] mb-2 flex items-center gap-2">
-                  <Layers size={18} /> Sequence View
-                </h3>
-                <p>The linear DNA viewer. It displays the forward and reverse complement strands. Above the sequence, you'll see your <strong>Features</strong> (genes, CDS, misc_feature) and dynamically translated <strong>ORFs</strong> (Open Reading Frames). The coordinates are perfectly synced across all views.</p>
+              <div className="bg-[var(--panel)] border border-[var(--border)] p-5 rounded-xl flex flex-col justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-[var(--text)] mb-2 flex items-center gap-2">
+                    <Layers size={18} className="text-[var(--accent)]" /> Sequence View
+                  </h3>
+                  <p className="text-[14px] leading-relaxed">The linear DNA viewer. It displays the forward and reverse complement strands. Above the sequence, you'll see your <strong>Features</strong> and dynamically translated <strong>ORFs</strong> with frame indicators.</p>
+                </div>
               </div>
 
-              <div>
-                <h3 className="text-lg font-semibold text-[var(--text)] mb-2 flex items-center gap-2">
-                  <MousePointer2 size={18} /> Map View (2D first)
-                </h3>
-                <p>For circular DNA, Map opens a deterministic 2D coordinate view. The origin stays at 12 o’clock, coordinates advance clockwise, annotations retain strand direction, and the map can be zoomed with the wheel or controls.</p>
-                <ul className="list-disc pl-5 space-y-1 mt-2">
-                  <li><strong>Drag the backbone:</strong> Select the exact circular interval, including selections that cross the origin.</li>
-                  <li><strong>Wheel / zoom controls:</strong> Inspect dense annotation and restriction-site regions.</li>
-                  <li><strong>3D view:</strong> Switch to the secondary spatial view for exploration; selection stays synchronized.</li>
-                </ul>
+              <div className="bg-[var(--panel)] border border-[var(--border)] p-5 rounded-xl flex flex-col justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-[var(--text)] mb-2 flex items-center gap-2">
+                    <MousePointer2 size={18} className="text-[var(--accent)]" /> Map View
+                  </h3>
+                  <p className="text-[14px] leading-relaxed">Deterministic coordinate view. Origin at 12 o’clock, clockwise progression, strand-directional ribbons, outward base ticks, and interactive drag selection. Switch between 2D and 3D anytime.</p>
+                </div>
               </div>
 
-              <div>
-                <h3 className="text-lg font-semibold text-[var(--text)] mb-2">Compare View</h3>
-                <p>Compare leads with a biological change report: substitutions, insertions, deletions, annotation shifts, CDS/protein consequences, topology, origin, and strand representation. Circular origin rotations and equivalent reverse complements are normalized so they do not create fake base changes. Raw alignment and deterministic circular 2D diff geometry remain available as secondary views.</p>
+              <div className="bg-[var(--panel)] border border-[var(--border)] p-5 rounded-xl flex flex-col justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-[var(--text)] mb-2 flex items-center gap-2">
+                    <Eye size={18} className="text-[var(--accent)]" /> Compare View
+                  </h3>
+                  <p className="text-[14px] leading-relaxed">Biological change report: substitutions, insertions, deletions, annotation shifts, and CDS/protein consequences. Circular origin rotations and reverse complements are normalized automatically.</p>
+                </div>
               </div>
 
             </div>
@@ -92,7 +95,7 @@ export function DocsPage() {
           {/* Section 3 */}
           <section id="simulations" className="space-y-4">
             <h2 className="text-2xl font-bold flex items-center gap-3">
-              <TestTube size={24} className="text-green-500" /> 3. Scientific Workflows
+              <TestTube size={24} className="text-[var(--success)]" /> 3. Scientific Workflows
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-[15px] text-[var(--text-muted)]">
               

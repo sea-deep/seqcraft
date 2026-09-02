@@ -81,9 +81,16 @@ export function AppCommandBar() {
     <header className="h-[36px] flex-none border-b border-[var(--border)] bg-[var(--panel)] flex items-center px-4 justify-between font-ui text-[13px] select-none">
       <div className="flex items-center gap-4">
         
-        <Link to="/dashboard" className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors pr-2 border-r border-[var(--border)]" title="Back to Dashboard">
-          <ArrowLeft size={16} />
+        <Link 
+          to="/dashboard" 
+          className="flex items-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors px-2 py-0.5 rounded hover:bg-[var(--panel-muted)]" 
+          title="Back to Dashboard"
+          aria-label="Back to Dashboard"
+        >
+          <ArrowLeft size={14} />
+          <span className="text-[12px] font-medium hidden sm:inline">Dashboard</span>
         </Link>
+        <div className="h-3.5 w-px bg-[var(--border)]" />
         <h1 className="font-semibold text-[14px]">SeqCraft</h1>
         
         <div className="flex items-center gap-1">

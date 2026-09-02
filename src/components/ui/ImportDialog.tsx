@@ -120,23 +120,23 @@ export function ImportDialog({ children, open: controlledOpen, onOpenChange }: {
         ) : (
           <div className="flex flex-col gap-6 py-4">
             <div className="flex flex-col gap-2">
-              <label className="text-[13px] font-medium uppercase tracking-wider text-[var(--text-muted)]">From File</label>
+              <label className="text-[12px] font-medium text-[var(--text-secondary)]">Import from file</label>
               <label className="cursor-pointer border-2 border-dashed border-[var(--border)] rounded-md p-6 flex flex-col items-center justify-center text-[var(--text-muted)] hover:bg-[var(--panel-muted)] transition-colors">
                 <FileUp className="w-8 h-8 mb-2" />
-                <span className="text-[14px]">Click to select sequence file</span>
-                <span className="text-[12px] mt-1">.fasta, .gb, .txt, or raw text</span>
+                <span className="text-[13px] font-medium text-[var(--text)]">Click to select sequence file</span>
+                <span className="text-[11px] mt-1 text-[var(--text-muted)]">.fasta, .gb, .txt, or raw text</span>
                 <input type="file" className="hidden" accept=".fasta,.fa,.gb,.gbk,.txt" onChange={onFileUpload} />
               </label>
             </div>
 
             <div className="flex items-center gap-4">
               <div className="flex-1 h-px bg-[var(--border)]" />
-              <span className="text-[11px] uppercase font-semibold text-[var(--text-muted)]">OR PASTE TEXT</span>
+              <span className="text-[11px] font-medium text-[var(--text-muted)]">or paste text</span>
               <div className="flex-1 h-px bg-[var(--border)]" />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-[13px] font-medium uppercase tracking-wider text-[var(--text-muted)]">From Text</label>
+              <label className="text-[12px] font-medium text-[var(--text-secondary)]">Paste sequence</label>
               <textarea
                 className="w-full h-[120px] bg-[var(--bg)] border border-[var(--border)] rounded-md p-3 text-[13px] font-mono focus:outline-none focus:border-[var(--accent)] resize-none"
                 placeholder="Paste raw sequence, FASTA, or GenBank text here..."

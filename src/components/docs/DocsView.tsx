@@ -25,8 +25,8 @@ export function DocsDialog({ children, open, onOpenChange }: { children?: React.
 
             {/* Getting Started */}
             <section className="space-y-3">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] border-b border-[var(--border)] pb-1 flex items-center gap-2">
-                <FileUp size={14} /> Data Management
+              <h2 className="text-[14px] font-semibold text-[var(--text)] border-b border-[var(--border)] pb-1.5 flex items-center gap-2">
+                <FileUp size={14} className="text-[var(--accent)]" /> Data Management
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="border border-[var(--border)] rounded-md p-3 bg-[var(--panel)]">
@@ -46,8 +46,8 @@ export function DocsDialog({ children, open, onOpenChange }: { children?: React.
 
             {/* Views */}
             <section className="space-y-3">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] border-b border-[var(--border)] pb-1 flex items-center gap-2">
-                <Eye size={14} /> Visualization & Tools
+              <h2 className="text-[14px] font-semibold text-[var(--text)] border-b border-[var(--border)] pb-1.5 flex items-center gap-2">
+                <Eye size={14} className="text-[var(--accent)]" /> Visualization & Tools
               </h2>
               <ul className="space-y-3 text-[12px] text-[var(--text-muted)] pl-1">
                 <li><strong className="text-[var(--text)] block mb-0.5">Sequence View:</strong> The primary linear view of your DNA. Features (genes, promoters) and translations (ORFs) are mapped directly onto the bases.</li>
@@ -60,8 +60,8 @@ export function DocsDialog({ children, open, onOpenChange }: { children?: React.
 
             {/* Advanced Workflows */}
             <section className="space-y-3">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] border-b border-[var(--border)] pb-1 flex items-center gap-2">
-                <TestTube size={14} /> Restriction Cloning
+              <h2 className="text-[14px] font-semibold text-[var(--text)] border-b border-[var(--border)] pb-1.5 flex items-center gap-2">
+                <TestTube size={14} className="text-[var(--accent)]" /> Restriction Cloning
               </h2>
               <p className="text-[12px] text-[var(--text-muted)] leading-relaxed pl-1">
                 Access the Cloning Planner via <code className="bg-[var(--panel-muted)] px-1 py-0.5 rounded text-[11px] font-mono text-[var(--text)]">Tools &rarr; Restriction Cloning</code>. 
@@ -71,8 +71,8 @@ export function DocsDialog({ children, open, onOpenChange }: { children?: React.
 
             {/* AI Integration */}
             <section className="space-y-3">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)] border-b border-[var(--border)] pb-1 flex items-center gap-2">
-                <Cpu size={14} /> WebMCP Agent Integration
+              <h2 className="text-[14px] font-semibold text-[var(--text)] border-b border-[var(--border)] pb-1.5 flex items-center gap-2">
+                <Cpu size={14} className="text-[var(--accent)]" /> WebMCP Agent Integration
               </h2>
               <p className="text-[12px] text-[var(--text-muted)] leading-relaxed pl-1">
                 SeqCraft fully integrates with WebMCP (Model Context Protocol). If you are using SeqCraft inside an AI agent environment (like Claude or Gemini), the agent can natively interact with your sequences. It can search for ORFs, analyze restriction sites, propose annotations, and even draft cloning plans for you. 

@@ -116,8 +116,8 @@ export function AppShell() {
               <PanelResizeHandle className="w-px bg-[var(--border)] hover:bg-[var(--accent)] transition-colors cursor-col-resize" />
               <Panel id="inspector" defaultSize={260} minSize={220} maxSize={380} className="bg-[var(--panel)] flex flex-col">
                 <div className="h-[36px] border-b border-[var(--border)] flex items-center justify-between px-3 shrink-0 bg-[var(--panel-muted)]">
-                  <div className="flex items-center text-[var(--text-muted)] text-[11px] font-semibold tracking-wider uppercase">
-                    <Info className="w-3.5 h-3.5 mr-1.5" />
+                  <div className="flex items-center text-[var(--text)] text-[12px] font-semibold">
+                    <Info className="w-3.5 h-3.5 mr-1.5 text-[var(--text-muted)]" />
                     Inspector
                   </div>
                   <button 

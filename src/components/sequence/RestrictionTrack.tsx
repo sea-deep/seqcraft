@@ -19,11 +19,12 @@ export function assignRestrictionLanesLine(
 
   const laneEnds: number[] = [];
   const placed: PlacedRestrictionSite[] = [];
-  const PADDING = 1.5; // characters padding between labels
   
   for (const site of sorted) {
     const localX = site.forwardCut0 - lineStart0;
-    const labelEnd = localX + site.enzymeName.length + PADDING;
+    // Ensure at least 7 characters of clearance (or label length + 3) to prevent squishing
+    const clearance = Math.max(site.enzymeName.length + 3, 7);
+    const labelEnd = localX + clearance;
     
     let lane = 0;
     while (laneEnds[lane] !== undefined && laneEnds[lane] > localX) {

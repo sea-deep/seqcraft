@@ -110,13 +110,13 @@ export function RestrictionSite3D({ site, angle, lane, baseRadius }: Restriction
       
       {isEmphasized && (
         <Html position={labelPos} center className="pointer-events-none select-none z-50">
-          <div className="bg-[var(--panel)] border border-[var(--border)] rounded px-2 py-1.5 shadow-lg whitespace-nowrap text-xs text-[var(--text)] flex flex-col gap-0.5">
-            <div className="font-semibold text-blue-500">{site.enzymeName}</div>
-            <div className="font-mono text-[10px] text-[var(--text-muted)]">{site.recognitionSequence}</div>
-            <div className="text-[10px] text-[var(--text-muted)]">
+          <div className="bg-[var(--panel)] border border-[var(--border)] rounded-md px-2.5 py-1.5 shadow-lg whitespace-nowrap text-[12px] text-[var(--text)] flex flex-col gap-0.5">
+            <div className="font-semibold text-[var(--accent)]">{site.enzymeName}</div>
+            <div className="font-mono text-[11px] text-[var(--text-muted)]">{site.recognitionSequence}</div>
+            <div className="text-[11px] text-[var(--text-secondary)]">
               {site.forwardCut0 + 1} / {site.reverseCut0 + 1}
             </div>
-            <div className="text-[10px] text-[var(--text-muted)] italic">{endType}</div>
+            <div className="text-[11px] text-[var(--text-muted)] italic">{endType}</div>
           </div>
         </Html>
       )}

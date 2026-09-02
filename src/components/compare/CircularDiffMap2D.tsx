@@ -245,7 +245,7 @@ export function CircularDiffMap2D({ geometry, onSelectDifference }: { geometry: 
           aria-label="Reset zoom and pan"
           title="Click to reset (100%)"
           onClick={resetView}
-          className="min-w-[46px] px-1 text-center font-mono text-[10px] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+          className="min-w-[46px] px-1 text-center font-mono text-[11px] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
         >
           {Math.round(zoom * 100)}%
         </button>
@@ -272,11 +272,11 @@ export function CircularDiffMap2D({ geometry, onSelectDifference }: { geometry: 
 
       {/* Track Legend */}
       <div className="absolute bottom-4 left-4 flex flex-col gap-1 rounded-lg border border-[var(--border)] bg-[var(--panel)]/90 backdrop-blur-sm px-2.5 py-1.5 shadow-md pointer-events-none">
-        <div className="flex items-center gap-2 text-[10px] text-[var(--text-secondary)]">
+        <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
           <span className="h-2 w-2 rounded-full border border-[var(--accent)] bg-[var(--accent)]/40" />
           <span>Outer track: Reference</span>
         </div>
-        <div className="flex items-center gap-2 text-[10px] text-[var(--text-secondary)]">
+        <div className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)]">
           <span className="h-2 w-2 rounded-full border border-emerald-400 bg-emerald-400/40" />
           <span>Inner track: Query</span>
         </div>

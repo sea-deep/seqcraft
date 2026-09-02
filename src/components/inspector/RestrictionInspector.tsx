@@ -13,8 +13,8 @@ export function RestrictionInspector({ site }: RestrictionInspectorProps) {
   return (
     <div className="flex flex-col text-[12px] font-ui space-y-4">
       <div className="flex flex-col gap-0.5">
-        <h2 className="text-[13px] font-semibold text-[var(--text)] uppercase tracking-wider">{site.enzymeName}</h2>
-        <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">Restriction Site</div>
+        <h2 className="text-[14px] font-semibold text-[var(--text)]">{site.enzymeName}</h2>
+        <div className="text-[11px] text-[var(--text-muted)]">Restriction site</div>
       </div>
 
       <div className="flex flex-col gap-2">

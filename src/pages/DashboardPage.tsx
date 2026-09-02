@@ -118,13 +118,14 @@ export function DashboardPage() {
           <Link to="/docs" className="text-[13px] text-[var(--text-muted)] hover:text-[var(--text)] flex items-center gap-1.5 transition-colors">
             <BookOpen size={14} /> Documentation
           </Link>
-          <div className="w-px h-4 bg-[var(--border)]" />
-          <Link 
-            to="/editor" 
-            className="h-8 px-3 text-[12px] font-medium rounded bg-[var(--panel)] hover:bg-[var(--panel-muted)] border border-[var(--border)] text-[var(--text)] flex items-center gap-1.5 transition-colors"
-          >
-            Open Editor <ArrowUpRight size={13} />
-          </Link>
+          {documents.length > 0 && (
+            <Link 
+              to="/editor" 
+              className="h-8 px-3 text-[12px] font-medium rounded bg-[var(--panel)] hover:bg-[var(--panel-muted)] border border-[var(--border)] text-[var(--text)] flex items-center gap-1.5 transition-colors"
+            >
+              Open Editor <ArrowUpRight size={13} />
+            </Link>
+          )}
         </div>
       </nav>
 
@@ -187,9 +188,11 @@ export function DashboardPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold tracking-tight">Your Sequences</h1>
-                <span className="text-[12px] font-medium text-[var(--text-muted)] bg-[var(--panel-muted)] border border-[var(--border)] px-2 py-0.5 rounded-full">
-                  {documents.length}
-                </span>
+                {documents.length > 0 && (
+                  <span className="text-[12px] font-medium text-[var(--text-muted)] bg-[var(--panel-muted)] border border-[var(--border)] px-2.5 py-0.5 rounded-full">
+                    {documents.length}
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-2.5">
@@ -224,15 +227,15 @@ export function DashboardPage() {
                     >
                       <CheckSquare size={14} /> Select
                     </button>
+
+                    {/* Primary New Sequence Action */}
+                    <ImportDialog>
+                      <button className="h-9 px-3.5 text-[13px] font-medium rounded-md bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors flex items-center gap-1.5 shadow-sm">
+                        <Plus size={15} /> New Sequence
+                      </button>
+                    </ImportDialog>
                   </>
                 )}
-
-                {/* Primary New Sequence Action */}
-                <ImportDialog>
-                  <button className="h-9 px-3.5 text-[13px] font-medium rounded-md bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors flex items-center gap-1.5 shadow-sm">
-                    <Plus size={15} /> New Sequence
-                  </button>
-                </ImportDialog>
               </div>
             </div>
           )}
@@ -241,8 +244,8 @@ export function DashboardPage() {
         {/* Sequences Content */}
         {documents.length === 0 ? (
           /* Empty State */
-          <div className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--border)] rounded-xl py-24 text-center bg-[var(--panel)]/40">
-            <div className="w-14 h-14 bg-[var(--panel-muted)] border border-[var(--border)] rounded-full flex items-center justify-center mb-4 text-[var(--text-muted)]">
+          <div className="max-w-2xl mx-auto flex flex-col items-center justify-center border border-dashed border-[var(--border)] rounded-xl py-20 px-6 text-center bg-[var(--panel)]/40 shadow-sm">
+            <div className="w-14 h-14 bg-[var(--panel-muted)] border border-[var(--border)] rounded-full flex items-center justify-center mb-4 text-[var(--accent)]">
               <FileUp size={24} />
             </div>
             <h3 className="text-lg font-semibold mb-1.5">No sequences in workspace</h3>
@@ -250,7 +253,7 @@ export function DashboardPage() {
               Import a GenBank, FASTA, or raw nucleotide sequence to begin inspecting, annotating, and designing.
             </p>
             <ImportDialog>
-              <button className="h-10 px-5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-md text-[13px] font-medium flex items-center gap-2 transition-colors shadow-sm">
+              <button className="h-10 px-5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-md text-[13px] font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer">
                 <FileUp size={15} /> Import FASTA / GenBank
               </button>
             </ImportDialog>
@@ -320,13 +323,13 @@ export function DashboardPage() {
                         {doc.features.slice(0, 3).map((f) => (
                           <span 
                             key={f.id} 
-                            className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--panel-muted)] text-[var(--text-secondary)] border border-[var(--border)] max-w-[120px] truncate"
+                            className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--panel-muted)] text-[var(--text-secondary)] border border-[var(--border)] max-w-[120px] truncate"
                           >
                             {f.name}
                           </span>
                         ))}
                         {doc.features.length > 3 && (
-                          <span className="text-[10px] px-1 py-0.5 text-[var(--text-muted)]">
+                          <span className="text-[11px] px-1 py-0.5 text-[var(--text-muted)]">
                             +{doc.features.length - 3} more
                           </span>
                         )}
@@ -349,7 +352,7 @@ export function DashboardPage() {
                       <span>{new Intl.NumberFormat('en-US').format(doc.length)} bp</span>
                     </div>
 
-                    <span className="font-mono text-[10px] text-[var(--text-muted)]">
+                    <span className="font-mono text-[11px] text-[var(--text-muted)]">
                       {doc.features.length} {doc.features.length === 1 ? 'feature' : 'features'}
                     </span>
                   </div>

@@ -98,7 +98,7 @@ export function OrfTrack({ orfs, lineStart0 }: { orfs: PlacedOrf[], lineStart0: 
                     >
                       {width >= 6 && (
                         <span 
-                          className="text-[10px] font-mono font-semibold leading-none tracking-tight"
+                          className="text-[11px] font-mono font-semibold leading-none tracking-tight"
                           style={{ color: borderColor }}
                         >
                           Frame {frameLabel}

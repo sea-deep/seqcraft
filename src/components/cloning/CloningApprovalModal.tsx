@@ -65,13 +65,13 @@ export function CloningApprovalModal() {
         <div className="p-5 overflow-y-auto flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-[var(--bg)] rounded-md border border-[var(--border)] p-3">
-              <div className="text-[11px] text-[var(--text-muted)] font-semibold uppercase tracking-wider mb-1">Vector</div>
+              <div className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Vector</div>
               <div className="font-medium truncate text-[var(--text)]" title={proposal.vectorDocumentName}>{proposal.vectorDocumentName}</div>
               <div className="text-[12px] font-mono text-[var(--text-secondary)] mt-0.5">{proposal.vectorBackboneLengthBp.toLocaleString()} bp backbone</div>
             </div>
             
             <div className="bg-[var(--bg)] rounded-md border border-[var(--border)] p-3">
-              <div className="text-[11px] text-[var(--text-muted)] font-semibold uppercase tracking-wider mb-1">Insert</div>
+              <div className="text-[11px] text-[var(--text-muted)] font-medium mb-1">Insert</div>
               <div className="font-medium truncate text-[var(--text)]" title={proposal.insertDocumentName}>{proposal.insertDocumentName}</div>
               <div className="text-[12px] font-mono text-[var(--text-secondary)] mt-0.5">{proposal.insertLengthBp.toLocaleString()} bp fragment</div>
             </div>

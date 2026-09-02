@@ -1,5 +1,5 @@
 import { getMemorySequence } from '../../utils/document-utils';
-import { useMemo, useRef, type PointerEvent as ReactPointerEvent } from 'react';
+import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { SequenceDocument } from '../../domain/document';
 import type { Feature } from '../../domain/feature';
 import { getFeatureColor } from '../../domain/feature-colors';
@@ -51,6 +51,8 @@ function visibleFeatureLabel(name: string, width: number): string | null {
 export function LinearMap({ document }: { document: SequenceDocument }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragAnchorRef = useRef<number | null>(null);
+  const [showRestrictionSites, setShowRestrictionSites] = useState(false);
+  const [showPrimers, setShowPrimers] = useState(false);
   const selectedFeatureId = useWorkspaceStore(state => state.selectedFeatureId);
   const selectedRestrictionSiteId = useWorkspaceStore(state => state.selectedRestrictionSiteId);
   const selectedPrimerId = useWorkspaceStore(state => state.selectedPrimerId);
@@ -68,6 +70,29 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
     [rawSeq],
   );
   const primerBindings = useMemo(() => (document.primers ?? []).flatMap(primer => analyzePrimerBindings(rawSeq, 'linear', primer).map(binding => ({ primer, binding }))), [document.primers, rawSeq]);
+  const renderedPrimerBindings = showPrimers
+    ? primerBindings
+    : selectedPrimerId ? primerBindings.filter(({ primer }) => primer.id === selectedPrimerId) : [];
+
+  const restrictionClusters = useMemo(() => {
+    if (!showRestrictionSites && !selectedRestrictionSiteId) return [];
+    const activeSites = showRestrictionSites 
+      ? restrictionSites 
+      : selectedRestrictionSiteId ? restrictionSites.filter(s => s.id === selectedRestrictionSiteId) : [];
+    if (activeSites.length === 0) return [];
+    const sorted = [...activeSites].sort((a, b) => a.forwardCut0 - b.forwardCut0);
+    const thresholdBp = Math.max(1, Math.floor(document.length / 120));
+    const clusters: { coordinate0: number; sites: typeof activeSites }[] = [];
+    for (const site of sorted) {
+      const prev = clusters.at(-1);
+      if (prev && site.forwardCut0 - prev.sites.at(-1)!.forwardCut0 <= thresholdBp) {
+        prev.sites.push(site);
+      } else {
+        clusters.push({ coordinate0: site.forwardCut0, sites: [site] });
+      }
+    }
+    return clusters;
+  }, [showRestrictionSites, selectedRestrictionSiteId, restrictionSites, document.length]);
   const activeSelection = selection?.documentId === document.id ? selection : null;
   const formattedLength = new Intl.NumberFormat('en-US').format(document.length);
 
@@ -113,7 +138,23 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
   ))));
 
   return (
-    <div className="h-full w-full bg-[var(--bg-editor)] text-[var(--text-primary)] select-none" data-map-topology="linear">
+    <div className="relative h-full w-full bg-[var(--bg-editor)] text-[var(--text-primary)] select-none" data-map-topology="linear">
+      <div className="absolute left-4 top-4 z-20 flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel)] p-1 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setShowRestrictionSites(s => !s)}
+          className={`h-7 px-2.5 rounded text-[11px] font-medium transition-colors ${showRestrictionSites ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-semibold' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
+        >
+          Sites ({restrictionSites.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowPrimers(s => !s)}
+          className={`h-7 px-2.5 rounded text-[11px] font-medium transition-colors ${showPrimers ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-semibold' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
+        >
+          Primers ({primerBindings.length})
+        </button>
+      </div>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
@@ -121,10 +162,10 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
         role="img"
         aria-label={`Linear map of ${document.name}, ${formattedLength} base pairs`}
       >
-        <text x={LINEAR_MAP_START_X} y={42} fill="var(--text-primary)" fontSize="20" fontWeight="600">
+        <text x={LINEAR_MAP_START_X} y={52} fill="var(--text-primary)" fontSize="16" fontWeight="600">
           {document.name}
         </text>
-        <text x={LINEAR_MAP_START_X} y={66} fill="var(--text-secondary)" fontSize="13">
+        <text x={LINEAR_MAP_START_X} y={72} fill="var(--text-secondary)" fontSize="12">
           Linear DNA · {formattedLength} bp
         </text>
 
@@ -213,37 +254,63 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
           );
         }))}
 
-        {restrictionSites.map(site => {
-          const x = coordinateToLinearX(site.forwardCut0, document.length);
-          const selected = selectedRestrictionSiteId === site.id;
+        {restrictionClusters.map(cluster => {
+          const x = coordinateToLinearX(cluster.coordinate0, document.length);
+          const hasSelected = cluster.sites.some(s => s.id === selectedRestrictionSiteId);
+          const representative = cluster.sites[0];
+          const isCluster = cluster.sites.length > 1;
+          const title = cluster.sites.map(s => `${s.enzymeName} ${s.forwardCut0 + 1}`).join(' · ');
+
           return (
             <g
-              key={site.id}
+              key={cluster.sites.map(s => s.id).join(':')}
               className="cursor-pointer"
               onClick={event => {
                 event.stopPropagation();
-                selectRestrictionSite(site.id);
+                selectRestrictionSite(representative.id);
               }}
             >
-              <title>{`${site.enzymeName} · cut ${site.forwardCut0 + 1}`}</title>
+              <title>{title}</title>
               <line
                 x1={x}
                 x2={x}
-                y1={BASELINE_Y - (selected ? 24 : 15)}
-                y2={BASELINE_Y + (selected ? 24 : 15)}
-                stroke={selected ? 'var(--accent)' : 'var(--text-muted)'}
-                strokeWidth={selected ? 3 : 1.5}
+                y1={BASELINE_Y - (hasSelected ? 22 : 14)}
+                y2={BASELINE_Y + (hasSelected ? 22 : 14)}
+                stroke={hasSelected ? 'var(--accent)' : 'var(--text-muted)'}
+                strokeWidth={hasSelected ? 2.5 : 1.5}
               />
-              {selected && (
-                <text x={x} y={BASELINE_Y - 31} textAnchor="middle" fill="var(--accent)" fontSize="11" fontWeight="600">
-                  {site.enzymeName} · {site.forwardCut0 + 1}
-                </text>
+              {isCluster ? (
+                <g>
+                  <circle
+                    cx={x}
+                    cy={BASELINE_Y - 26}
+                    r="8"
+                    fill="var(--panel)"
+                    stroke={hasSelected ? 'var(--accent)' : 'var(--border-strong)'}
+                    strokeWidth="1.5"
+                  />
+                  <text
+                    x={x}
+                    y={BASELINE_Y - 26}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    className="pointer-events-none fill-[var(--text-secondary)] font-mono text-[11px] font-medium"
+                  >
+                    {cluster.sites.length}
+                  </text>
+                </g>
+              ) : (
+                hasSelected && (
+                  <text x={x} y={BASELINE_Y - 28} textAnchor="middle" fill="var(--accent)" fontSize="11" fontWeight="600">
+                    {representative.enzymeName} · {representative.forwardCut0 + 1}
+                  </text>
+                )
               )}
             </g>
           );
         })}
 
-        {primerBindings.flatMap(({ primer, binding }, bindingIndex) => binding.segments.map((segment, segmentIndex) => {
+        {renderedPrimerBindings.flatMap(({ primer, binding }, bindingIndex) => binding.segments.map((segment, segmentIndex) => {
           const x1 = coordinateToLinearX(segment.start0, document.length);
           const x2 = coordinateToLinearX(segment.end0Exclusive, document.length);
           const y = 330 + (bindingIndex % 3) * 22;

@@ -8,6 +8,8 @@ import { getMemorySequence, getSequenceStorageKey } from '../../utils/document-u
 import { opfsStorage } from '../../storage/opfs-backend';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { generateId } from '../../utils/id';
+import { Button } from '../ui/button';
+import { FilePlus, Languages, BookmarkPlus, LocateFixed } from 'lucide-react';
 
 interface SelectionInspectorProps {
   document: SequenceDocument;
@@ -124,29 +126,29 @@ export function SelectionInspector({ document, selection }: SelectionInspectorPr
 
   return (
     <div className="flex flex-col text-[12px] font-ui space-y-3">
-      <h2 className="text-[13px] font-semibold text-[var(--text)] uppercase tracking-wider mb-1">Selection</h2>
+      <h2 className="text-[14px] font-semibold text-[var(--text)] mb-1">Selection</h2>
       
       <div className="grid grid-cols-[80px_1fr] gap-y-2">
         <div className="text-[var(--text-muted)]">Range</div>
-        <div className="text-[var(--text)] font-medium">{formatNum.format(selection.start0 + 1)}–{formatNum.format(selection.end0Exclusive)}</div>
+        <div className="text-[var(--text-secondary)] font-mono font-medium">{formatNum.format(selection.start0 + 1)}–{formatNum.format(selection.end0Exclusive)}</div>
         
         <div className="text-[var(--text-muted)]">Length</div>
-        <div className="text-[var(--text)]">{formatNum.format(len)} bp</div>
+        <div className="text-[var(--text-secondary)] font-mono">{formatNum.format(len)} bp</div>
         
         <div className="text-[var(--text-muted)]">GC Content</div>
-        <div className="text-[var(--text)]">{loadingSeq ? '...' : gcPercent} %</div>
+        <div className="text-[var(--text-secondary)] font-mono">{loadingSeq ? '...' : gcPercent} %</div>
       </div>
 
       <div className="border-t border-[var(--border)] pt-3 mt-1 grid grid-cols-[80px_1fr]">
         <div className="text-[var(--text-muted)]">Sequence</div>
-        <div className="font-mono text-[11px] text-[var(--text)] break-all">{preview}</div>
+        <div className="font-mono text-[11px] text-[var(--accent)] break-all font-medium">{preview}</div>
       </div>
       
       {activeTranslation && !loadingSeq && (
         <div className="mt-4 p-3 bg-[var(--panel-muted)] border border-[var(--border)] rounded-md">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-[11px] font-semibold uppercase text-[var(--text)]">Translation</span>
-            <span className="text-[10px] text-[var(--text-muted)]">
+            <span className="text-[11px] font-semibold text-[var(--text)]">Translation</span>
+            <span className="text-[11px] text-[var(--text-muted)]">
               {formatNum.format(activeTranslation.aa.length)} aa
             </span>
           </div>
@@ -155,7 +157,7 @@ export function SelectionInspector({ document, selection }: SelectionInspectorPr
           </div>
           <div className="font-mono text-[12px] text-[var(--text)] break-all max-h-[150px] overflow-y-auto bg-[var(--bg)] p-2 rounded border border-[var(--border)]">
             {activeTranslation.aa.split('').map((char, i) => (
-              <span key={i} className={char === '*' ? 'text-red-500 font-bold' : ''}>
+              <span key={i} className={char === '*' ? 'text-[var(--danger)] font-bold' : ''}>
                 {char}
               </span>
             ))}
@@ -163,16 +165,21 @@ export function SelectionInspector({ document, selection }: SelectionInspectorPr
         </div>
       )}
 
-      <div className="border-t border-[var(--border)] pt-4 mt-2 flex flex-col gap-2">
-        <button 
-          className="text-left text-[var(--accent)] hover:underline text-[12px] disabled:opacity-50"
+      <div className="border-t border-[var(--border)] pt-3.5 mt-2 flex flex-col gap-1.5">
+        <Button 
+          variant="outline"
+          size="sm"
+          className="w-full justify-start gap-2 text-[12px] h-[30px]"
           disabled={loadingSeq}
           onClick={handleExtract}
         >
+          <FilePlus size={14} className="text-[var(--accent)]" />
           Extract as New Document
-        </button>
-        <button 
-          className="text-left text-[var(--accent)] hover:underline text-[12px] disabled:opacity-50"
+        </Button>
+        <Button 
+          variant="outline"
+          size="sm"
+          className="w-full justify-start gap-2 text-[12px] h-[30px]"
           disabled={loadingSeq}
           onClick={() => {
             const seq = new ScientificSequence(seqSlice);
@@ -185,12 +192,29 @@ export function SelectionInspector({ document, selection }: SelectionInspectorPr
             });
           }}
         >
-          Translate
-        </button>
+          <Languages size={14} className="text-[var(--accent)]" />
+          Translate selection
+        </Button>
         {isMemory && (
           <>
-            <button onClick={() => setFeatureDialogOpen(true)} className="text-left text-[var(--accent)] hover:underline text-[12px]">Create annotation</button>
-            <button onClick={() => setPrimerDialogOpen(true)} className="text-left text-[var(--accent)] hover:underline text-[12px]">Create primer</button>
+            <Button 
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2 text-[12px] h-[30px]"
+              onClick={() => setFeatureDialogOpen(true)}
+            >
+              <BookmarkPlus size={14} className="text-[var(--accent)]" />
+              Create annotation
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2 text-[12px] h-[30px]"
+              onClick={() => setPrimerDialogOpen(true)}
+            >
+              <LocateFixed size={14} className="text-[var(--accent)]" />
+              Design primer
+            </Button>
           </>
         )}
       </div>

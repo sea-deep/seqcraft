@@ -16,17 +16,16 @@ export function PlasmidFeatureLabel({ feature, position }: PlasmidFeatureLabelPr
   return (
     <Html position={position} center className="pointer-events-none">
       <div 
-        className="flex flex-col bg-slate-900 border border-slate-700 rounded-md shadow-lg p-2 min-w-max pointer-events-none"
-        style={{ color: '#e2e8f0', fontSize: '12px', lineHeight: '1.4' }}
+        className="flex flex-col bg-[var(--panel)] border border-[var(--border)] rounded-md shadow-lg p-2 min-w-max pointer-events-none text-[var(--text)] text-[12px] leading-tight"
       >
         <div className="flex items-center gap-2 mb-1">
           <div 
-            className="w-2.5 h-2.5 rounded-full" 
+            className="w-2.5 h-2.5 rounded-full shrink-0" 
             style={{ backgroundColor: color }}
           />
-          <span className="font-semibold text-slate-100">{feature.name}</span>
+          <span className="font-semibold text-[var(--text)]">{feature.name}</span>
         </div>
-        <div className="text-slate-400 pl-[18px]">
+        <div className="text-[var(--text-muted)] text-[11px] pl-[18px]">
           {feature.type === 'misc_feature' ? 'misc' : feature.type} &middot; {formattedLength} bp
         </div>
       </div>

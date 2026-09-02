@@ -45,7 +45,13 @@ export function initializeDocumentPersistence(onError: (error: unknown) => void 
   });
 
   return () => {
-    for (const timer of timers.values()) clearTimeout(timer);
+    for (const [id, timer] of timers.entries()) {
+      clearTimeout(timer);
+      const doc = previous.get(id);
+      if (doc) {
+        enqueue(id, () => saveDocumentMetadata(doc));
+      }
+    }
     timers.clear();
     stopSubscription?.();
     stopSubscription = undefined;

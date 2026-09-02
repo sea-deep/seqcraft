@@ -13,6 +13,15 @@ export function AnnotationApprovalModal() {
   const proposal = useWorkspaceStore(state => state.stagedProposals.find(item => item.kind === 'annotation' && item.status === 'pending'));
   const addFeature = useWorkspaceStore(state => state.addFeature);
   const removeProposal = useWorkspaceStore(state => state.removeProposal);
+  const documents = useWorkspaceStore(state => state.documents);
+
+  const targetDoc = proposal ? documents.find(d => d.id === proposal.documentId) : null;
+  const isStale = Boolean(
+    targetDoc && (
+      (proposal?.baseVersion !== undefined && targetDoc.version !== proposal.baseVersion) ||
+      (proposal?.sequenceLength !== undefined && targetDoc.length !== proposal.sequenceLength)
+    )
+  );
 
   const decide = (approve: boolean) => {
     if (!proposal) return;
@@ -66,25 +75,38 @@ export function AnnotationApprovalModal() {
                 </span>
               </div>
               <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                No document change occurs until you approve.
+                Review metadata before committing to workspace document.
               </p>
             </div>
           </div>
           <button 
             onClick={() => decide(false)}
-            className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--panel)] transition-colors cursor-pointer"
-            aria-label="Close dialog"
+            className="text-[var(--text-muted)] hover:text-[var(--text)] p-1 rounded hover:bg-[var(--border)] cursor-pointer"
+            title="Reject proposal (Esc)"
           >
             <X size={16} />
           </button>
         </div>
 
-        <div className="grid grid-cols-[90px_1fr] gap-y-2.5 p-5 text-[12px]">
-          <span className="text-[var(--text-muted)]">Name</span>
-          <span className="font-medium text-[var(--text)] flex items-center gap-2">
-            <span className="inline-block size-2 rounded-full" style={{ backgroundColor: getFeatureColor(feature.type as FeatureType) }} />
-            {feature.name}
-          </span>
+        {isStale && (
+          <div className="mx-5 mt-4 rounded-md border border-[var(--danger)]/40 bg-[var(--danger)]/10 p-3 text-[12px] text-[var(--danger)] space-y-1">
+            <div className="font-semibold">Stale Annotation Proposal</div>
+            <p>The document sequence has changed since this annotation was proposed (v{proposal?.baseVersion} → v{targetDoc?.version}). Reject and re-run.</p>
+          </div>
+        )}
+
+        <div className="p-5 grid grid-cols-[100px_1fr] gap-y-2.5 text-xs">
+          <span className="text-[var(--text-muted)]">Target</span>
+          <span className="font-mono text-[var(--text)] font-semibold">{targetDoc?.name || proposal.documentId}</span>
+
+          <span className="text-[var(--text-muted)]">Feature name</span>
+          <div className="flex items-center gap-2">
+            <span 
+              className="size-2 rounded-full" 
+              style={{ backgroundColor: getFeatureColor(feature.type as FeatureType) }}
+            />
+            <span className="font-medium text-[var(--text)]">{feature.name}</span>
+          </div>
 
           <span className="text-[var(--text-muted)]">Type</span>
           <span className="capitalize text-[var(--text)]">{feature.type}</span>
@@ -107,7 +129,8 @@ export function AnnotationApprovalModal() {
           </button>
           <button 
             onClick={() => decide(true)} 
-            className="h-[34px] px-4 rounded-md bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] font-semibold text-[13px] transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+            disabled={isStale}
+            className={`h-[34px] px-4 rounded-md font-semibold text-[13px] transition-colors flex items-center gap-1.5 shadow-sm ${isStale ? 'bg-[var(--border)] text-[var(--text-muted)] cursor-not-allowed opacity-50' : 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] cursor-pointer'}`}
           >
             <Check size={14} /> Apply annotation
           </button>

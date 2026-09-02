@@ -120,6 +120,23 @@ export function digestPartWithTypeIIS(
     };
   }
 
+  // Check for internal Type IIS sites that would fragment the part during assembly
+  const nextFwd = seq.indexOf(fwdSite, fwdIdx + 1);
+  if (nextFwd !== -1 && nextFwd < revIdx) {
+    return {
+      success: false,
+      error: `Part "${part.name}" contains an internal forward ${enzyme.name} site (${fwdSite}) at position ${nextFwd + 1}. Domestication required before assembly.`
+    };
+  }
+
+  const prevRev = seq.lastIndexOf(revSite, revIdx - 1);
+  if (prevRev !== -1 && prevRev > fwdIdx) {
+    return {
+      success: false,
+      error: `Part "${part.name}" contains an internal reverse ${enzyme.name} site (${revSite}) at position ${prevRev + 1}. Domestication required before assembly.`
+    };
+  }
+
   // Left cut: after fwdSite + topCutOffset
   // For BsaI (GGTCTC 1/5): fwdIdx + 6 + 1 is left overhang start; length is 4
   const leftOverhangStart = fwdIdx + fwdSite.length + enzyme.topCutOffset;
@@ -409,35 +426,25 @@ export function domesticateSequence(
     }
 
     if (!mutationMade) {
-      // Fallback: force single base change if no synonymous found
-      const pos0 = siteIdx;
-      const origBase = currentSeq[pos0];
-      const newBase = origBase === "A" ? "G" : "A";
-      currentSeq = currentSeq.slice(0, pos0) + newBase + currentSeq.slice(pos0 + 1);
-      mutations.push({
-        position1: pos0 + 1,
-        originalBase: origBase,
-        mutatedBase: newBase,
-        codonIndex: Math.floor(pos0 / 3) + 1,
-        originalCodon: "N/A",
-        mutatedCodon: "N/A",
-        aminoAcid: "N/A",
-        isSynonymous: false
-      });
+      // Fail closed: Do NOT alter the protein sequence if synonymous mutation is not possible
+      return {
+        hasInternalSites: true,
+        enzymeName: enzyme.name,
+        siteCount: mutations.length + 1,
+        domesticatedSequence: sequence,
+        mutations: [],
+        summary: `Domestication failed: internal ${enzyme.name} site at position ${siteIdx + 1} cannot be eliminated with synonymous codons in frame ${readingFrame} without altering the amino acid sequence.`
+      };
     }
   }
 
   const hasInternalSites = mutations.length > 0;
-  const synonymousCount = mutations.filter(m => m.isSynonymous).length;
-  const nonsynonymousCount = mutations.length - synonymousCount;
 
   let summary: string;
   if (!hasInternalSites) {
     summary = `No internal ${enzyme.name} sites detected. Sequence is already domesticated.`;
-  } else if (nonsynonymousCount === 0) {
-    summary = `Domesticated ${mutations.length} internal ${enzyme.name} recognition sites via synonymous codon mutations (100% amino acid sequence preserved).`;
   } else {
-    summary = `Domesticated ${mutations.length} internal ${enzyme.name} recognition sites (${synonymousCount} synonymous, ${nonsynonymousCount} nonsynonymous substitution; caution: amino acid sequence altered).`;
+    summary = `Domesticated ${mutations.length} internal ${enzyme.name} recognition site(s) via synonymous codon mutations (100% amino acid sequence preserved).`;
   }
 
   return {

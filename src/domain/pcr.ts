@@ -19,4 +19,6 @@ export interface PCRResult {
   forwardPrimerBindings: PrimerBinding[];
   reversePrimerBindings: PrimerBinding[];
   products: PCRProduct[];
+  isCapped?: boolean;
+  warning?: string;
 }

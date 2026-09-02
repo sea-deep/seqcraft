@@ -7,9 +7,9 @@ describe("Biosecurity & Dual-Use Select Agent Compliance Screener", () => {
     const report = screenBiosecurity(benignSeq, "circular");
     
     expect(report.isCompliant).toBe(true);
-    expect(report.status).toBe("COMPLIANT");
+    expect(report.status).toBe("NO_LOCAL_MATCH");
     expect(report.matchCount).toBe(0);
-    expect(report.summary).toContain("Screening passed");
+    expect(report.summary).toContain("No matches found");
   });
 
   it("flags Tier 1 Select Agent sequence (Variola/Smallpox) with critical alert", () => {

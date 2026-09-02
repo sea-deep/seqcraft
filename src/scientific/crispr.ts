@@ -48,12 +48,23 @@ export function findCrisprTargets(sequence: string, topology: "linear" | "circul
     return s;
   };
 
+  const isWithinTargetRegion = (pamStart: number, pamEnd: number): boolean => {
+    if (!options.targetRegion) return true;
+    const { start0, end0Exclusive } = options.targetRegion;
+    if (isCircular && start0 > end0Exclusive) {
+      // Origin-spanning target region [start0, seqLen) U [0, end0Exclusive)
+      return pamStart >= start0 || pamEnd <= end0Exclusive;
+    }
+    return pamStart >= start0 && pamEnd <= end0Exclusive;
+  };
+
   // 1. Scan Forward Strand for NGG (protospacer is 20bp upstream of NGG)
   const fwdStart = isCircular ? 0 : Math.max(20, startLimit);
   const fwdEnd = isCircular ? seqLen : Math.min(seqLen - 2, endLimit);
 
   for (let i = fwdStart; i < fwdEnd; i++) {
-    if (!isCircular && (i < startLimit || i + 3 > endLimit)) continue;
+    const pamEnd = isCircular ? (i + 3 > seqLen ? (i + 3) % seqLen : i + 3) : i + 3;
+    if (!isWithinTargetRegion(i, pamEnd)) continue;
 
     const pam = isCircular ? getSub(i, 3) : seqUpper.slice(i, i + 3);
     const g1 = pam[1];
@@ -69,7 +80,7 @@ export function findCrisprTargets(sequence: string, topology: "linear" | "circul
         pam,
         strand: 1,
         pamStart0: i,
-        pamEnd0Exclusive: (i + 3) % seqLen,
+        pamEnd0Exclusive: pamEnd,
         cutSite0,
         fullSequence: seqUpper,
         topology
@@ -83,10 +94,11 @@ export function findCrisprTargets(sequence: string, topology: "linear" | "circul
 
   // 2. Scan Reverse Strand for CCN (protospacer on reverse complement)
   const revStart = isCircular ? 0 : Math.max(0, startLimit);
-  const revEnd = isCircular ? seqLen : Math.min(seqLen - 23, endLimit);
+  const revEnd = isCircular ? seqLen - 1 : Math.min(seqLen - 23, endLimit);
 
-  for (let i = revStart; i < revEnd; i++) {
-    if (!isCircular && (i < startLimit || i + 3 > endLimit)) continue;
+  for (let i = revStart; i <= revEnd; i++) {
+    const pamEnd = isCircular ? (i + 3 > seqLen ? (i + 3) % seqLen : i + 3) : i + 3;
+    if (!isWithinTargetRegion(i, pamEnd)) continue;
 
     const pamSense = isCircular ? getSub(i, 3) : seqUpper.slice(i, i + 3);
     const c1 = pamSense[0];
@@ -104,7 +116,7 @@ export function findCrisprTargets(sequence: string, topology: "linear" | "circul
         pam,
         strand: -1,
         pamStart0: i,
-        pamEnd0Exclusive: (i + 3) % seqLen,
+        pamEnd0Exclusive: pamEnd,
         cutSite0,
         fullSequence: seqUpper,
         topology

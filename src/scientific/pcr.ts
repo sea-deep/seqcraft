@@ -11,6 +11,8 @@ export interface PCRParams {
   reversePrimer: Primer;
 }
 
+export const MAX_PCR_PRODUCTS = 250;
+
 export function simulatePCR(params: PCRParams): PCRResult {
   const { sequence, topology, forwardPrimer, reversePrimer } = params;
   const seqLen = sequence.length;
@@ -19,9 +21,14 @@ export function simulatePCR(params: PCRParams): PCRResult {
   const reversePrimerBindings = analyzePrimerBindings(sequence, topology, reversePrimer);
 
   const productsMap = new Map<string, PCRProduct>();
+  let isCapped = false;
 
-  for (const fwdBinding of forwardPrimerBindings) {
+  outerLoop: for (const fwdBinding of forwardPrimerBindings) {
     for (const revBinding of reversePrimerBindings) {
+      if (productsMap.size >= MAX_PCR_PRODUCTS) {
+        isCapped = true;
+        break outerLoop;
+      }
       let plusBinding: PrimerBinding;
       let minusBinding: PrimerBinding;
       
@@ -149,7 +156,11 @@ export function simulatePCR(params: PCRParams): PCRResult {
     topology,
     forwardPrimerBindings,
     reversePrimerBindings,
-    products
+    products,
+    isCapped,
+    warning: isCapped
+      ? `Product enumeration capped at ${MAX_PCR_PRODUCTS} amplicons due to highly repetitive binding frequency.`
+      : undefined
   };
 }
 

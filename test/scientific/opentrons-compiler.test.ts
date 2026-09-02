@@ -19,7 +19,7 @@ describe("Opentrons Protocol Compiler", () => {
 
     expect(result.filename).toBe("opentrons_pcr_puc19.py");
     expect(result.pythonCode).toContain("from opentrons import protocol_api");
-    expect(result.pythonCode).toContain("'apiLevel': '2.15'");
+    expect(result.pythonCode).toContain('"apiLevel": "2.15"');
     expect(result.pythonCode).toContain("opentrons_24_tuberack_generic_2ml_screwcap");
     expect(result.pythonCode).toContain("nest_96_wellplate_100ul_pcr_full_skirt");
     // Water volume: 50 - (25 + 2.5 + 2.5 + 2) = 18 uL
@@ -47,11 +47,24 @@ describe("Opentrons Protocol Compiler", () => {
 
     expect(result.filename).toBe("opentrons_digest_pbr322.py");
     expect(result.pythonCode).toContain("from opentrons import protocol_api");
-    expect(result.pythonCode).toContain("enzyme_1 = tuberack['A3']");
-    expect(result.pythonCode).toContain("enzyme_2 = tuberack['A4']");
+    expect(result.pythonCode).toContain('enzyme_1 = tuberack["A4"]');
+    expect(result.pythonCode).toContain('enzyme_2 = tuberack["A5"]');
     // Water: 50 - (10 + 5 + 2) = 33 uL
     expect(result.pythonCode).toContain("Distributing 33 uL water");
-    expect(result.pythonCode).toContain("Incubate at 37 C for 60 minutes");
+    expect(result.pythonCode).toContain("Incubate at 37C for 60 minutes");
     expect(Object.keys(result.reagentPlateMap).length).toBe(8);
+  });
+
+  it("rejects recipes where component volumes exceed total reaction volume", () => {
+    expect(() => compileOpentronsPCRProtocol({
+      templateDocName: "pUC19",
+      forwardPrimerName: "F",
+      reversePrimerName: "R",
+      ampliconLengthBp: 500,
+      annealingTempC: 55,
+      numReactions: 1,
+      reactionVolumeUl: 20,
+      masterMixVolumeUl: 25, // 25 > 20
+    })).toThrow("Component volumes");
   });
 });

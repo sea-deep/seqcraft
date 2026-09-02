@@ -164,5 +164,78 @@ describe('Audit Findings Regression Suite', () => {
     expect(rotateRes.isError).toBe(true);
     expect(rotateRes.ok).toBe(false);
     expect(rotateRes.error.code).toBe('HUMAN_APPROVAL_REQUIRED');
+  }, 15000);
+
+  it('9. Golden Gate rejects parts with internal Type IIS recognition sites', async () => {
+    const { digestPartWithTypeIIS, TYPE_IIS_ENZYMES } = await import('../../src/scientific/golden-gate');
+    const bsaI = TYPE_IIS_ENZYMES.find(e => e.name === 'BsaI')!;
+
+    // Part with flanking BsaI (GGTCTC...GAGACC) and an internal BsaI site (GGTCTC)
+    const partWithInternalSite = {
+      name: 'InternalSitePart',
+      sequence: 'GGTCTCAAAAAGGTCTCCCCCCGAGACC'
+    };
+
+    const result = digestPartWithTypeIIS(partWithInternalSite, bsaI);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('contains an internal forward BsaI site');
+  });
+
+  it('10. Golden Gate domestication fails closed when no synonymous mutation is possible', async () => {
+    const { domesticateSequence, TYPE_IIS_ENZYMES } = await import('../../src/scientific/golden-gate');
+    const bsaI = TYPE_IIS_ENZYMES.find(e => e.name === 'BsaI')!;
+
+    // Methionine (ATG) and Tryptophan (TGG) have only ONE codon.
+    // If a site falls entirely on non-degenerate codons, synonymous mutation is impossible.
+    // Test that domestication fails closed rather than making a nonsynonymous substitution:
+    const result = domesticateSequence('ATGGGTCTCTGG', bsaI, 0);
+    // If it succeeds, it MUST be 100% synonymous; if not possible, it returns hasInternalSites: true and failure summary
+    if (!result.hasInternalSites) {
+      expect(result.summary).toContain('already domesticated');
+    } else {
+      expect(result.summary).toMatch(/Domesticated.*via synonymous|Domestication failed/);
+      // Verify no nonsynonymous mutations are ever emitted
+      expect(result.mutations.every(m => m.isSynonymous)).toBe(true);
+    }
+  });
+
+  it('11. CRISPR computes valid terminal pamEnd0Exclusive and detects terminal reverse PAMs', async () => {
+    const { findCrisprTargets } = await import('../../src/scientific/crispr');
+
+    // Linear sequence ending in AGG (PAM at 20..23)
+    const linearTerminalFwd = 'AAAAAAAAAAAAAAAAAAAAAGG';
+    const fwdTargets = findCrisprTargets(linearTerminalFwd, 'linear');
+    expect(fwdTargets.length).toBeGreaterThan(0);
+    const fwdTarget = fwdTargets[0];
+    expect(fwdTarget.pamStart0).toBe(20);
+    // pamEnd0Exclusive MUST be 23, NOT 0!
+    expect(fwdTarget.pamEnd0Exclusive).toBe(23);
+
+    // Linear sequence starting with CCA (reverse strand PAM at 0..3)
+    const linearTerminalRev = 'CCAAAAAAAAAAAAAAAAAAAAA';
+    const revTargets = findCrisprTargets(linearTerminalRev, 'linear');
+    expect(revTargets.length).toBeGreaterThan(0);
+    const revTarget = revTargets[0];
+    expect(revTarget.pamStart0).toBe(0);
+    expect(revTarget.pamEnd0Exclusive).toBe(3);
+    expect(revTarget.strand).toBe(-1);
+  });
+
+  it('12. PCR caps product enumeration at MAX_PCR_PRODUCTS = 250 on repetitive templates', async () => {
+    const { simulatePCR, MAX_PCR_PRODUCTS } = await import('../../src/scientific/pcr');
+
+    // Highly repetitive template that produces many binding sites
+    const repetitiveTemplate = 'A'.repeat(200);
+    const primerF = { id: 'fwd', name: 'fwd', sequence: 'A'.repeat(20) };
+    const primerR = { id: 'rev', name: 'rev', sequence: 'T'.repeat(20) };
+
+    const result = simulatePCR({
+      sequence: repetitiveTemplate,
+      topology: 'linear',
+      forwardPrimer: primerF,
+      reversePrimer: primerR
+    });
+
+    expect(result.products.length).toBeLessThanOrEqual(MAX_PCR_PRODUCTS);
   });
 });

@@ -428,8 +428,8 @@ describe('WebMCP Tool Registration and Execution', () => {
 
     expect(res.ok).toBe(true);
     expect(res.result.isCompliant).toBe(true);
-    expect(res.result.status).toBe('COMPLIANT');
-    expect(res.result.summary).toContain('Screening passed');
+    expect(res.result.status).toBe('NO_LOCAL_MATCH');
+    expect(res.result.summary).toContain('No matches found');
   });
 
   it('inserts DNA bases into active construct via WebMCP tool', async () => {

@@ -13,6 +13,10 @@ export interface StagedProposal {
   createdBy: "agent";
   status: "pending" | "applied" | "rejected";
   documentId: string;
+  baseVersion?: number;
+  sequenceLength?: number;
+  sequenceDigest?: string;
   payload: unknown;
   summary: string;
+  createdAt?: string;
 }

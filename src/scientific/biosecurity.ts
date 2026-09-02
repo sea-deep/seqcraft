@@ -4,7 +4,8 @@ export type BiosecurityTier =
   | "TIER_1_CRITICAL" 
   | "SELECT_AGENT_FLAG" 
   | "CONTROLLED_TOXIN" 
-  | "COMPLIANT";
+  | "DUAL_USE_FLAG"
+  | "NO_LOCAL_MATCH";
 
 export interface RegulatedAgentDefinition {
   id: string;
@@ -145,13 +146,13 @@ export function screenBiosecurity(
 
   if (seqLen < 18) {
     return {
-      status: "COMPLIANT",
+      status: "NO_LOCAL_MATCH",
       isCompliant: true,
       matchCount: 0,
       matches: [],
-      highestRiskTier: "COMPLIANT",
-      summary: "Sequence too short for regulatory match identification (<18 bp).",
-      recommendation: "Commercial providers do not flag oligo sequences under 18-20 nt without specific match."
+      highestRiskTier: "NO_LOCAL_MATCH",
+      summary: "Sequence too short for regulatory k-mer signature matching (<18 bp).",
+      recommendation: "Short oligonucleotides (<18 bp) are typically screened in context of assembly fragments by commercial providers."
     };
   }
 
@@ -202,23 +203,25 @@ export function screenBiosecurity(
   }
 
   // Determine highest risk status
-  let status: BiosecurityTier = "COMPLIANT";
+  let status: BiosecurityTier = "NO_LOCAL_MATCH";
   if (matches.some(m => m.category === "Tier 1 Select Agent")) {
     status = "TIER_1_CRITICAL";
   } else if (matches.some(m => m.category === "HHS/USDA Select Agent")) {
     status = "SELECT_AGENT_FLAG";
   } else if (matches.some(m => m.category === "Controlled Toxin")) {
     status = "CONTROLLED_TOXIN";
+  } else if (matches.some(m => m.category === "Dual-Use Pathogen")) {
+    status = "DUAL_USE_FLAG";
   }
 
-  const isCompliant = status === "COMPLIANT";
+  const isCompliant = status === "NO_LOCAL_MATCH";
 
   let summary: string;
   let recommendation: string;
 
   if (isCompliant) {
-    summary = "Screening passed. Zero matches found against HHS/USDA Select Agents, Australia Group Common Control List, and IGSC Dual-Use Databases.";
-    recommendation = "Safe for unrestricted commercial synthesis ordering (Twist, IDT, GenScript).";
+    summary = "No matches found against local reference signature database (17 curated k-mers). NOTE: This is an in-browser diagnostic screening tool and does NOT constitute official regulatory compliance verification (HHS/USDA, Australia Group, or IGSC).";
+    recommendation = "Commercial gene synthesis providers (Twist, IDT, GenScript) perform proprietary full-genome and translated 6-frame protein screening alongside institutional customer vetting.";
   } else if (status === "TIER_1_CRITICAL") {
     summary = "CRITICAL ALERT: Detected " + matches.length + " match(es) to Tier 1 Select Agents (" + matches.map(m => m.agentName).filter((v, i, a) => a.indexOf(v) === i).join(", ") + ").";
     recommendation = "Do not submit for commercial synthesis without CDC Select Agent Program registration and authorized facility credentials.";

@@ -127,7 +127,7 @@ export function BiosecurityDialog({
             </div>
             <div className="space-y-1 text-xs">
               <div className="font-semibold text-sm flex items-center gap-2">
-                <span>{report.status === "COMPLIANT" ? "Order-Ready Compliance Verified" : report.status === "TIER_1_CRITICAL" ? "Tier 1 Select Agent Warning" : "Controlled Sequence Detected"}</span>
+                <span>{report.status === "NO_LOCAL_MATCH" ? "No Local Reference Matches Found" : report.status === "TIER_1_CRITICAL" ? "Tier 1 Select Agent Warning" : "Controlled Sequence Detected"}</span>
                 <span className={"px-2 py-0.5 rounded text-[10px] font-bold font-mono " + (report.isCompliant ? "bg-[var(--success)]/20 text-[var(--success)]" : "bg-[var(--danger)]/20 text-[var(--danger)]")}>
                   {report.status}
                 </span>

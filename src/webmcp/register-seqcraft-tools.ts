@@ -631,7 +631,18 @@ export const seqcraftProposeAnnotationTool = {
     const segments = input.end1 >= input.start1 ? [{ start0, end0Exclusive: input.end1 }] : [{ start0, end0Exclusive: doc.length }, { start0: 0, end0Exclusive: input.end1 }];
     const feature = { id: generateId(), name: input.name.trim(), type: input.type, strand: input.strand, segments, qualifiers: input.notes ? { note: input.notes } : {}, source: 'agent' as const };
     const proposalId = generateId();
-    useWorkspaceStore.getState().addProposal({ id: proposalId, kind: 'annotation', createdBy: 'agent', status: 'pending', documentId: doc.id, payload: { feature }, summary: `Add ${feature.name} at ${input.start1}–${input.end1}` });
+    useWorkspaceStore.getState().addProposal({ 
+      id: proposalId, 
+      kind: 'annotation', 
+      createdBy: 'agent', 
+      status: 'pending', 
+      documentId: doc.id, 
+      baseVersion: doc.version,
+      sequenceLength: doc.length,
+      createdAt: new Date().toISOString(),
+      payload: { feature }, 
+      summary: `Add ${feature.name} at ${input.start1}–${input.end1}` 
+    });
     return createSuccess({ summary: `Staged annotation ${feature.name} · awaiting approval`, proposalId, requiresHumanApproval: true, feature: { name: feature.name, type: feature.type, strand: feature.strand, ranges: feature.segments.map(segment => ({ start1: segment.start0 + 1, end1: segment.end0Exclusive })) } });
   }),
 };
@@ -1060,7 +1071,7 @@ export const seqcraftDomesticateSequenceTool = {
 
 export const seqcraftScreenBiosecurityTool = {
   name: 'seqcraft_screen_biosecurity',
-  description: 'Screen the active DNA sequence against regulated biological agents, HHS/USDA Select Agents (42 CFR Part 73), Australia Group Common Control List, and IGSC dual-use databases. Verifies pre-order compliance for commercial gene synthesis.',
+  description: 'Run a local diagnostic pre-screen of the active DNA sequence against curated k-mer signatures of select agents and regulated toxins. Provides heuristic warnings for early design review; does not replace vendor IGSC synthesis compliance screening.',
   inputSchema: {
     type: 'object',
     properties: {},

@@ -62,6 +62,13 @@ export function SequenceEditApprovalModal() {
     }
   };
 
+  const isStale = Boolean(
+    targetDoc && (
+      (proposal?.baseVersion !== undefined && targetDoc.version !== proposal.baseVersion) ||
+      (proposal?.sequenceLength !== undefined && targetDoc.length !== proposal.sequenceLength)
+    )
+  );
+
   return (
     <div 
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 font-ui text-[13px]"
@@ -72,26 +79,26 @@ export function SequenceEditApprovalModal() {
       <div className="w-full max-w-[500px] rounded-lg border border-[var(--border)] bg-[var(--panel)] shadow-2xl text-[var(--text)] overflow-hidden animate-in fade-in-0 zoom-in-95 duration-100">
         <div className="border-b border-[var(--border)] px-5 py-3.5 flex items-center justify-between bg-[var(--panel-muted)]">
           <div className="flex items-center gap-2.5">
-            <span className="size-8 rounded-md bg-[var(--accent-soft)] text-[var(--accent)] grid place-items-center">
+            <span className="size-8 rounded-md bg-[var(--bio-origin)]/15 text-[var(--bio-origin)] grid place-items-center">
               {getActionIcon()}
             </span>
             <div>
               <div className="flex items-center gap-2">
-                <h2 id="sequence-edit-proposal-title" className="font-semibold text-[15px] leading-tight text-[var(--text)]">
-                  Review Agent Sequence Modification
-                </h2>
-                <span className="bg-[var(--accent-soft)] text-[var(--accent)] px-2 py-0.5 rounded text-[11px] font-medium">
-                  Staged
+                <h3 id="sequence-edit-proposal-title" className="font-semibold text-[14px]">
+                  Agent Proposal: Sequence Mutation
+                </h3>
+                <span className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--border)] font-mono text-[var(--text-muted)] uppercase tracking-wider">
+                  Stage & Gate
                 </span>
               </div>
-              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                No sequence modification occurs until you approve.
+              <p className="text-[11px] text-[var(--text-muted)]">
+                Autonomous agent requested direct plasmid modification. Human approval required.
               </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => decide(false)}
-            className="text-[var(--text-muted)] hover:text-[var(--text)] p-1 rounded hover:bg-[var(--border)] cursor-pointer"
+            className="size-7 rounded-md hover:bg-[var(--panel)] text-[var(--text-muted)] hover:text-[var(--text)] grid place-items-center transition-colors cursor-pointer"
             title="Reject proposal (Esc)"
           >
             <X size={16} />
@@ -99,6 +106,13 @@ export function SequenceEditApprovalModal() {
         </div>
 
         <div className="p-5 space-y-4">
+          {isStale && (
+            <div className="rounded-md border border-[var(--danger)]/40 bg-[var(--danger)]/10 p-3 text-[12px] text-[var(--danger)] space-y-1">
+              <div className="font-semibold">Stale Proposal Detected</div>
+              <p>The document sequence has changed since this edit was staged (v{proposal?.baseVersion} → v{targetDoc?.version}). Coordinates may no longer align with target bases. Reject and re-run.</p>
+            </div>
+          )}
+
           <div className="rounded-md border border-[var(--border)] bg-[var(--bg)] p-3.5 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[12px] font-medium text-[var(--text-muted)] uppercase tracking-wider">Operation</span>
@@ -150,7 +164,8 @@ export function SequenceEditApprovalModal() {
           </button>
           <button
             onClick={() => decide(true)}
-            className="px-4 py-1.5 rounded-md bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] font-semibold flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+            disabled={isStale}
+            className={`px-4 py-1.5 rounded-md font-semibold flex items-center gap-1.5 transition-colors shadow-xs ${isStale ? 'bg-[var(--border)] text-[var(--text-muted)] cursor-not-allowed opacity-50' : 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] cursor-pointer'}`}
           >
             <Check size={14} /> Approve & Apply Mutation
           </button>

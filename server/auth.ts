@@ -15,6 +15,8 @@ export function createSeqCraftAuth(config: ServerConfig, db: Db, client: MongoCl
     ...config.allowedOrigins,
   ].filter(Boolean);
 
+  const isHttps = config.isProduction || config.BETTER_AUTH_URL.startsWith('https://');
+
   return betterAuth({
     appName: 'SeqCraft',
     baseURL: config.BETTER_AUTH_URL,
@@ -31,10 +33,14 @@ export function createSeqCraftAuth(config: ServerConfig, db: Db, client: MongoCl
           },
         }
       : {},
+    account: {
+      storeStateStrategy: 'database',
+      skipStateCookieCheck: true,
+    },
     advanced: {
       database: { joins: true },
-      useSecureCookies: config.isProduction,
-      defaultCookieAttributes: config.isProduction
+      useSecureCookies: isHttps,
+      defaultCookieAttributes: isHttps
         ? { httpOnly: true, secure: true, sameSite: 'none' }
         : { httpOnly: true, secure: false, sameSite: 'lax' },
     },

@@ -135,8 +135,10 @@ export interface BiosecurityScreeningReport {
  * Screen a DNA sequence against the regulated select agents and toxins database.
  */
 export function screenBiosecurity(
-  sequence: string
+  sequence: string,
+  _topology?: "linear" | "circular"
 ): BiosecurityScreeningReport {
+  void _topology;
   const seqUpper = sequence.toUpperCase();
   const seqLen = sequence.length;
   const matches: BiosecurityMatch[] = [];

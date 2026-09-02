@@ -15,6 +15,17 @@ export function AuthPage() {
   useEffect(() => {
     const controller = new AbortController();
     void loadPlatformConfig(controller.signal).then(setPlatform);
+
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get('error') || params.get('error_description');
+    if (err) {
+      if (err === 'state_mismatch') {
+        setError('Authentication session expired or was interrupted. Please try signing in again.');
+      } else {
+        setError(`Sign-in error: ${err}`);
+      }
+    }
+
     return () => controller.abort();
   }, []);
 
@@ -25,9 +36,10 @@ export function AuthPage() {
     if (!authEnabled) return;
     setIsLoading(true);
     setError(null);
+    const callbackURL = `${window.location.origin}/dashboard`;
     const result = mode === 'sign-in'
-      ? await authClient.signIn.email({ email, password, callbackURL: '/dashboard' })
-      : await authClient.signUp.email({ email, password, name: email.split('@')[0] || 'SeqCraft user', callbackURL: '/dashboard' });
+      ? await authClient.signIn.email({ email, password, callbackURL })
+      : await authClient.signUp.email({ email, password, name: email.split('@')[0] || 'SeqCraft user', callbackURL });
     setIsLoading(false);
     if (result.error) {
       setError(result.error.message ?? 'Authentication failed. Please try again.');
@@ -40,7 +52,13 @@ export function AuthPage() {
     if (!platform?.auth.googleEnabled) return;
     setIsLoading(true);
     setError(null);
-    const result = await authClient.signIn.social({ provider: 'google', callbackURL: '/dashboard' });
+    const callbackURL = `${window.location.origin}/dashboard`;
+    const errorCallbackURL = `${window.location.origin}/auth`;
+    const result = await authClient.signIn.social({ 
+      provider: 'google', 
+      callbackURL,
+      errorCallbackURL
+    });
     if (result?.error) {
       setIsLoading(false);
       setError(result.error.message ?? 'Google sign-in failed.');

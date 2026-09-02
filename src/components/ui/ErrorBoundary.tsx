@@ -16,17 +16,30 @@ export class ErrorBoundary extends React.Component<{children: React.ReactNode}, 
 
   render() {
     if (this.state.hasError) {
+      const isChunkError = this.state.error?.message?.includes('dynamically imported module');
       return (
-        <div className="p-8 text-red-500 font-mono text-sm bg-red-50">
-          <h2 className="font-bold text-lg mb-4">Application Error</h2>
-          <pre className="whitespace-pre-wrap">{this.state.error?.message}</pre>
-          <pre className="mt-4 opacity-75">{this.state.error?.stack}</pre>
-          <button 
-            className="mt-6 px-4 py-2 bg-red-600 text-white rounded"
-            onClick={() => window.location.reload()}
-          >
-            Reload Application
-          </button>
+        <div className="min-h-screen bg-[var(--bg,#0a0a0a)] text-[var(--text,#ededed)] flex flex-col items-center justify-center p-6 text-center font-sans">
+          <div className="max-w-md w-full border border-[var(--border,#262626)] bg-[var(--surface,#141414)] rounded-xl p-8 shadow-2xl">
+            <h2 className="text-xl font-semibold mb-2">
+              {isChunkError ? 'New Version Available' : 'Application Error'}
+            </h2>
+            <p className="text-sm text-[var(--text-muted,#888)] mb-6">
+              {isChunkError 
+                ? 'SeqCraft has been updated with new improvements. Please reload to use the latest version.'
+                : (this.state.error?.message || 'An unexpected error occurred.')}
+            </p>
+            <button 
+              className="px-6 py-2.5 bg-[var(--accent,#3b82f6)] hover:bg-[var(--accent-hover,#2563eb)] text-white font-medium rounded-lg transition-colors cursor-pointer text-sm"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.sessionStorage.clear();
+                  window.location.reload();
+                }
+              }}
+            >
+              Reload Application
+            </button>
+          </div>
         </div>
       );
     }

@@ -1,13 +1,42 @@
 
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, type ComponentType } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { initializeDocumentPersistence, hydrateWorkspaceFromStorage } from './storage/document-persistence';
 
-const MarketingPage = lazy(() => import('./pages/MarketingPage').then(module => ({ default: module.MarketingPage })));
-const AuthPage = lazy(() => import('./pages/AuthPage').then(module => ({ default: module.AuthPage })));
-const DashboardPage = lazy(() => import('./pages/DashboardPage').then(module => ({ default: module.DashboardPage })));
-const EditorPage = lazy(() => import('./pages/EditorPage').then(module => ({ default: module.EditorPage })));
-const DocsPage = lazy(() => import('./pages/DocsPage').then(module => ({ default: module.DocsPage })));
+function lazyWithRetry<T extends ComponentType<any>>(
+  factory: () => Promise<{ default: T }>
+) {
+  return lazy(async () => {
+    const pageHasBeenForceRefreshed = typeof window !== 'undefined'
+      ? window.sessionStorage.getItem('seqcraft-chunk-reload')
+      : null;
+    try {
+      const component = await factory();
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem('seqcraft-chunk-reload');
+      }
+      return component;
+    } catch (error: any) {
+      const isDynamicImportError =
+        error?.message?.includes('dynamically imported module') ||
+        error?.message?.includes('Failed to fetch dynamically imported module') ||
+        error?.name === 'TypeError';
+
+      if (isDynamicImportError && !pageHasBeenForceRefreshed && typeof window !== 'undefined') {
+        window.sessionStorage.setItem('seqcraft-chunk-reload', 'true');
+        window.location.reload();
+        return new Promise<{ default: T }>(() => {});
+      }
+      throw error;
+    }
+  });
+}
+
+const MarketingPage = lazyWithRetry(() => import('./pages/MarketingPage').then(module => ({ default: module.MarketingPage })));
+const AuthPage = lazyWithRetry(() => import('./pages/AuthPage').then(module => ({ default: module.AuthPage })));
+const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage').then(module => ({ default: module.DashboardPage })));
+const EditorPage = lazyWithRetry(() => import('./pages/EditorPage').then(module => ({ default: module.EditorPage })));
+const DocsPage = lazyWithRetry(() => import('./pages/DocsPage').then(module => ({ default: module.DocsPage })));
 
 export default function App() {
   useEffect(() => {
@@ -25,6 +54,7 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/editor" element={<EditorPage />} />
           <Route path="/docs" element={<DocsPage />} />
+          <Route path="/index.html" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

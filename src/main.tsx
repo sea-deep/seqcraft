@@ -14,6 +14,13 @@ if (import.meta.env.DEV) {
 
 initializeSeqCraftWebMCPRuntime();
 
+// Auto-reload if a stale chunk hash is requested after a new deployment
+if (typeof window !== 'undefined') {
+  window.addEventListener('vite:preloadError', () => {
+    window.location.reload();
+  });
+}
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

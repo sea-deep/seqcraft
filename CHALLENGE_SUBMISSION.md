@@ -36,7 +36,7 @@ Target length: 2:30–2:50, with narration and visible pointer movement.
 
 - [ ] Public live URL: `[add URL]`
 - [ ] Public YouTube demo under three minutes with clear audio: `[add URL]`
-- [ ] Public GitHub repository containing all source and assets: `[add URL]`
+- [x] Public GitHub repository containing all source and assets: `https://github.com/sea-deep/seqcraft`
 - [x] Open-source license is visible at repository root.
 - [x] Setup instructions and optional env contract are documented.
 - [x] `document.modelContext.registerTool` implementation is present in source.

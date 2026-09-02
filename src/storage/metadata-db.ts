@@ -96,3 +96,10 @@ export async function listAllDocuments(): Promise<SequenceDocument[]> {
   }
   return docs;
 }
+
+export async function clearAllDocumentMetadata(): Promise<void> {
+  if (!hasIndexedDB()) return;
+  const allKeys = await keys();
+  const docKeys = allKeys.filter((key): key is string => typeof key === 'string' && key.startsWith(META_PREFIX));
+  await Promise.all(docKeys.map(k => del(k)));
+}

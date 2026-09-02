@@ -23,6 +23,8 @@ import { GoldenGateDialog } from '../cloning/GoldenGateDialog';
 import { TranslationDialog } from '../tools/TranslationDialog';
 import { CrisprDialog } from '../tools/CrisprDialog';
 import { BiosecurityDialog } from '../tools/BiosecurityDialog';
+import { SequenceMutatorDialog } from '../tools/SequenceMutatorDialog';
+import { clearAllWorkspaceStorage } from '../../storage/document-persistence';
 import { reverseComplementIupac } from '../../scientific/restriction-analysis';
 import { ScientificSequence } from '../../scientific/nucleotide';
 import { generateId } from '../../utils/id';
@@ -53,6 +55,9 @@ export function AppCommandBar() {
   const [crisprOpen, setCrisprOpen] = useState(false);
   const [goldenGateOpen, setGoldenGateOpen] = useState(false);
   const [biosecurityOpen, setBiosecurityOpen] = useState(false);
+  const [mutatorOpen, setMutatorOpen] = useState(false);
+  const [mutatorMode, setMutatorMode] = useState<"insert" | "replace" | "rotate_origin">("insert");
+  const mutateDocumentSequence = useWorkspaceStore(s => s.mutateDocumentSequence);
   const activeDocument = documents.find(document => document.id === activeDocumentId);
   const activeSelection = activeDocument && selection?.documentId === activeDocument.id ? selection : null;
   const selectedSequence = activeDocument?.storageMode === 'memory' && activeSelection
@@ -114,7 +119,12 @@ export function AppCommandBar() {
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                onClick={() => { if (window.confirm('Are you sure you want to delete all sequences, history, and workspace data? This cannot be undone.')) useWorkspaceStore.getState().clearWorkspace(); }}
+                onClick={async () => { 
+                  if (window.confirm('Are you sure you want to delete all sequences, history, and workspace data? This cannot be undone.')) {
+                    await clearAllWorkspaceStorage();
+                    useWorkspaceStore.getState().clearWorkspace(); 
+                  }
+                }}
                 className="text-[var(--danger)] focus:bg-[var(--danger)]/10 focus:text-[var(--danger)]"
               >
                 Clear Workspace Data...
@@ -126,10 +136,59 @@ export function AppCommandBar() {
           <DropdownMenu>
             <DropdownMenuTrigger className="px-2 py-1 rounded hover:bg-[var(--panel-muted)] outline-none data-[state=open]:bg-[var(--panel-muted)] cursor-default">Edit</DropdownMenuTrigger>
             <DropdownMenuContent align="start">
+              {activeDocument && (
+                <DropdownMenuItem onClick={() => { setMutatorMode('insert'); setMutatorOpen(true); }}>
+                  Insert Bases / Motif...
+                </DropdownMenuItem>
+              )}
               {activeSelection ? (
                 <>
                   <DropdownMenuItem onClick={copySequence}>Copy Selection<DropdownMenuShortcut>Cmd+C</DropdownMenuShortcut></DropdownMenuItem>
-                  <DropdownMenuItem onClick={openReverseComplement}>Open Reverse Complement</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setMutatorMode('replace'); setMutatorOpen(true); }}>
+                    Mutate / Replace Bases...
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      if (activeDocument && activeSelection) {
+                        mutateDocumentSequence(activeDocument.id, {
+                          type: 'delete',
+                          start0: activeSelection.start0,
+                          end0Exclusive: activeSelection.end0Exclusive
+                        });
+                      }
+                    }}
+                    className="text-[var(--danger)] focus:bg-[var(--danger)]/10 focus:text-[var(--danger)]"
+                  >
+                    Delete Selected Bases
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      if (activeDocument && activeSelection) {
+                        mutateDocumentSequence(activeDocument.id, {
+                          type: 'reverse_complement',
+                          start0: activeSelection.start0,
+                          end0Exclusive: activeSelection.end0Exclusive
+                        });
+                      }
+                    }}
+                  >
+                    Reverse Complement In-Place
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={openReverseComplement}>Open Reverse Complement As New Doc</DropdownMenuItem>
+                  {activeDocument?.topology === 'circular' && (
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        if (activeDocument && activeSelection) {
+                          mutateDocumentSequence(activeDocument.id, {
+                            type: 'rotate_origin',
+                            newOrigin0: activeSelection.start0
+                          });
+                        }
+                      }}
+                    >
+                      Set As Circular Origin (Position 1)
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setFeatureOpen(true)}>Create Feature...</DropdownMenuItem>
                 </>
@@ -244,6 +303,15 @@ export function AppCommandBar() {
       {activeDocument && crisprOpen && <CrisprDialog document={activeDocument} selection={activeSelection ?? undefined} open={crisprOpen} onOpenChange={setCrisprOpen} />}
       {activeDocument && goldenGateOpen && <GoldenGateDialog activeDocument={activeDocument} documents={documents} open={goldenGateOpen} onOpenChange={setGoldenGateOpen} />}
       {activeDocument && biosecurityOpen && <BiosecurityDialog document={activeDocument} open={biosecurityOpen} onOpenChange={setBiosecurityOpen} />}
+      {activeDocument && mutatorOpen && (
+        <SequenceMutatorDialog
+          document={activeDocument}
+          initialMode={mutatorMode}
+          selection={activeSelection}
+          open={mutatorOpen}
+          onOpenChange={setMutatorOpen}
+        />
+      )}
     </header>
   );
 }

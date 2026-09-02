@@ -10,8 +10,9 @@ import { useWorkspaceStore } from '../../state/workspace-store';
 import { generateId } from '../../utils/id';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
-import { FilePlus, Languages, BookmarkPlus, LocateFixed, Crosshair } from 'lucide-react';
+import { FilePlus, Languages, BookmarkPlus, LocateFixed, Crosshair, Sparkles, Trash2, ArrowLeftRight } from 'lucide-react';
 import { CrisprDialog } from '../tools/CrisprDialog';
+import { SequenceMutatorDialog } from '../tools/SequenceMutatorDialog';
 
 interface SelectionInspectorProps {
   document: SequenceDocument;
@@ -29,6 +30,8 @@ export function SelectionInspector({ document, selection }: SelectionInspectorPr
   const [featureDialogOpen, setFeatureDialogOpen] = useState(false);
   const [primerDialogOpen, setPrimerDialogOpen] = useState(false);
   const [crisprDialogOpen, setCrisprDialogOpen] = useState(false);
+  const [mutatorOpen, setMutatorOpen] = useState(false);
+  const [mutatorMode, setMutatorMode] = useState<"insert" | "replace" | "rotate_origin">("replace");
   
   const [seqSlice, setSeqSlice] = useState<string>('');
   const [loadingSeq, setLoadingSeq] = useState(true);
@@ -36,6 +39,7 @@ export function SelectionInspector({ document, selection }: SelectionInspectorPr
   const addDocument = useWorkspaceStore(s => s.addDocument);
   const setActiveView = useWorkspaceStore(s => s.setActiveView);
   const addHistoryEntry = useWorkspaceStore(s => s.addHistoryEntry);
+  const mutateDocumentSequence = useWorkspaceStore(s => s.mutateDocumentSequence);
 
   const isOriginSpanning = selection.end0Exclusive < selection.start0;
   const len = isOriginSpanning 
@@ -231,12 +235,60 @@ export function SelectionInspector({ document, selection }: SelectionInspectorPr
               <Crosshair size={14} className="text-[var(--accent)]" />
               Scan CRISPR Guides
             </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2 text-[12px] h-[30px]"
+              onClick={() => { setMutatorMode('replace'); setMutatorOpen(true); }}
+            >
+              <Sparkles size={14} className="text-[var(--accent)]" />
+              Mutate / Replace Bases...
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2 text-[12px] h-[30px]"
+              onClick={() => {
+                mutateDocumentSequence(document.id, {
+                  type: 'reverse_complement',
+                  start0: selection.start0,
+                  end0Exclusive: selection.end0Exclusive
+                });
+              }}
+            >
+              <ArrowLeftRight size={14} className="text-[var(--accent)]" />
+              Invert Strand (Rev-Comp)
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2 text-[12px] h-[30px] text-[var(--danger)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10"
+              onClick={() => {
+                mutateDocumentSequence(document.id, {
+                  type: 'delete',
+                  start0: selection.start0,
+                  end0Exclusive: selection.end0Exclusive
+                });
+              }}
+            >
+              <Trash2 size={14} className="text-[var(--danger)]" />
+              Delete Selected Bases
+            </Button>
           </>
         )}
       </div>
       {featureDialogOpen && <FeatureDialog document={document} selection={selection} open onOpenChange={setFeatureDialogOpen} />}
       {primerDialogOpen && <PrimerDialog document={document} selection={selection} open onOpenChange={setPrimerDialogOpen} />}
       {crisprDialogOpen && <CrisprDialog document={document} selection={selection} open onOpenChange={setCrisprDialogOpen} />}
+      {mutatorOpen && (
+        <SequenceMutatorDialog
+          document={document}
+          initialMode={mutatorMode}
+          selection={selection}
+          open={mutatorOpen}
+          onOpenChange={setMutatorOpen}
+        />
+      )}
     </div>
   );
 }

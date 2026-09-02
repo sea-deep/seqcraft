@@ -51,11 +51,11 @@ describe('WebMCP Tool Registration and Execution', () => {
     useActivityStore.getState().clearEvents();
   });
 
-  it('registers exactly 22 tools asynchronously', async () => {
+  it('registers exactly 24 tools asynchronously', async () => {
     const controller = new AbortController();
     await registerSeqCraftTools(mockMcp, controller.signal);
     
-    expect(mockMcp.registerTool).toHaveBeenCalledTimes(22);
+    expect(mockMcp.registerTool).toHaveBeenCalledTimes(24);
     
     const expectedNames = [
       'seqcraft_analyze_primer',
@@ -80,6 +80,8 @@ describe('WebMCP Tool Registration and Execution', () => {
       'seqcraft_simulate_golden_gate',
       'seqcraft_domesticate_sequence',
       'seqcraft_screen_biosecurity',
+      'seqcraft_edit_sequence',
+      'seqcraft_rotate_origin',
     ].sort();
     
     const actualNames = [...registeredTools.keys()].sort();
@@ -113,13 +115,15 @@ describe('WebMCP Tool Registration and Execution', () => {
       expect(registeredTools.get(name)!.annotations.readOnlyHint).toBe(true);
     }
 
-    // Action (navigation or staged persistent change)
+    // Action (navigation, sequence mutation, or staged persistent change)
     const actionTools = [
       'seqcraft_focus_region',
       'seqcraft_show_restriction_site',
       'seqcraft_show_feature',
       'seqcraft_propose_annotation',
       'seqcraft_prepare_restriction_clone',
+      'seqcraft_edit_sequence',
+      'seqcraft_rotate_origin',
     ];
     for (const name of actionTools) {
       expect(registeredTools.get(name)!.annotations.readOnlyHint).toBe(false);
@@ -351,7 +355,7 @@ describe('WebMCP Tool Registration and Execution', () => {
     
     // Every call received the signal
     const calls = mockMcp.registerTool.mock.calls;
-    expect(calls.length).toBe(22);
+    expect(calls.length).toBe(24);
     calls.forEach((call: any[]) => {
       expect(call[1].signal).toBe(controller.signal);
     });
@@ -426,5 +430,42 @@ describe('WebMCP Tool Registration and Execution', () => {
     expect(res.result.isCompliant).toBe(true);
     expect(res.result.status).toBe('COMPLIANT');
     expect(res.result.summary).toContain('Screening passed');
+  });
+
+  it('inserts DNA bases into active construct via WebMCP tool', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const doc = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(doc);
+    useWorkspaceStore.getState().setActiveDocument(doc.id);
+
+    const origLen = doc.length;
+    const res = await registeredTools.get('seqcraft_edit_sequence')!.execute({
+      actionType: 'insert',
+      position1: 10,
+      sequence: 'CACCACCACCACCACCAC' // 18 bp His-6
+    });
+
+    expect(res.ok).toBe(true);
+    expect(res.result.newLength).toBe(origLen + 18);
+    expect(res.result.actionType).toBe('insert');
+
+    // Confirm store updated
+    const updated = useWorkspaceStore.getState().documents.find(d => d.id === doc.id)!;
+    expect(updated.length).toBe(origLen + 18);
+  });
+
+  it('rotates circular plasmid origin via WebMCP tool', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const doc = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(doc);
+    useWorkspaceStore.getState().setActiveDocument(doc.id);
+
+    const res = await registeredTools.get('seqcraft_rotate_origin')!.execute({
+      newOrigin1: 50
+    });
+
+    expect(res.ok).toBe(true);
+    expect(res.result.newOrigin1).toBe(50);
+    expect(res.result.length).toBe(doc.length);
   });
 });

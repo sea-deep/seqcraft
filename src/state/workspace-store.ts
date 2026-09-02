@@ -6,6 +6,9 @@ import type { StagedProposal } from '../domain/proposal';
 import { validateSelection } from '../domain/coordinates';
 import { generateId } from '../utils/id';
 import { assertDocumentInvariant } from '../domain/document';
+import { ScientificSequence } from '../scientific/nucleotide';
+import { editSequence } from '../scientific/sequence-editing';
+import type { SequenceEditAction, SequenceEditResult } from '../scientific/sequence-editing';
 
 export type WorkspaceView = 'sequence' | 'map' | 'features' | 'primers' | 'enzymes' | 'history' | 'compare';
 
@@ -42,6 +45,7 @@ interface WorkspaceState {
   setSidebarOpen: (open: boolean) => void;
   setInspectorOpen: (open: boolean) => void;
   removeDocument: (id: string) => void;
+  removeDocuments: (ids: string[]) => void;
   setSelection: (documentId: string, start0: number, end0Exclusive: number) => void;
   clearSelection: () => void;
   selectFeature: (featureId: string | null) => void;
@@ -59,6 +63,7 @@ interface WorkspaceState {
   addHistoryEntry: (entry: Omit<WorkspaceHistoryEntry, 'id' | 'timestamp'>) => void;
   addProposal: (proposal: StagedProposal) => void;
   removeProposal: (id: string) => void;
+  mutateDocumentSequence: (documentId: string, action: SequenceEditAction) => SequenceEditResult;
 }
 
 function historyEntry(documentId: string, action: WorkspaceHistoryEntry['action'], summary: string): WorkspaceHistoryEntry {
@@ -142,6 +147,21 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
       selectedFeatureId: removedActive ? null : state.selectedFeatureId,
       selectedPrimerId: removedActive ? null : state.selectedPrimerId,
       selectedRestrictionSiteId: removedActive ? null : state.selectedRestrictionSiteId,
+    };
+  }),
+
+  removeDocuments: ids => set(state => {
+    const idSet = new Set(ids);
+    const openDocumentIds = state.openDocumentIds.filter(id => !idSet.has(id));
+    const activeRemoved = state.activeDocumentId && idSet.has(state.activeDocumentId);
+    return {
+      documents: state.documents.filter(doc => !idSet.has(doc.id)),
+      openDocumentIds,
+      activeDocumentId: activeRemoved ? (openDocumentIds.at(-1) ?? null) : state.activeDocumentId,
+      selection: state.selection && idSet.has(state.selection.documentId) ? null : state.selection,
+      selectedFeatureId: activeRemoved ? null : state.selectedFeatureId,
+      selectedPrimerId: activeRemoved ? null : state.selectedPrimerId,
+      selectedRestrictionSiteId: activeRemoved ? null : state.selectedRestrictionSiteId,
     };
   }),
 
@@ -264,4 +284,37 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   addHistoryEntry: entry => set(state => ({ historyEntries: [historyEntry(entry.documentId, entry.action, entry.summary), ...(state.historyEntries || [])] })),
   addProposal: proposal => set(state => ({ stagedProposals: [...(state.stagedProposals || []), proposal] })),
   removeProposal: id => set(state => ({ stagedProposals: (state.stagedProposals || []).filter(proposal => proposal.id !== id) })),
+
+  mutateDocumentSequence: (documentId, action) => {
+    let editResult: SequenceEditResult | null = null;
+    set(state => {
+      const document = state.documents.find(doc => doc.id === documentId);
+      if (!document) throw new Error(`Document ${documentId} not found`);
+      if (document.storageMode !== 'memory' || !document.sequence) {
+        throw new Error('In-place sequence mutation currently requires memory storage mode');
+      }
+
+      const rawSeq = document.sequence.raw;
+      editResult = editSequence(rawSeq, document.features, action, document.topology);
+
+      const updatedDoc: SequenceDocument = {
+        ...document,
+        length: editResult.newLength,
+        sequence: new ScientificSequence(editResult.newSequence, document.alphabet),
+        features: editResult.newFeatures,
+        version: document.version + 1,
+      };
+      assertDocumentInvariant(updatedDoc);
+
+      return {
+        documents: state.documents.map(doc => doc.id === documentId ? updatedDoc : doc),
+        selection: null,
+        selectedFeatureId: null,
+        selectedPrimerId: null,
+        selectedRestrictionSiteId: null,
+        historyEntries: [historyEntry(documentId, 'metadata', editResult.summary), ...(state.historyEntries || [])],
+      };
+    });
+    return editResult!;
+  },
 }));

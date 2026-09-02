@@ -20,7 +20,6 @@ import { AppCommandBar } from '../components/shell/AppCommandBar';
 import { ProjectSidebar } from '../components/shell/ProjectSidebar';
 import { EditorStatusBar } from '../components/shell/EditorStatusBar';
 import { AnnotationApprovalModal } from '../components/features/AnnotationApprovalModal';
-import { initializeDocumentPersistence, hydrateWorkspaceFromStorage } from '../storage/document-persistence';
 
 export function AppShell() {
   const sidebarOpen = useWorkspaceStore(s => s.sidebarOpen);
@@ -55,14 +54,6 @@ export function AppShell() {
   useHotkeys('3', () => setActiveView('features'));
   useHotkeys('4', () => setActiveView('primers'));
   useHotkeys('5', () => setActiveView('enzymes'));
-
-  useEffect(() => {
-    return initializeDocumentPersistence();
-  }, []);
-
-  useEffect(() => {
-    void hydrateWorkspaceFromStorage();
-  }, []);
 
   useEffect(() => {
     applyThemePreference(themePreference);

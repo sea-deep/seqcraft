@@ -1,6 +1,7 @@
 
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { initializeDocumentPersistence, hydrateWorkspaceFromStorage } from './storage/document-persistence';
 
 const MarketingPage = lazy(() => import('./pages/MarketingPage').then(module => ({ default: module.MarketingPage })));
 const AuthPage = lazy(() => import('./pages/AuthPage').then(module => ({ default: module.AuthPage })));
@@ -9,6 +10,12 @@ const EditorPage = lazy(() => import('./pages/EditorPage').then(module => ({ def
 const DocsPage = lazy(() => import('./pages/DocsPage').then(module => ({ default: module.DocsPage })));
 
 export default function App() {
+  useEffect(() => {
+    const stop = initializeDocumentPersistence();
+    void hydrateWorkspaceFromStorage();
+    return stop;
+  }, []);
+
   return (
     <BrowserRouter>
       <Suspense fallback={<AppLoading />}>

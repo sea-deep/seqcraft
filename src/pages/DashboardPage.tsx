@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   Dna, Plus, Search, FileUp, Circle, Minus, BookOpen, Trash2, 
@@ -8,7 +8,6 @@ import {
 import { useWorkspaceStore } from '../state/workspace-store';
 import { ImportDialog } from '../components/ui/ImportDialog';
 import { useWorkspaceCloudSync } from '../platform/workspace-sync';
-import { hydrateWorkspaceFromStorage } from '../storage/document-persistence';
 import { DocumentCardSkeleton } from '../components/ui/skeleton';
 import {
   Dialog,
@@ -26,10 +25,8 @@ export function DashboardPage() {
   const isHydrated = useWorkspaceStore(s => s.isHydrated);
   const setActiveDocument = useWorkspaceStore(s => s.setActiveDocument);
   const removeDocument = useWorkspaceStore(s => s.removeDocument);
+  const removeDocuments = useWorkspaceStore(s => s.removeDocuments);
 
-  useEffect(() => {
-    void hydrateWorkspaceFromStorage();
-  }, []);
   const cloud = useWorkspaceCloudSync();
 
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -77,12 +74,7 @@ export function DashboardPage() {
   };
 
   const handleExecuteBulkDelete = () => {
-    const remaining = documents.filter(d => !selectedIds.has(d.id));
-    const activeDocId = useWorkspaceStore.getState().activeDocumentId;
-    useWorkspaceStore.setState({ 
-      documents: remaining, 
-      activeDocumentId: activeDocId && selectedIds.has(activeDocId) ? null : activeDocId 
-    });
+    removeDocuments(Array.from(selectedIds));
     setSelectedIds(new Set());
     setIsSelectMode(false);
     setConfirmBulkDeleteOpen(false);

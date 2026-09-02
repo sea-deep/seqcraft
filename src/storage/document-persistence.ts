@@ -1,6 +1,6 @@
 import type { SequenceDocument } from '../domain/document';
 import { useWorkspaceStore } from '../state/workspace-store';
-import { deleteDocumentMetadata, listAllDocuments, saveDocumentMetadata } from './metadata-db';
+import { deleteDocumentMetadata, listAllDocuments, saveDocumentMetadata, clearAllDocumentMetadata } from './metadata-db';
 import { opfsStorage } from './opfs-backend';
 
 let stopSubscription: (() => void) | undefined;
@@ -31,6 +31,11 @@ export async function deletePersistedDocument(document: SequenceDocument): Promi
   if (document.storageMode === 'chunked' && document.storageRef) {
     await opfsStorage.deleteSequence(document.storageRef.key);
   }
+}
+
+export async function clearAllWorkspaceStorage(): Promise<void> {
+  await clearAllDocumentMetadata();
+  await opfsStorage.clearAllSequences();
 }
 
 export async function loadPersistedDocuments(onRecoveryIssue: (message: string) => void = console.warn): Promise<SequenceDocument[]> {

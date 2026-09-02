@@ -226,10 +226,23 @@ export function DocsPage() {
               <span className="text-[var(--accent)]">6.</span> Next-Generation Capabilities & WebMCP Extensions
             </h2>
             <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-              SeqCraft bridges computational in-silico genetic engineering with physical bench robotics and regulatory compliance through its native 22-tool WebMCP architecture:
+              SeqCraft bridges computational in-silico genetic engineering with physical bench robotics and regulatory compliance through its native 24-tool WebMCP architecture:
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2 col-span-1 md:col-span-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-purple-500" /> Active In-Place Sequence Manipulation Suite
+                  </h4>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/15 text-purple-400 font-bold">Coordinate-Aware Engine</span>
+                </div>
+                <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                  Execute direct, in-place sequence engineering including insertions, deletions, replacements, strand inversions (reverse complement), and circular plasmid origin re-indexing. Coordinates of all existing biological features (CDS, promoters, terminators) are mathematically shifted, expanded, clipped, or partitioned without manual re-annotation. Includes a built-in catalog of standard biological tags and motifs (His-6, FLAG, HA, Myc, TEV, Kozak, T7, (GGGGS)3).
+                </p>
+                <div className="text-[11px] font-mono text-[var(--text-muted)]">WebMCP: seqcraft_edit_sequence, seqcraft_rotate_origin</div>
+              </div>
+
               <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
                 <div className="flex items-center justify-between">
                   <h4 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">

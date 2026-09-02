@@ -102,6 +102,15 @@ export class OPFSBackend {
       if (!(error instanceof DOMException && error.name === 'NotFoundError')) throw error;
     }
   }
+
+  async clearAllSequences(): Promise<void> {
+    try {
+      const root = await this.getDirectory();
+      await root.removeEntry(SEQUENCE_DIRECTORY, { recursive: true });
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'NotFoundError')) throw error;
+    }
+  }
 }
 
 export const opfsStorage = new OPFSBackend();

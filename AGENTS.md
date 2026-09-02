@@ -157,8 +157,14 @@ During UI phases, implement only the atomic task explicitly requested by the use
   - 100% private, client-side pre-order compliance screener against HHS/USDA Select Agents (42 CFR Part 73), Australia Group Common Control List, and IGSC standards.
   - Generates JSON compliance audit certificates for submission to commercial gene synthesis providers (Twist, IDT, GenScript).
   - WebMCP tool: `seqcraft_screen_biosecurity`.
+- **Active In-Place Sequence Manipulation Suite**:
+  - `src/scientific/sequence-editing.ts`, `SequenceMutatorDialog.tsx`, `workspace-store.ts` (`mutateDocumentSequence`).
+  - Supports 5 molecular operations: `insert`, `delete`, `replace`, `reverse_complement`, and `rotate_origin`.
+  - Automatic biological coordinate arithmetic: downstream shifts $+L$, upstream invariant, spanning expansions, clipped edges, swallowed feature removal, and circular origin crossing splits.
+  - Built-in catalog of standard biological motifs (His-6, FLAG, HA, Myc, TEV, Kozak, T7, (GGGGS)3 linker).
+  - WebMCP tools: `seqcraft_edit_sequence`, `seqcraft_rotate_origin`.
 - **WebMCP Ecosystem**:
-  - Expanded to 22 scientific and agentic tools registered via `window.document.modelContext`.
+  - Expanded to 24 scientific and agentic tools registered via `window.document.modelContext`.
   - Verified across real browser and unit/integration test suites.
 
 ## Deployment Notes

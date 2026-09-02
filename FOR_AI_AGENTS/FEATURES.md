@@ -188,6 +188,11 @@ This contract is enforced at API schemas, persistence repositories, logging, and
 - Keep reference annotations visible while examining differences.
 - Select a difference to focus the corresponding region in both sequences.
 - Suitable for comparing expected and modified/observed constructs.
+- Circular comparison is invariant to equivalent origin rotations and reverse-complement orientation.
+- Diff annotations alongside bases and report affected CDS/protein consequences.
+- Render a deterministic canonical 2D circular map with origin marker, separate reference/query feature tracks, strand arrows, diff highlights, and collision-managed labels.
+- Produce structured geometry for SVG/canvas and stable JSON manifests for future Git/Gen integrations.
+- Run canonicalization, alignment, annotation diffing, consequence analysis, and geometry generation outside the main UI thread.
 
 ---
 

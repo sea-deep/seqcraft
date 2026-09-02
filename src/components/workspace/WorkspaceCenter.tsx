@@ -43,6 +43,7 @@ export function WorkspaceCenter() {
     { id: 'primers', label: 'Primers' },
     { id: 'enzymes', label: 'Enzymes' },
     { id: 'history', label: 'History' },
+    { id: 'compare', label: 'Compare' },
   ];
   const capabilities = getDocumentCapabilities(activeDoc);
   const unsupported = (view: WorkspaceView) =>

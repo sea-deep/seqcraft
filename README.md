@@ -8,11 +8,12 @@ SeqCraft is a local-first molecular biology workbench built for humans and WebMC
 - **Optional cloud control plane:** Node.js, Better Auth, Google OAuth, and MongoDB Atlas handle identity and sequence-free metadata only.
 - **Real WebMCP workflows:** 17 tools inspect, navigate, detect exact known features, digest, analyze primers/PCR, find ORFs, compare constructs, and stage restriction-cloning or annotation proposals.
 - **Human-in-the-loop changes:** persistent agent-authored scientific changes are previews until a user approves them.
+- **Canonical biological diffs:** substitutions, insertions, deletions, annotation changes, and CDS consequences are invariant to circular origin rotation and reverse-complement orientation.
 - **Coordinate correctness:** internal intervals are 0-based half-open; human and WebMCP coordinates are explicitly 1-based inclusive.
 
 ## Scientific workspace
 
-SeqCraft currently supports FASTA/GenBank/raw import, virtualized sequence viewing, 2D/3D circular maps, annotations, exact known-feature detection, primers, restriction analysis and digests, PCR simulation, six-frame ORFs, construct comparison, and restriction-cloning proposals.
+SeqCraft currently supports FASTA/GenBank/raw import, virtualized sequence viewing, 2D/3D circular maps, annotations, exact known-feature detection, primers, restriction analysis and digests, PCR simulation, six-frame ORFs, canonical construct comparison, and restriction-cloning proposals. Circular comparisons render deterministic reference/query annotation tracks, base-diff highlights, collision-managed labels, and exportable SVG or sequence-private JSON manifests; computation runs in a dedicated browser worker.
 
 ## Quick start
 

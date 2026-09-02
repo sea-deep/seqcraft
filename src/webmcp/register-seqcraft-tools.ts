@@ -10,7 +10,7 @@ import { simulatePCR, analyzePrimerPairProperties } from '../scientific/pcr';
 import type { RestrictionEnzyme } from '../domain/restriction';
 import { showRestrictionSite, showFeature, focusSequenceRegion } from '../application/navigation';
 import { prepareRestrictionClone } from '../application/cloning';
-import { alignSequences } from '../scientific/sequence-comparison';
+import { compareSequenceDocuments } from '../application/sequence-diff';
 import { generateId } from '../utils/id';
 import type { FeatureType } from '../domain/feature';
 import { detectKnownFeatures } from '../scientific/known-feature-detection';
@@ -559,16 +559,46 @@ export const seqcraftListPrimersTool = {
 
 export const seqcraftCompareDocumentsTool = {
   name: 'seqcraft_compare_documents',
-  description: 'Globally align and compare two DNA documents open in SeqCraft. Returns identity and substitution/insertion/deletion coordinates.',
-  inputSchema: { type: 'object', properties: { referenceDocumentId: { type: 'string' }, queryDocumentId: { type: 'string' } }, required: ['referenceDocumentId', 'queryDocumentId'], additionalProperties: false },
+  description: 'Compare two DNA documents with SeqCraft’s biological diff engine. Circular molecules are canonicalized across origin rotations and reverse-complement orientation. Returns bounded base edits, annotation differences, and CDS/protein consequences.',
+  inputSchema: { type: 'object', properties: { referenceDocumentId: { type: 'string' }, queryDocumentId: { type: 'string' }, maxResults: { type: 'integer', minimum: 1, maximum: 200, description: 'Maximum base and annotation differences returned per category. Defaults to 50.' } }, required: ['referenceDocumentId', 'queryDocumentId'], additionalProperties: false },
   annotations: { readOnlyHint: true, untrustedContentHint: true },
-  execute: wrapToolExecute('seqcraft_compare_documents', input => `${input.referenceDocumentId} vs ${input.queryDocumentId}`, (input: { referenceDocumentId: string; queryDocumentId: string }) => {
+  execute: wrapToolExecute('seqcraft_compare_documents', input => `${input.referenceDocumentId} vs ${input.queryDocumentId}`, async (input: { referenceDocumentId: string; queryDocumentId: string; maxResults?: number }) => {
     const state = useWorkspaceStore.getState();
     const reference = state.documents.find(doc => doc.id === input.referenceDocumentId);
     const query = state.documents.find(doc => doc.id === input.queryDocumentId);
     if (!reference || !query) return createError('DOCUMENT_NOT_FOUND', 'Both comparison documents must be open in SeqCraft.');
-    const comparison = alignSequences(getMemorySequence(reference).raw, getMemorySequence(query).raw);
-    return createSuccess({ summary: `${comparison.identityPercent.toFixed(2)}% identity · ${comparison.differences.length} differences`, reference: { id: reference.id, name: reference.name }, query: { id: query.id, name: query.name }, identityPercent: comparison.identityPercent, exact: comparison.exact, differences: comparison.differences.map(difference => ({ kind: difference.kind, referenceStart1: difference.referenceStart0 + 1, referenceEnd1: difference.referenceEnd0Exclusive, queryStart1: difference.queryStart0 + 1, queryEnd1: difference.queryEnd0Exclusive })) });
+    if (reference.storageMode !== 'memory' || query.storageMode !== 'memory') return createError('UNSUPPORTED_DOCUMENT', 'Biological comparison currently requires two in-memory documents.');
+    const comparison = (await compareSequenceDocuments(reference, query, { maxEditDistance: 4_096 }, null)).result;
+    const maxResults = Math.min(Math.max(input.maxResults ?? 50, 1), 200);
+    return createSuccess({
+      summary: `${comparison.identityPercent.toFixed(2)}% identity · ${comparison.differences.length} base · ${comparison.featureDifferences.length} annotation differences`,
+      comparisonId: comparison.id,
+      coordinateSystem: comparison.coordinateSystem,
+      reference: { id: reference.id, name: reference.name, canonicalOrientation: comparison.reference.orientation, canonicalRotation0: comparison.reference.rotation0 },
+      query: { id: query.id, name: query.name, canonicalOrientation: comparison.query.orientation, canonicalRotation0: comparison.query.rotation0 },
+      identityPercent: comparison.identityPercent,
+      editDistance: comparison.editDistance,
+      exact: comparison.exact,
+      circularOriginInvariant: comparison.canonicalization.circularOriginInvariant,
+      reverseComplementInvariant: comparison.canonicalization.reverseComplementInvariant,
+      differenceCount: comparison.differences.length,
+      featureDifferenceCount: comparison.featureDifferences.length,
+      truncated: comparison.differences.length > maxResults || comparison.featureDifferences.length > maxResults || comparison.proteinConsequences.length > maxResults,
+      differences: comparison.differences.slice(0, maxResults).map(difference => ({
+        kind: difference.kind,
+        referenceRange1Inclusive: difference.referenceEnd0Exclusive > difference.referenceStart0 ? { start1: difference.referenceStart0 + 1, end1: difference.referenceEnd0Exclusive } : null,
+        queryRange1Inclusive: difference.queryEnd0Exclusive > difference.queryStart0 ? { start1: difference.queryStart0 + 1, end1: difference.queryEnd0Exclusive } : null,
+        referenceAnchor1: comparison.reference.length === 0 ? 1 : (difference.referenceStart0 % comparison.reference.length) + 1,
+        queryAnchor1: comparison.query.length === 0 ? 1 : (difference.queryStart0 % comparison.query.length) + 1,
+        referenceBases: difference.referenceBases.length <= 200 ? difference.referenceBases : `${difference.referenceBases.slice(0, 200)}…`,
+        queryBases: difference.queryBases.length <= 200 ? difference.queryBases : `${difference.queryBases.slice(0, 200)}…`,
+        referenceLengthBp: difference.referenceBases.length,
+        queryLengthBp: difference.queryBases.length,
+        affectedReferenceFeatureIds: difference.affectedReferenceFeatureIds,
+      })),
+      featureDifferences: comparison.featureDifferences.slice(0, maxResults).map(difference => ({ kind: difference.kind, name: difference.referenceFeature?.name ?? difference.queryFeature?.name, changes: difference.changes, referenceFeatureId: difference.referenceFeature?.originalId ?? null, queryFeatureId: difference.queryFeature?.originalId ?? null })),
+      proteinConsequences: comparison.proteinConsequences.slice(0, maxResults).map(consequence => ({ featureName: consequence.featureName, kinds: consequence.kinds, geneticCodeTable: consequence.geneticCodeTable, firstAffectedAminoAcid1: consequence.firstAffectedAminoAcid1, referenceAminoAcids: consequence.referenceAminoAcids, queryAminoAcids: consequence.queryAminoAcids })),
+    });
   }),
 };
 

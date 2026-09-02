@@ -16,6 +16,7 @@ import { useActivityStore } from '../../src/state/activity-store';
 import { importGenBank } from '../../src/import/genbank';
 import { DEMO_GENBANK } from '../../src/data/demo-workspace';
 import { reverseComplementIupac } from '../../src/scientific/restriction-analysis';
+import { ScientificSequence } from '../../src/scientific/nucleotide';
 
 describe('WebMCP Tool Registration and Execution', () => {
   let registeredTools = new Map<string, any>();
@@ -318,13 +319,27 @@ describe('WebMCP Tool Registration and Execution', () => {
     expect(res2.ok).toBe(true);
   });
 
+  it('compares circular documents invariantly and returns annotation/protein-aware structure', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const reference = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    const raw = reference.sequence.raw;
+    const rotation = 317;
+    const query = { ...reference, id: 'rotated-puc19', name: 'Rotated pUC19', sequence: new ScientificSequence(raw.slice(rotation) + raw.slice(0, rotation), 'DNA'), features: reference.features.map(item => ({ ...item, segments: item.segments.flatMap(segment => { const size = segment.end0Exclusive - segment.start0; const start0 = (segment.start0 - rotation + raw.length) % raw.length; return start0 + size <= raw.length ? [{ start0, end0Exclusive: start0 + size }] : [{ start0, end0Exclusive: raw.length }, { start0: 0, end0Exclusive: start0 + size - raw.length }]; }) })) };
+    useWorkspaceStore.getState().addDocuments([reference, query]);
+    const response = await registeredTools.get('seqcraft_compare_documents')!.execute({ referenceDocumentId: reference.id, queryDocumentId: query.id });
+    expect(response.ok).toBe(true);
+    expect(response.result.differenceCount).toBe(0);
+    expect(response.result.circularOriginInvariant).toBe(true);
+    expect(response.result.coordinateSystem).toBe('0-based-half-open-canonical');
+  });
+
   it('registration uses AbortSignal', async () => {
     const controller = new AbortController();
     await registerSeqCraftTools(mockMcp, controller.signal);
     
     // Every call received the signal
     const calls = mockMcp.registerTool.mock.calls;
-    expect(calls.length).toBe(16);
+    expect(calls.length).toBe(17);
     calls.forEach((call: any[]) => {
       expect(call[1].signal).toBe(controller.signal);
     });

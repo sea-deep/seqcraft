@@ -8,6 +8,7 @@ import {
 import { useWorkspaceStore } from '../state/workspace-store';
 import { ImportDialog } from '../components/ui/ImportDialog';
 import { useWorkspaceCloudSync } from '../platform/workspace-sync';
+import { authClient } from '../platform/client';
 import { DocumentCardSkeleton } from '../components/ui/skeleton';
 import {
   Dialog,
@@ -117,10 +118,28 @@ export function DashboardPage() {
           <Link to="/docs" className="text-[13px] text-[var(--text-muted)] hover:text-[var(--text)] flex items-center gap-1.5 transition-colors">
             <BookOpen size={14} /> Documentation
           </Link>
+          {cloud.accountName ? (
+            <div className="flex items-center gap-2 border-l border-[var(--border)] pl-4">
+              <span className="text-[12px] font-medium text-[var(--text-secondary)]">{cloud.accountName}</span>
+              <button
+                onClick={async () => {
+                  await authClient.signOut();
+                  window.location.reload();
+                }}
+                className="text-[11px] text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors cursor-pointer"
+              >
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <Link to="/auth" className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors border-l border-[var(--border)] pl-4">
+              Sign in
+            </Link>
+          )}
           {documents.length > 0 && (
             <Link 
               to="/editor" 
-              className="h-8 px-3 text-[12px] font-medium rounded bg-[var(--panel)] hover:bg-[var(--panel-muted)] border border-[var(--border)] text-[var(--text)] flex items-center gap-1.5 transition-colors"
+              className="h-8 px-3 text-[12px] font-medium rounded bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
             >
               Open Editor <ArrowUpRight size={13} />
             </Link>

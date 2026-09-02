@@ -21,11 +21,13 @@ if (config.authEnabled) {
   auth = createSeqCraftAuth(config, db, client);
 }
 
+const serveStatic = process.env.API_ONLY !== 'true';
+
 const server = createServer(createApp({
   config,
   projects,
   auth,
-  staticDir: config.isProduction ? path.resolve(process.cwd(), 'dist') : undefined,
+  staticDir: (config.isProduction && serveStatic) ? path.resolve(process.cwd(), 'dist') : undefined,
 }));
 server.listen(config.PORT, '0.0.0.0', () => {
   console.log(`SeqCraft API listening on 0.0.0.0:${config.PORT} (${config.authEnabled ? 'connected' : 'guest'} mode)`);

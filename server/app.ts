@@ -152,6 +152,17 @@ export function createApp({ config, projects, auth, resolveUserId, staticDir }: 
       response.setHeader('Expires', '0');
       response.sendFile(path.join(staticDir, 'index.html'));
     });
+  } else {
+    app.get('/', (_request, response) => {
+      response.setHeader('Cache-Control', 'no-store');
+      response.json({
+        service: 'seqcraft-api',
+        status: 'online',
+        mode: config.authEnabled ? 'connected' : 'guest',
+        health: '/api/health',
+        config: '/api/config',
+      });
+    });
   }
 
   const handleError: ErrorRequestHandler = (error, _request, response, _next) => {

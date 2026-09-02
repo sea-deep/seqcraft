@@ -1,7 +1,11 @@
 import { createAuthClient } from 'better-auth/react';
 
+const defaultRemoteBackend = 'https://seqcraft.up.railway.app';
 const envApiUrl = typeof import.meta !== 'undefined' ? (import.meta.env?.VITE_API_URL as string | undefined) : undefined;
-export const API_BASE_URL = envApiUrl ? envApiUrl.replace(/\/+$/, '') : '';
+
+export const API_BASE_URL = envApiUrl 
+  ? envApiUrl.replace(/\/+$/, '') 
+  : (typeof window !== 'undefined' && window.location.hostname.includes('onrender.com') ? defaultRemoteBackend : '');
 
 export function getApiUrl(endpoint: string): string {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;

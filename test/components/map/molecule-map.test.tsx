@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { SequenceDocument } from '../../../src/domain/document';
 import { MoleculeMap } from '../../../src/components/map/MoleculeMap';
@@ -9,6 +9,10 @@ vi.mock('../../../src/components/map/LinearMap', () => ({
 
 vi.mock('../../../src/components/map/PlasmidMap3D', () => ({
   PlasmidMap3D: ({ document }: { document: SequenceDocument }) => <div data-testid="circular-map">{document.name}</div>,
+}));
+
+vi.mock('../../../src/components/map/CircularMap2D', () => ({
+  CircularMap2D: ({ document }: { document: SequenceDocument }) => <div data-testid="circular-map-2d">{document.name}</div>,
 }));
 
 function documentWithTopology(topology: SequenceDocument['topology']): SequenceDocument {
@@ -23,10 +27,13 @@ describe('MoleculeMap', () => {
     expect(screen.queryByTestId('circular-map')).toBeNull();
   });
 
-  it('keeps circular documents on the plasmid map', () => {
+  it('opens circular documents in the 2D map and keeps 3D secondary', async () => {
     render(<MoleculeMap document={documentWithTopology('circular')} />);
 
-    expect(screen.getByTestId('circular-map').textContent).toBe('circular document');
+    expect(screen.getByTestId('circular-map-2d').textContent).toBe('circular document');
+    expect(screen.queryByTestId('circular-map')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /3D view/i }));
+    expect((await screen.findByTestId('circular-map')).textContent).toBe('circular document');
     expect(screen.queryByTestId('linear-map')).toBeNull();
   });
 });

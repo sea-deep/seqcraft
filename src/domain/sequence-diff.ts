@@ -62,6 +62,22 @@ export interface FeatureDifference {
   referenceFeature: CanonicalFeature | null;
   queryFeature: CanonicalFeature | null;
   changes: Array<'name' | 'type' | 'coordinates' | 'strand' | 'qualifiers'>;
+  coordinateDelta: {
+    referenceStart0: number | null;
+    queryStart0: number | null;
+    shiftBp: number | null;
+    lengthDeltaBp: number;
+  };
+}
+
+export interface SequenceRepresentationDiff {
+  referenceTopology: Topology;
+  queryTopology: Topology;
+  topologyChanged: boolean;
+  originChanged: boolean;
+  orientationChanged: boolean;
+  /** True when canonical bases are identical despite file-level origin/orientation differences. */
+  moleculeIdentityUnchanged: boolean;
 }
 
 export interface ProteinConsequence {
@@ -106,4 +122,5 @@ export interface SequenceDiffResult {
     circularOriginInvariant: boolean;
     reverseComplementInvariant: boolean;
   };
+  representation: SequenceRepresentationDiff;
 }

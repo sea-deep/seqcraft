@@ -5,7 +5,7 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual';
 import type { SequenceDocument } from '../../domain/document';
 import { SequenceLine } from './SequenceLine';
-import { BASES_PER_LINE } from './sequence-geometry';
+import { BASES_PER_LINE, positionXToLineIndex } from './sequence-geometry';
 import { splitSelectionIntoSegments } from '../map/plasmid-geometry';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { analyzeRestrictionSites } from '../../scientific/restriction-analysis';
@@ -124,15 +124,11 @@ export function SequenceViewer({ document }: SequenceViewerProps) {
   }, [isMemory, document, visibleStartBase, visibleEndBase, seqLength]);
 
   // Utility functions for drag selection
-  const positionXToLineIndex = (xPx: number, charWidthPx: number) => {
-    return Math.floor(xPx / charWidthPx);
-  };
-
   const getBaseFromEvent = useCallback((e: ReactMouseEvent, lineStartIndex: number) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const xPx = e.clientX - rect.left;
     const lineIndex = positionXToLineIndex(xPx, charWidthPx);
-    return Math.min(lineStartIndex + lineIndex, seqLength);
+    return Math.min(lineStartIndex + lineIndex, Math.max(0, seqLength - 1));
   }, [charWidthPx, seqLength]);
 
   const handleLineMouseDown = useCallback((e: ReactMouseEvent, lineStartIndex: number) => {
@@ -198,7 +194,7 @@ export function SequenceViewer({ document }: SequenceViewerProps) {
           const startIndex = virtualRow.index * BASES_PER_LINE;
           const endIndex = Math.min(startIndex + BASES_PER_LINE, seqLength);
           
-          let seqChunk = '';
+          let seqChunk: string;
           if (isMemory) {
             seqChunk = rawSeq!.slice(startIndex, endIndex);
           } else {

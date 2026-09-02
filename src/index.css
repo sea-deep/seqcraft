@@ -8,6 +8,10 @@
 @theme {
   --font-ui: "IBM Plex Sans Variable", "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", ui-monospace, monospace;
+  --font-weight-normal: 500;
+  --font-weight-medium: 600;
+  --font-weight-semibold: 700;
+  --font-weight-bold: 800;
 
   --color-background: var(--bg);
   --color-foreground: var(--text);
@@ -16,7 +20,7 @@
   --color-muted: var(--panel-muted);
   --color-muted-foreground: var(--text-muted);
   --color-accent: var(--accent);
-  --color-accent-foreground: #FFFFFF;
+  --color-accent-foreground: var(--text);
   --color-destructive: var(--danger);
   --color-border: var(--border);
 }
@@ -118,6 +122,7 @@ body {
   background-color: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);
+  font-weight: 500;
   font-feature-settings: "kern" 1, "ss02" 1;
   text-rendering: optimizeLegibility;
 }
@@ -127,6 +132,15 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+/* Small, high-contrast editor cursors preserve coordinate precision without hiding bases. */
+.editor-cursor-sequence {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M8 4h8M12 4v16M8 20h8' fill='none' stroke='%235eead4' stroke-width='1.75' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%230d1514' stroke='%235eead4'/%3E%3C/svg%3E") 12 12, text;
+}
+
+.editor-cursor-radial {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='7' fill='%230d1514' fill-opacity='.72' stroke='%235eead4' stroke-width='1.5'/%3E%3Cpath d='M12 2v5M12 17v5M2 12h5M17 12h5' stroke='%235eead4' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") 12 12, crosshair;
 }
 
 .scientific-grid {

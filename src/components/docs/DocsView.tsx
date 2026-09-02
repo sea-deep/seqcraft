@@ -51,7 +51,7 @@ export function DocsDialog({ children, open, onOpenChange }: { children?: React.
               </h2>
               <ul className="space-y-3 text-[12px] text-[var(--text-muted)] pl-1">
                 <li><strong className="text-[var(--text)] block mb-0.5">Sequence View:</strong> The primary linear view of your DNA. Features (genes, promoters) and translations (ORFs) are mapped directly onto the bases.</li>
-                <li><strong className="text-[var(--text)] block mb-0.5">Map View:</strong> A 3D circular plasmid map (if topology is circular). Drag to rotate and use the scroll wheel to zoom.</li>
+                <li><strong className="text-[var(--text)] block mb-0.5">Map View:</strong> Circular molecules open in a deterministic 2D map for coordinate work. Switch to the secondary 3D view when spatial exploration is useful.</li>
                 <li><strong className="text-[var(--text)] block mb-0.5">Enzymes View:</strong> Run virtual restriction digests. Standard enzymes are included. Hover over fragments to see their lengths and overhangs.</li>
                 <li><strong className="text-[var(--text)] block mb-0.5">Primers View:</strong> Simulate PCR amplification. SeqCraft automatically calculates Tm, GC%, and exact binding coordinates for primers on linear or circular templates.</li>
                 <li><strong className="text-[var(--text)] block mb-0.5">Compare View:</strong> Align your current sequence against other sequences in your workspace to find mutations or verify clones.</li>

@@ -93,4 +93,13 @@ describe('WorkspaceStore Invariants', () => {
     expect(() => store.setSelection('doc1', 2, 1)).toThrow(/end0Exclusive must be >= start0/);
     expect(() => store.setSelection('doc1', 0, 10)).toThrow(/exceeds sequence length/);
   });
+
+  it('preserves an origin-wrapped feature as a wrapped circular selection', () => {
+    const doc = createMockDoc('circular', 'ATGCATGCAT');
+    doc.topology = 'circular';
+    doc.features = [{ id: 'wrapped', name: 'wrapped', type: 'misc_feature', strand: 1, segments: [{ start0: 8, end0Exclusive: 10 }, { start0: 0, end0Exclusive: 2 }], qualifiers: {}, source: 'manual' }];
+    useWorkspaceStore.getState().addDocument(doc);
+    useWorkspaceStore.getState().selectDocumentFeature(doc.id, 'wrapped');
+    expect(useWorkspaceStore.getState().selection).toEqual({ documentId: doc.id, start0: 8, end0Exclusive: 2 });
+  });
 });

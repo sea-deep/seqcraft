@@ -65,6 +65,7 @@ describe('biological sequence diff', () => {
     expect(result.featureDifferences).toEqual([]);
     expect(result.reference.sequence).toBe(result.query.sequence);
     expect(result.reference.features[0].segments).toEqual(result.query.features[0].segments);
+    expect(result.representation).toMatchObject({ originChanged: true, moleculeIdentityUnchanged: true, topologyChanged: false });
   });
 
   it('is invariant to equivalent reverse-complement orientation', () => {
@@ -74,6 +75,7 @@ describe('biological sequence diff', () => {
     expect(result.featureDifferences).toEqual([]);
     expect(result.reference.sequence).toBe(result.query.sequence);
     expect(result.reference.features[0].strand).toBe(result.query.features[0].strand);
+    expect(result.representation).toMatchObject({ orientationChanged: true, moleculeIdentityUnchanged: true });
   });
 
   it('detects edits adjacent to a circular canonical boundary', () => {
@@ -96,6 +98,7 @@ describe('biological sequence diff', () => {
     const result = diffBiologicalSequences(input('r', 'ACGTACGTACGTACGT', 'linear', referenceFeatures), input('q', 'ACGTACGTACGTACGT', 'linear', queryFeatures));
     expect(result.featureDifferences.map(item => item.kind)).toEqual(['modified', 'removed', 'added']);
     expect(result.featureDifferences[0].changes).toEqual(['coordinates', 'strand', 'qualifiers']);
+    expect(result.featureDifferences[0].coordinateDelta).toMatchObject({ referenceStart0: 1, queryStart0: 2, shiftBp: 1, lengthDeltaBp: 0 });
   });
 
   it('reports missense, synonymous, and frameshift CDS consequences', () => {

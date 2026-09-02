@@ -71,14 +71,19 @@ export function DocsPage() {
 
               <div>
                 <h3 className="text-lg font-semibold text-[var(--text)] mb-2 flex items-center gap-2">
-                  <MousePointer2 size={18} /> Map View (3D Plasmid)
+                  <MousePointer2 size={18} /> Map View (2D first)
                 </h3>
-                <p>For circular DNA, the Map view renders an interactive 3D torus representing the plasmid. </p>
+                <p>For circular DNA, Map opens a deterministic 2D coordinate view. The origin stays at 12 o’clock, coordinates advance clockwise, annotations retain strand direction, and the map can be zoomed with the wheel or controls.</p>
                 <ul className="list-disc pl-5 space-y-1 mt-2">
-                  <li><strong>Click & Drag:</strong> Rotate the plasmid in 3D space.</li>
-                  <li><strong>Scroll:</strong> Zoom in and out.</li>
-                  <li><strong>Click Features:</strong> Selecting a 3D feature arc automatically focuses the camera and syncs selection back to the Sequence view.</li>
+                  <li><strong>Drag the backbone:</strong> Select the exact circular interval, including selections that cross the origin.</li>
+                  <li><strong>Wheel / zoom controls:</strong> Inspect dense annotation and restriction-site regions.</li>
+                  <li><strong>3D view:</strong> Switch to the secondary spatial view for exploration; selection stays synchronized.</li>
                 </ul>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--text)] mb-2">Compare View</h3>
+                <p>Compare leads with a biological change report: substitutions, insertions, deletions, annotation shifts, CDS/protein consequences, topology, origin, and strand representation. Circular origin rotations and equivalent reverse complements are normalized so they do not create fake base changes. Raw alignment and deterministic circular 2D diff geometry remain available as secondary views.</p>
               </div>
 
             </div>

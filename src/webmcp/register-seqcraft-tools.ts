@@ -83,7 +83,7 @@ export const seqcraftGetCapabilitiesTool = {
   inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   annotations: { readOnlyHint: true, untrustedContentHint: false as const },
   execute: wrapToolExecute('seqcraft_get_capabilities', () => 'No input', () => createSuccess({
-    summary: 'SeqCraft supports private, agent-driven DNA inspection, known-feature discovery, navigation, analysis, comparison, annotation proposals, and restriction-cloning proposals.',
+    summary: 'SeqCraft supports private, agent-driven DNA inspection, deterministic 2D navigation, known-feature discovery, canonical biological comparison, annotation proposals, and restriction-cloning proposals.',
     coordinateContract: {
       toolInputsAndOutputs: '1-based inclusive unless a field explicitly says otherwise',
       internalApplicationState: '0-based half-open',
@@ -386,7 +386,7 @@ export const seqcraftSimulatePcrTool = {
 
 export const seqcraftFocusRegionTool = {
   name: 'seqcraft_focus_region',
-  description: "Focus a nucleotide region in the DNA document currently open in SeqCraft. Updates the user's visible SeqCraft selection and optionally switches between the sequence and 3D map views. Coordinates are 1-based and inclusive; circular regions may cross the sequence origin.",
+  description: "Focus a nucleotide region in the DNA document currently open in SeqCraft. Updates the user's visible SeqCraft selection and optionally switches between the sequence and map views. Circular maps open in the deterministic 2D editor by default. Coordinates are 1-based and inclusive; circular regions may cross the sequence origin.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -425,7 +425,7 @@ export const seqcraftFocusRegionTool = {
 
 export const seqcraftShowRestrictionSiteTool = {
   name: 'seqcraft_show_restriction_site',
-  description: "Show a restriction-enzyme cut site in the user's SeqCraft workspace. Selects the requested restriction site, opens it through SeqCraft's shared inspector state, and can switch to the 3D plasmid map so the selected cut becomes visually focused.",
+  description: "Show a restriction-enzyme cut site in the user's SeqCraft workspace. Selects the requested restriction site, opens it through SeqCraft's shared inspector state, and can switch to the primary 2D circular map so the selected cut becomes visible.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -463,7 +463,7 @@ export const seqcraftShowRestrictionSiteTool = {
 
 export const seqcraftShowFeatureTool = {
   name: 'seqcraft_show_feature',
-  description: "Show an annotated biological feature in the user's SeqCraft workspace. Selects a feature such as AmpR, an origin, promoter, CDS, or gene and optionally switches to the sequence or 3D plasmid view so the human can inspect it.",
+  description: "Show an annotated biological feature in the user's SeqCraft workspace. Selects a feature such as AmpR, an origin, promoter, CDS, or gene and optionally switches to the sequence or primary 2D map so the human can inspect it.",
   inputSchema: {
     type: 'object',
     properties: {
@@ -568,10 +568,11 @@ export const seqcraftCompareDocumentsTool = {
     const query = state.documents.find(doc => doc.id === input.queryDocumentId);
     if (!reference || !query) return createError('DOCUMENT_NOT_FOUND', 'Both comparison documents must be open in SeqCraft.');
     if (reference.storageMode !== 'memory' || query.storageMode !== 'memory') return createError('UNSUPPORTED_DOCUMENT', 'Biological comparison currently requires two in-memory documents.');
-    const comparison = (await compareSequenceDocuments(reference, query, { maxEditDistance: 4_096 }, null)).result;
+    const comparison = (await compareSequenceDocuments(reference, query, { maxEditDistance: 4_096, includeUnchangedFeatures: true }, null)).result;
     const maxResults = Math.min(Math.max(input.maxResults ?? 50, 1), 200);
+    const changedFeatures = comparison.featureDifferences.filter(difference => difference.kind !== 'unchanged');
     return createSuccess({
-      summary: `${comparison.identityPercent.toFixed(2)}% identity · ${comparison.differences.length} base · ${comparison.featureDifferences.length} annotation differences`,
+      summary: `${comparison.identityPercent.toFixed(2)}% identity · ${comparison.differences.length} base · ${changedFeatures.length} annotation differences`,
       comparisonId: comparison.id,
       coordinateSystem: comparison.coordinateSystem,
       reference: { id: reference.id, name: reference.name, canonicalOrientation: comparison.reference.orientation, canonicalRotation0: comparison.reference.rotation0 },
@@ -581,9 +582,11 @@ export const seqcraftCompareDocumentsTool = {
       exact: comparison.exact,
       circularOriginInvariant: comparison.canonicalization.circularOriginInvariant,
       reverseComplementInvariant: comparison.canonicalization.reverseComplementInvariant,
+      representation: comparison.representation,
       differenceCount: comparison.differences.length,
-      featureDifferenceCount: comparison.featureDifferences.length,
-      truncated: comparison.differences.length > maxResults || comparison.featureDifferences.length > maxResults || comparison.proteinConsequences.length > maxResults,
+      featureDifferenceCount: changedFeatures.length,
+      unchangedFeatureCount: comparison.featureDifferences.length - changedFeatures.length,
+      truncated: comparison.differences.length > maxResults || changedFeatures.length > maxResults || comparison.proteinConsequences.length > maxResults,
       differences: comparison.differences.slice(0, maxResults).map(difference => ({
         kind: difference.kind,
         referenceRange1Inclusive: difference.referenceEnd0Exclusive > difference.referenceStart0 ? { start1: difference.referenceStart0 + 1, end1: difference.referenceEnd0Exclusive } : null,
@@ -596,7 +599,7 @@ export const seqcraftCompareDocumentsTool = {
         queryLengthBp: difference.queryBases.length,
         affectedReferenceFeatureIds: difference.affectedReferenceFeatureIds,
       })),
-      featureDifferences: comparison.featureDifferences.slice(0, maxResults).map(difference => ({ kind: difference.kind, name: difference.referenceFeature?.name ?? difference.queryFeature?.name, changes: difference.changes, referenceFeatureId: difference.referenceFeature?.originalId ?? null, queryFeatureId: difference.queryFeature?.originalId ?? null })),
+      featureDifferences: comparison.featureDifferences.slice(0, maxResults).map(difference => ({ kind: difference.kind, name: difference.referenceFeature?.name ?? difference.queryFeature?.name, changes: difference.changes, coordinateDelta: difference.coordinateDelta, referenceFeatureId: difference.referenceFeature?.originalId ?? null, queryFeatureId: difference.queryFeature?.originalId ?? null })),
       proteinConsequences: comparison.proteinConsequences.slice(0, maxResults).map(consequence => ({ featureName: consequence.featureName, kinds: consequence.kinds, geneticCodeTable: consequence.geneticCodeTable, firstAffectedAminoAcid1: consequence.firstAffectedAminoAcid1, referenceAminoAcids: consequence.referenceAminoAcids, queryAminoAcids: consequence.queryAminoAcids })),
     });
   }),

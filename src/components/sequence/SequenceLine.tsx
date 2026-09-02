@@ -151,7 +151,7 @@ export function SequenceLine({
 
           {/* Sequence Text Container */}
           <div 
-            className="tracking-normal font-mono text-[14px] text-[var(--text)] font-medium relative cursor-text select-none h-[24px] flex items-center"
+            className="tracking-normal font-mono text-[14px] text-[var(--text)] font-medium relative editor-cursor-sequence select-none h-[24px] flex items-center"
             onMouseDown={onTextMouseDown}
             onMouseMove={onTextMouseMove}
           >

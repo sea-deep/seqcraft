@@ -3,7 +3,7 @@ import { useWorkspaceStore } from '../../state/workspace-store';
 import { ImportDialog } from '../ui/ImportDialog';
 import { ExportDialog } from '../ui/ExportDialog';
 import { PanelLeft, PanelRight, Download, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -20,7 +20,6 @@ import { FeatureDialog } from '../features/FeatureDialog';
 import { DocumentSettingsDialog } from '../documents/DocumentSettingsDialog';
 import { CloningDialog } from '../cloning/CloningDialog';
 import { TranslationDialog } from '../tools/TranslationDialog';
-import { DocsDialog } from '../docs/DocsView';
 import { reverseComplementIupac } from '../../scientific/restriction-analysis';
 import { ScientificSequence } from '../../scientific/nucleotide';
 import { generateId } from '../../utils/id';
@@ -29,6 +28,7 @@ import type { SequenceDocument } from '../../domain/document';
 import { useState } from 'react';
 
 export function AppCommandBar() {
+  const navigate = useNavigate();
   const activeDocumentId = useWorkspaceStore(s => s.activeDocumentId);
   const documents = useWorkspaceStore(s => s.documents);
   const selection = useWorkspaceStore(s => s.selection);
@@ -47,7 +47,6 @@ export function AppCommandBar() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [cloningOpen, setCloningOpen] = useState(false);
   const [translationOpen, setTranslationOpen] = useState(false);
-  const [docsOpen, setDocsOpen] = useState(false);
   const activeDocument = documents.find(document => document.id === activeDocumentId);
   const activeSelection = activeDocument && selection?.documentId === activeDocument.id ? selection : null;
   const selectedSequence = activeDocument?.storageMode === 'memory' && activeSelection
@@ -171,11 +170,10 @@ export function AppCommandBar() {
             </DropdownMenuContent>
           </DropdownMenu>
           
-          <DocsDialog open={docsOpen} onOpenChange={setDocsOpen} />
           <DropdownMenu>
             <DropdownMenuTrigger className="px-2 py-1 rounded hover:bg-[var(--panel-muted)] outline-none data-[state=open]:bg-[var(--panel-muted)] cursor-default">Help</DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => setDocsOpen(true)}>Documentation</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/docs')}>Documentation</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

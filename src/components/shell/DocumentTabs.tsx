@@ -1,5 +1,5 @@
 import { useWorkspaceStore } from '../../state/workspace-store';
-import { X } from 'lucide-react';
+import { Circle, CircleDot, Minus, X } from 'lucide-react';
 
 export function DocumentTabs() {
   const documents = useWorkspaceStore(s => s.documents);
@@ -24,14 +24,16 @@ export function DocumentTabs() {
             key={id}
             onClick={() => setActiveDocument(id)}
             className={`
-              h-[30px] flex items-center gap-2 px-3 text-[12px] font-ui border-r border-[var(--border)]
-              border-t-2 cursor-pointer transition-colors shrink-0 max-w-[200px] group
+              h-[31px] flex items-center gap-2 px-3 text-[12px] font-ui border-r border-[var(--border)]
+              border-b-2 cursor-pointer transition-colors shrink-0 max-w-[220px] group
               ${isActive 
-                ? 'bg-[var(--bg)] text-[var(--text)] border-t-[var(--accent)] border-l border-l-[var(--border)] -ml-[1px]' 
-                : 'bg-[var(--panel-muted)] text-[var(--text-muted)] hover:bg-[var(--panel)] border-t-transparent'
+                ? 'bg-[var(--bg)] text-[var(--text)] border-b-[var(--accent)]'
+                : 'bg-[var(--panel-muted)] text-[var(--text-muted)] hover:bg-[var(--panel)] border-b-transparent'
               }
             `}
+            aria-current={isActive ? 'page' : undefined}
           >
+            <span className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}>{doc.topology === 'circular' ? (isActive ? <CircleDot size={11} /> : <Circle size={10} />) : <Minus size={12} />}</span>
             <span className="truncate">{doc.name}</span>
             <button 
               className={`p-0.5 rounded-sm hover:bg-[var(--border)] ${isActive ? 'text-[var(--text-muted)] hover:text-[var(--text)]' : 'opacity-0 group-hover:opacity-100 hover:opacity-100'}`}

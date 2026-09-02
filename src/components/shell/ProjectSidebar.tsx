@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Circle, FileUp, Minus, Search, X, Trash2 } from 'lucide-react';
+import { Circle, CircleDot, FileUp, Minus, Search, X, Trash2 } from 'lucide-react';
 import { searchWorkspace, type WorkspaceSearchResult } from '../../application/workspace-search';
 import { BUILTIN_ENZYMES } from '../../data/restriction-enzymes';
 import { useWorkspaceStore } from '../../state/workspace-store';
@@ -75,7 +75,7 @@ export function ProjectSidebar() {
               return (
                 <div key={document.id} className={`group flex w-full items-center gap-2 rounded border-l-2 px-2 py-1.5 text-left text-[12px] transition-colors ${active ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--text)]' : 'border-transparent text-[var(--text-muted)] hover:bg-[var(--panel)] hover:text-[var(--text)]'}`}>
                   <button className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={() => setActiveDocument(document.id)}>
-                    <span className="shrink-0 text-[var(--text-muted)]">{circular ? <Circle size={10} /> : <Minus size={12} />}</span>
+                    <span className={`shrink-0 ${active ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}`}>{circular ? (active ? <CircleDot size={11} /> : <Circle size={10} />) : <Minus size={12} />}</span>
                     <span className="flex min-w-0 flex-col overflow-hidden">
                       <span className={`truncate ${active ? 'font-medium' : ''}`}>{document.name}</span>
                       <span className="truncate text-[10px] opacity-70">{formatLength.format(document.length)} bp · {circular ? 'Circular' : 'Linear'}</span>

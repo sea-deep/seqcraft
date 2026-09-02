@@ -153,8 +153,10 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
     if (!document) throw new Error(`Document ${documentId} not found`);
     const feature = document.features.find(item => item.id === featureId);
     if (!feature) throw new Error(`Feature ${featureId} not found`);
-    const start0 = Math.min(...feature.segments.map(segment => segment.start0));
-    const end0Exclusive = Math.max(...feature.segments.map(segment => segment.end0Exclusive));
+    const originStart = document.topology === 'circular' ? feature.segments.find(segment => segment.start0 === 0) : undefined;
+    const originEnd = document.topology === 'circular' ? feature.segments.find(segment => segment.end0Exclusive === document.length) : undefined;
+    const start0 = originStart && originEnd ? originEnd.start0 : Math.min(...feature.segments.map(segment => segment.start0));
+    const end0Exclusive = originStart && originEnd ? originStart.end0Exclusive : Math.max(...feature.segments.map(segment => segment.end0Exclusive));
     validateSelection(start0, end0Exclusive, document.length, document.topology);
     return {
       activeDocumentId: documentId, openDocumentIds: Array.from(new Set([...state.openDocumentIds, documentId])),

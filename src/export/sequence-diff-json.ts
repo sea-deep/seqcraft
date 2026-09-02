@@ -64,6 +64,7 @@ export function createSequenceDiffManifest(result: SequenceDiffResult, options: 
     editDistance: result.editDistance,
     matches: result.matches,
     canonicalization: result.canonicalization,
+    representation: result.representation,
     reference: exportSequence(result.reference, includeSequences, includeProvenance),
     query: exportSequence(result.query, includeSequences, includeProvenance),
     differences,

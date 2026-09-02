@@ -1,3 +1,5 @@
+import { getFeatureLength } from '../domain/feature';
+import type { Topology } from '../domain/document';
 import type { CanonicalFeature, FeatureDifference } from '../domain/sequence-diff';
 
 function stableQualifiers(qualifiers: CanonicalFeature['qualifiers']): string {
@@ -31,11 +33,39 @@ function compareFeatures(reference: CanonicalFeature, query: CanonicalFeature): 
   return changes;
 }
 
+function signedShift(referenceStart0: number, queryStart0: number, sequenceLength: number, topology: Topology): number {
+  let shift = queryStart0 - referenceStart0;
+  if (topology === 'circular' && sequenceLength > 0) {
+    if (shift > sequenceLength / 2) shift -= sequenceLength;
+    if (shift < -sequenceLength / 2) shift += sequenceLength;
+  }
+  return shift;
+}
+
+function coordinateDelta(
+  reference: CanonicalFeature | null,
+  query: CanonicalFeature | null,
+  sequenceLength: number,
+  topology: Topology,
+): FeatureDifference['coordinateDelta'] {
+  const referenceStart0 = reference ? featureStart(reference) : null;
+  const queryStart0 = query ? featureStart(query) : null;
+  return {
+    referenceStart0,
+    queryStart0,
+    shiftBp: referenceStart0 === null || queryStart0 === null ? null : signedShift(referenceStart0, queryStart0, sequenceLength, topology),
+    lengthDeltaBp: (query ? getFeatureLength(query) : 0) - (reference ? getFeatureLength(reference) : 0),
+  };
+}
+
 export function diffFeatures(
   referenceFeatures: CanonicalFeature[],
   queryFeatures: CanonicalFeature[],
   includeUnchanged = false,
+  context: { sequenceLength?: number; topology?: Topology } = {},
 ): FeatureDifference[] {
+  const sequenceLength = context.sequenceLength ?? 0;
+  const topology = context.topology ?? 'linear';
   const references = [...referenceFeatures].sort((left, right) => featureStart(left) - featureStart(right) || left.name.localeCompare(right.name) || left.originalId.localeCompare(right.originalId));
   const queries = [...queryFeatures].sort((left, right) => featureStart(left) - featureStart(right) || left.name.localeCompare(right.name) || left.originalId.localeCompare(right.originalId));
   const usedQueryIds = new Set<string>();
@@ -49,7 +79,7 @@ export function diffFeatures(
       .sort((left, right) => right.score - left.score || featureStart(left.query) - featureStart(right.query) || left.query.id.localeCompare(right.query.id));
     const query = candidates[0]?.query;
     if (!query) {
-      result.push({ id: `feature:removed:${reference.id}`, kind: 'removed', referenceFeature: reference, queryFeature: null, changes: [] });
+      result.push({ id: `feature:removed:${reference.id}`, kind: 'removed', referenceFeature: reference, queryFeature: null, changes: [], coordinateDelta: coordinateDelta(reference, null, sequenceLength, topology) });
       continue;
     }
     usedQueryIds.add(query.id);
@@ -61,13 +91,14 @@ export function diffFeatures(
         referenceFeature: reference,
         queryFeature: query,
         changes,
+        coordinateDelta: coordinateDelta(reference, query, sequenceLength, topology),
       });
     }
   }
 
   for (const query of queries) {
     if (!usedQueryIds.has(query.id)) {
-      result.push({ id: `feature:added:${query.id}`, kind: 'added', referenceFeature: null, queryFeature: query, changes: [] });
+      result.push({ id: `feature:added:${query.id}`, kind: 'added', referenceFeature: null, queryFeature: query, changes: [], coordinateDelta: coordinateDelta(null, query, sequenceLength, topology) });
     }
   }
 

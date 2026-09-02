@@ -331,6 +331,8 @@ describe('WebMCP Tool Registration and Execution', () => {
     expect(response.result.differenceCount).toBe(0);
     expect(response.result.circularOriginInvariant).toBe(true);
     expect(response.result.coordinateSystem).toBe('0-based-half-open-canonical');
+    expect(response.result.representation).toMatchObject({ originChanged: true, moleculeIdentityUnchanged: true });
+    expect(response.result.unchangedFeatureCount).toBeGreaterThan(0);
   });
 
   it('registration uses AbortSignal', async () => {

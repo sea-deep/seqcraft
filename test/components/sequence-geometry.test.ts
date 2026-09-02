@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { baseX, segmentWidth, BASES_PER_LINE, GROUP_SIZE } from '../../src/components/sequence/sequence-geometry';
+import { baseX, segmentWidth, BASES_PER_LINE, GROUP_SIZE, positionXToLineIndex } from '../../src/components/sequence/sequence-geometry';
 
 describe('Sequence Geometry', () => {
   it('computes correct baseX for early groups', () => {
@@ -27,5 +27,12 @@ describe('Sequence Geometry', () => {
     // baseX(8) = 8
     // width = 12 - 8 + 1 = 5. (Wait, bases 8, 9, GAP, 10, 11 = 5 characters wide).
     expect(segmentWidth(8, 12)).toBe(5);
+  });
+
+  it('maps grouped glyph positions back to the exact base instead of counting visual gaps', () => {
+    const charWidth = 9;
+    expect(positionXToLineIndex(11 * charWidth + 0.2 * charWidth, charWidth)).toBe(10);
+    expect(positionXToLineIndex(33 * charWidth + 4.4 * charWidth, charWidth)).toBe(34);
+    expect(positionXToLineIndex(10.5 * charWidth, charWidth)).toBe(9);
   });
 });

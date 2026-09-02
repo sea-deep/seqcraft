@@ -320,7 +320,7 @@ export function diffBiologicalSequences(
     : canonicalizeBiologicalSequence(queryInput, allowReverseComplement);
   const alignment = align(reference.sequence, query.sequence, options.maxEditDistance ?? 4_096);
   const { differences, matches } = collectDifferences(alignment.alignedReference, alignment.alignedQuery, reference, query);
-  const allFeatureDifferences = diffFeatures(reference.features, query.features, true);
+  const allFeatureDifferences = diffFeatures(reference.features, query.features, true, { sequenceLength: reference.length, topology: reference.topology });
   const featureDifferences = options.includeUnchangedFeatures ? allFeatureDifferences : allFeatureDifferences.filter(difference => difference.kind !== 'unchanged');
   const proteinConsequences = reportProteinConsequences(reference, query, differences, allFeatureDifferences);
   const editDistance = differences.reduce((total, difference) => total + Math.max(difference.referenceBases.length, difference.queryBases.length), 0);
@@ -344,6 +344,14 @@ export function diffBiologicalSequences(
     canonicalization: {
       circularOriginInvariant: referenceInput.topology === 'circular' && queryInput.topology === 'circular',
       reverseComplementInvariant: allowReverseComplement,
+    },
+    representation: {
+      referenceTopology: referenceInput.topology,
+      queryTopology: queryInput.topology,
+      topologyChanged: referenceInput.topology !== queryInput.topology,
+      originChanged: referenceInput.topology === 'circular' && queryInput.topology === 'circular' && reference.rotation0 !== query.rotation0,
+      orientationChanged: reference.orientation !== query.orientation,
+      moleculeIdentityUnchanged: differences.length === 0,
     },
   };
 }

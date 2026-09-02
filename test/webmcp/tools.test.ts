@@ -50,11 +50,11 @@ describe('WebMCP Tool Registration and Execution', () => {
     useActivityStore.getState().clearEvents();
   });
 
-  it('registers exactly 16 tools asynchronously', async () => {
+  it('registers exactly 17 tools asynchronously', async () => {
     const controller = new AbortController();
     await registerSeqCraftTools(mockMcp, controller.signal);
     
-    expect(mockMcp.registerTool).toHaveBeenCalledTimes(16);
+    expect(mockMcp.registerTool).toHaveBeenCalledTimes(17);
     
     const expectedNames = [
       'seqcraft_analyze_primer',
@@ -69,6 +69,7 @@ describe('WebMCP Tool Registration and Execution', () => {
       'seqcraft_list_documents',
       'seqcraft_prepare_restriction_clone',
       'seqcraft_find_orfs',
+      'seqcraft_detect_known_features',
       'seqcraft_list_features',
       'seqcraft_list_primers',
       'seqcraft_compare_documents',
@@ -95,6 +96,7 @@ describe('WebMCP Tool Registration and Execution', () => {
       'seqcraft_list_primers',
       'seqcraft_compare_documents',
       'seqcraft_find_orfs',
+      'seqcraft_detect_known_features',
     ];
     for (const name of readOnlyTools) {
       expect(registeredTools.get(name)!.annotations.readOnlyHint).toBe(true);

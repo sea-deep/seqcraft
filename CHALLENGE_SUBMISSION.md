@@ -6,7 +6,7 @@ This document is the source of truth for the submission text and demo recording.
 
 Molecular biology software is rich in visual state and exact coordinates but difficult for general agents to operate safely. SeqCraft makes a real plasmid/sequence workbench agent-native: the agent can inspect the active construct, navigate the same 2D/3D workspace as the user, run deterministic restriction/PCR/ORF/comparison analysis, and stage a complete restriction-cloning proposal.
 
-WebMCP is essential rather than decorative. Sixteen purpose-built tools expose semantic scientific actions directly from the page. They call the same application workflows as manual controls, update the visible workspace, keep a readable activity history, and preserve human approval for persistent scientific changes.
+WebMCP is essential rather than decorative. Seventeen purpose-built tools expose semantic scientific actions directly from the page. They call the same application workflows as manual controls, update the visible workspace, keep a readable activity history, and preserve human approval for persistent scientific changes.
 
 ## What becomes possible
 
@@ -42,6 +42,6 @@ Target length: 2:30–2:50, with narration and visible pointer movement.
 - [x] `document.modelContext.registerTool` implementation is present in source.
 - [x] App works free in guest mode without judge credentials.
 - [ ] Production response includes `Origin-Agent-Cluster: ?1` and `Permissions-Policy: tools=(self)`.
-- [ ] Verify all 16 SeqCraft tools in the judging browser.
+- [ ] Verify all 17 SeqCraft tools in the judging browser.
 - [ ] Run the exact recorded workflow against the public deployment.
 - [ ] Fill the live URL, video URL, repo URL, and final screenshots before submission.

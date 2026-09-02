@@ -54,7 +54,7 @@ export function MarketingPage() {
             <div className="bg-[var(--panel)] border border-[var(--border-strong)] rounded-lg overflow-hidden shadow-[0_24px_70px_rgb(15_45_40/0.10)]">
               <div className="h-10 border-b border-[var(--border)] bg-[var(--panel-muted)] px-4 flex items-center justify-between">
                 <span className="font-mono text-[11px] text-[var(--text-muted)]">AGENT WORKFLOW / pUC19</span>
-                <span className="flex items-center gap-1.5 text-[11px] text-[var(--success)]"><span className="size-1.5 rounded-full bg-[var(--success)]" />16 tools ready</span>
+                <span className="flex items-center gap-1.5 text-[11px] text-[var(--success)]"><span className="size-1.5 rounded-full bg-[var(--success)]" />17 tools ready</span>
               </div>
               <div className="p-5">
                 <div className="font-mono text-[12px] leading-5 bg-[var(--bg)] border border-[var(--border)] rounded-md p-3 text-[var(--text-secondary)]">

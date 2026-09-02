@@ -13,6 +13,7 @@ import { prepareRestrictionClone } from '../application/cloning';
 import { alignSequences } from '../scientific/sequence-comparison';
 import { generateId } from '../utils/id';
 import type { FeatureType } from '../domain/feature';
+import { detectKnownFeatures } from '../scientific/known-feature-detection';
 
 const createError = (code: string, message: string, details?: any) => ({
   ok: false,
@@ -82,7 +83,7 @@ export const seqcraftGetCapabilitiesTool = {
   inputSchema: { type: 'object', properties: {}, additionalProperties: false },
   annotations: { readOnlyHint: true, untrustedContentHint: false as const },
   execute: wrapToolExecute('seqcraft_get_capabilities', () => 'No input', () => createSuccess({
-    summary: 'SeqCraft supports private, agent-driven DNA inspection, navigation, analysis, comparison, annotation proposals, and restriction-cloning proposals.',
+    summary: 'SeqCraft supports private, agent-driven DNA inspection, known-feature discovery, navigation, analysis, comparison, annotation proposals, and restriction-cloning proposals.',
     coordinateContract: {
       toolInputsAndOutputs: '1-based inclusive unless a field explicitly says otherwise',
       internalApplicationState: '0-based half-open',
@@ -97,6 +98,7 @@ export const seqcraftGetCapabilitiesTool = {
     },
     workflows: [
       ['seqcraft_get_active_document', 'seqcraft_list_features', 'seqcraft_show_feature'],
+      ['seqcraft_detect_known_features', 'seqcraft_propose_annotation', 'human approval in SeqCraft'],
       ['seqcraft_analyze_restriction_sites', 'seqcraft_show_restriction_site', 'seqcraft_simulate_digest'],
       ['seqcraft_analyze_primer', 'seqcraft_simulate_pcr'],
       ['seqcraft_list_documents', 'seqcraft_prepare_restriction_clone', 'human approval in SeqCraft'],
@@ -633,6 +635,67 @@ export const seqcraftPrepareRestrictionCloneTool = {
   )
 };
 
+export const seqcraftDetectKnownFeaturesTool = {
+  name: 'seqcraft_detect_known_features',
+  description: 'Scan the active DNA document locally for exact matches from SeqCraft’s bounded library of common promoters, operators, cloning sites, and protein tags. Checks both strands and circular origin-spanning matches. This is deterministic motif discovery, not gene prediction, and does not modify the document.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      includeAlreadyAnnotated: {
+        type: 'boolean',
+        description: 'Include matches whose exact coordinates are already annotated. Defaults to false.',
+      },
+      maxResults: {
+        type: 'integer',
+        minimum: 1,
+        maximum: 100,
+        description: 'Maximum matches to return. Defaults to 50 and is capped at 100.',
+      },
+    },
+    additionalProperties: false,
+  },
+  annotations: { readOnlyHint: true, untrustedContentHint: true },
+  execute: wrapToolExecute(
+    'seqcraft_detect_known_features',
+    () => 'Scan active document for exact known features',
+    (input: { includeAlreadyAnnotated?: boolean; maxResults?: number }) => {
+      const doc = getActiveDocument();
+      if (!doc) return createError('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');
+      if (doc.storageMode !== 'memory') return createError('UNSUPPORTED_DOCUMENT', 'Known-feature scanning requires an in-memory document.');
+
+      const allMatches = detectKnownFeatures(getMemorySequence(doc).raw, doc.topology, doc.features);
+      const visibleMatches = input.includeAlreadyAnnotated
+        ? allMatches
+        : allMatches.filter(match => !match.alreadyAnnotated);
+      const maxResults = Math.min(Math.max(input.maxResults ?? 50, 1), 100);
+      const matches = visibleMatches.slice(0, maxResults);
+
+      return createSuccess({
+        summary: `Found ${visibleMatches.length} exact known-feature match${visibleMatches.length === 1 ? '' : 'es'}`,
+        document: { id: doc.id, name: doc.name, topology: doc.topology, lengthBp: doc.length },
+        method: 'Exact sequence match against the built-in SeqCraft library; both strands checked; not gene prediction.',
+        matchCount: visibleMatches.length,
+        returnedCount: matches.length,
+        truncated: visibleMatches.length > matches.length,
+        matches: matches.map(match => ({
+          id: match.id,
+          libraryId: match.definitionId,
+          name: match.name,
+          type: match.type,
+          strand: match.strand === 1 ? 'forward' : 'reverse',
+          lengthBp: match.lengthBp,
+          ranges: match.segments.map(segment => ({ start1: segment.start0 + 1, end1: segment.end0Exclusive })),
+          alreadyAnnotated: match.alreadyAnnotated,
+          description: match.description,
+        })),
+        nextStep: matches.length > 0
+          ? 'Use seqcraft_propose_annotation with a chosen match range to stage it for human approval.'
+          : null,
+      });
+    },
+  ),
+};
+
 export const seqcraftFindOrfsTool = {
   name: 'seqcraft_find_orfs',
   description: 'Find Open Reading Frames (ORFs) across all six frames in the DNA document currently open in SeqCraft. ORFs are reported with their length, frame, translation (amino acid string), and sequence coordinates (1-based inclusive).',
@@ -703,6 +766,7 @@ export async function registerSeqCraftTools(targetContext?: any, signal?: AbortS
     seqcraftListFeaturesTool,
     seqcraftListPrimersTool,
     seqcraftCompareDocumentsTool,
+    seqcraftDetectKnownFeaturesTool,
     seqcraftProposeAnnotationTool,
     seqcraftPrepareRestrictionCloneTool,
     seqcraftFindOrfsTool

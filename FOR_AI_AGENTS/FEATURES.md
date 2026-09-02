@@ -95,6 +95,7 @@ This contract is enforced at API schemas, persistence repositories, logging, and
 - Highlight a feature in both map and sequence views.
 - Small built-in known-feature library for auto-detecting common plasmid features.
 - Auto-detection is limited to deterministic known-sequence matches and is not presented as gene prediction.
+- Exact known-feature scanning checks both strands and circular origin-spanning matches, presents review-before-apply in the Features workspace, and is available read-only to WebMCP agents.
 
 ---
 

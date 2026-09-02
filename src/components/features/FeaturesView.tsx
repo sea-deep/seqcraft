@@ -1,15 +1,17 @@
 import { useMemo, useState } from 'react';
-import { Edit3, Plus, Search, Trash2 } from 'lucide-react';
+import { Edit3, Plus, ScanSearch, Search, Trash2 } from 'lucide-react';
 import type { SequenceDocument } from '../../domain/document';
 import { getFeatureLength } from '../../domain/feature';
 import { getFeatureColor } from '../../domain/feature-colors';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { FeatureDialog } from './FeatureDialog';
+import { KnownFeatureDialog } from './KnownFeatureDialog';
 
 export function FeaturesView({ document }: { document: SequenceDocument }) {
   const [query, setQuery] = useState('');
   const [dialogFeatureId, setDialogFeatureId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const selection = useWorkspaceStore(state => state.selection);
   const selectedFeatureId = useWorkspaceStore(state => state.selectedFeatureId);
   const selectDocumentFeature = useWorkspaceStore(state => state.selectDocumentFeature);
@@ -31,10 +33,11 @@ export function FeaturesView({ document }: { document: SequenceDocument }) {
           <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-[var(--text-muted)]" />
           <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Filter features" className="h-[30px] w-full rounded-md border border-[var(--border)] bg-[var(--bg)] pl-7 pr-2 outline-none focus:border-[var(--accent)]" />
         </div>
+        <button onClick={() => setScanning(true)} className="ml-auto flex h-[30px] items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 font-medium hover:bg-[var(--panel-muted)]"><ScanSearch size={14} />Scan known</button>
         {activeSelection ? (
-          <button onClick={() => setCreating(true)} className="ml-auto flex h-[30px] items-center gap-1.5 rounded-md bg-[var(--accent)] px-3 font-medium text-white"><Plus size={14} />Add from selection</button>
+          <button onClick={() => setCreating(true)} className="flex h-[30px] items-center gap-1.5 rounded-md bg-[var(--accent)] px-3 font-medium text-white"><Plus size={14} />Add from selection</button>
         ) : (
-          <button onClick={() => setActiveView('sequence')} className="ml-auto h-[30px] rounded-md border border-[var(--border)] px-3 text-[var(--text-secondary)] hover:bg-[var(--panel-muted)]">Select bases to add feature</button>
+          <button onClick={() => setActiveView('sequence')} className="h-[30px] rounded-md border border-[var(--border)] px-3 text-[var(--text-secondary)] hover:bg-[var(--panel-muted)]">Select bases to add feature</button>
         )}
       </div>
 
@@ -69,6 +72,7 @@ export function FeaturesView({ document }: { document: SequenceDocument }) {
 
       {activeSelection && creating && <FeatureDialog document={document} selection={activeSelection} open onOpenChange={setCreating} />}
       {dialogFeature && dialogFeatureId && <FeatureDialog document={document} feature={dialogFeature} open onOpenChange={open => !open && setDialogFeatureId(null)} />}
+      {scanning && <KnownFeatureDialog document={document} onClose={() => setScanning(false)} />}
     </div>
   );
 }

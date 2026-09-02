@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, FileUp, Download, Eye, TestTube, Cpu } from 'lucide-react';
+import { BookOpen, FileUp, Download, Eye, TestTube, Cpu, Code2, Terminal, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 
 export function DocsDialog({ children, open, onOpenChange }: { children?: React.ReactNode, open?: boolean, onOpenChange?: (open: boolean) => void }) {
@@ -82,6 +82,28 @@ export function DocsDialog({ children, open, onOpenChange }: { children?: React.
                   Pro tip: You can review all actions taken by the AI in the Agent Activity panel on the right side of the screen. No destructive edits will be made without your manual approval.
                 </p>
               </div>
+            </section>
+
+            {/* Scientific Engine */}
+            <section className="space-y-3">
+              <div className="flex items-center justify-between border-b border-[var(--border)] pb-1.5">
+                <h2 className="text-[14px] font-semibold text-[var(--text)] flex items-center gap-2">
+                  <Code2 size={14} className="text-[var(--accent)]" /> Powered by nucleotide-sequence
+                </h2>
+                <a 
+                  href="https://www.npmjs.com/package/nucleotide-sequence" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex items-center gap-1 text-[11px] font-mono text-[var(--accent)] hover:underline"
+                >
+                  <Terminal size={11} />
+                  v2.0.0
+                  <ExternalLink size={10} />
+                </a>
+              </div>
+              <p className="text-[12px] text-[var(--text-muted)] leading-relaxed pl-1">
+                SeqCraft relies on the <a href="https://www.npmjs.com/package/nucleotide-sequence" target="_blank" rel="noreferrer" className="text-[var(--accent)] underline font-medium">nucleotide-sequence</a> library for IUPAC validation, reverse complement transformations, 6-frame translations, ORF detection, and protein consequence predictions.
+              </p>
             </section>
 
           </div>

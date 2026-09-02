@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { BookOpen, FileUp, Download, Eye, TestTube, Cpu, ArrowLeft, Layers, MousePointer2 } from 'lucide-react';
+import { BookOpen, FileUp, Download, Eye, TestTube, Cpu, ArrowLeft, Layers, MousePointer2, Code2, ExternalLink, Terminal } from 'lucide-react';
 
 export function DocsPage() {
   return (
@@ -138,6 +138,85 @@ export function DocsPage() {
 
               <h3 className="text-lg font-semibold text-[var(--text)] mt-6">Safety & Approvals</h3>
               <p>SeqCraft enforces a strict <strong>Human-in-the-loop (HITL)</strong> policy. Whenever the AI proposes a change (like adding an annotation or drafting a cloning product), the change is staged in the <strong>Agent Activity Panel</strong> (accessible via the right sidebar in the Editor). No destructive edits are applied to your documents until you click "Approve".</p>
+            </div>
+          </section>
+
+          {/* Section 5 */}
+          <section id="nucleotide-sequence" className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-4">
+              <h2 className="text-2xl font-bold flex items-center gap-3">
+                <Code2 size={24} className="text-[var(--accent)]" /> 5. Scientific Engine: nucleotide-sequence
+              </h2>
+              <a 
+                href="https://www.npmjs.com/package/nucleotide-sequence" 
+                target="_blank" 
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[12px] font-mono text-[var(--accent)] hover:bg-[var(--panel-muted)] transition-colors shadow-sm"
+              >
+                <Terminal size={13} />
+                npm i nucleotide-sequence
+                <ExternalLink size={12} className="ml-0.5 opacity-70" />
+              </a>
+            </div>
+
+            <div className="prose prose-invert max-w-none text-[15px] text-[var(--text-muted)] space-y-4">
+              <p>
+                All molecular biology calculations, nucleotide transforms, and biological coordinate assertions in SeqCraft are driven by the open-source <a href="https://www.npmjs.com/package/nucleotide-sequence" target="_blank" rel="noreferrer" className="text-[var(--accent)] underline underline-offset-4 font-semibold">nucleotide-sequence</a> npm package.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
+                  <h4 className="text-[var(--text)] font-semibold flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[var(--accent)]" /> IUPAC Alphabet Rigor
+                  </h4>
+                  <p className="text-[13px] leading-relaxed">
+                    Full enforcement of IUPAC nucleotide specifications for both DNA and RNA (<code className="text-[var(--accent)] font-mono">A, C, G, T, U, R, Y, S, W, K, M, B, D, H, V, N</code>). Degenerate IUPAC consensus matches are calculated without lossy regex conversions.
+                  </p>
+                </div>
+
+                <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
+                  <h4 className="text-[var(--text)] font-semibold flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[var(--bio-cds)]" /> 6-Frame Translation & ORFs
+                  </h4>
+                  <p className="text-[13px] leading-relaxed">
+                    Instantaneous amino acid translation across forward frames (+1, +2, +3) and reverse complement frames (-1, -2, -3). Dynamic ORF scanning identifies start/stop codons with customizable minimum length thresholds.
+                  </p>
+                </div>
+
+                <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
+                  <h4 className="text-[var(--text)] font-semibold flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[var(--bio-promoter)]" /> Thermodynamics & Primer Chemistry
+                  </h4>
+                  <p className="text-[13px] leading-relaxed">
+                    Provides nearest-neighbor melting temperature (Tm) estimation, precise GC% profiling, and exact directional primer binding checks on both linear and circular templates.
+                  </p>
+                </div>
+
+                <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
+                  <h4 className="text-[var(--text)] font-semibold flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[var(--warning)]" /> Protein Consequence Modeling
+                  </h4>
+                  <p className="text-[13px] leading-relaxed">
+                    Codon-aware mutation impact evaluation: automatically classifies biological mutations into missense, nonsense (premature stop), silent (synonymous), and frameshift alterations within annotated CDS features.
+                  </p>
+                </div>
+              </div>
+
+              <h3 className="text-lg font-semibold text-[var(--text)] mt-6">Developer Usage Example</h3>
+              <p className="text-[13px]">You can use the exact same computational core in your own Node.js, CLI, or browser applications:</p>
+              
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-editor)] p-4 font-mono text-[12px] text-[var(--text-secondary)] overflow-x-auto">
+                <pre className="space-y-1">
+                  <span className="text-[var(--text-muted)]">// 1. Initialize DNA sequence with strict IUPAC validation</span><br/>
+                  <span className="text-[var(--accent)]">import</span> &#123; Seq, Translation &#125; <span className="text-[var(--accent)]">from</span> <span className="text-[var(--success)]">'nucleotide-sequence'</span>;<br/><br/>
+                  <span className="text-[var(--accent)]">const</span> plasmid = <span className="text-[var(--accent)]">new</span> <span className="text-[var(--text)]">Seq</span>(<span className="text-[var(--success)]">'ATGGTGAGCAAGGGCGAG'</span>, <span className="text-[var(--success)]">'dna'</span>);<br/>
+                  <span className="text-[var(--text-muted)]">// Reverse complement preserving 5'→3' semantics</span><br/>
+                  <span className="text-[var(--accent)]">const</span> revComp = plasmid.<span className="text-[var(--accent)]">reverseComplement</span>();<br/><br/>
+                  <span className="text-[var(--text-muted)]">// 2. Dynamic 6-frame translation and ORF discovery</span><br/>
+                  <span className="text-[var(--accent)]">const</span> orfs = Translation.<span className="text-[var(--accent)]">findOrfs</span>(plasmid.raw, &#123; minLengthBp: <span className="text-[var(--warning)]">150</span> &#125;);<br/>
+                  <span className="text-[var(--accent)]">const</span> translation = Translation.<span className="text-[var(--accent)]">translate</span>(plasmid.raw, <span className="text-[var(--warning)]">1</span>);
+                </pre>
+              </div>
             </div>
           </section>
 

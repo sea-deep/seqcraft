@@ -2,7 +2,7 @@ import { getMemorySequence } from '../../utils/document-utils';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { ImportDialog } from '../ui/ImportDialog';
 import { ExportDialog } from '../ui/ExportDialog';
-import { PanelLeft, PanelRight, Download, ArrowLeft } from 'lucide-react';
+import { PanelLeft, PanelRight, Download, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -19,7 +19,10 @@ import { isThemePreference, useThemeStore } from '../../state/theme-store';
 import { FeatureDialog } from '../features/FeatureDialog';
 import { DocumentSettingsDialog } from '../documents/DocumentSettingsDialog';
 import { CloningDialog } from '../cloning/CloningDialog';
+import { GoldenGateDialog } from '../cloning/GoldenGateDialog';
 import { TranslationDialog } from '../tools/TranslationDialog';
+import { CrisprDialog } from '../tools/CrisprDialog';
+import { BiosecurityDialog } from '../tools/BiosecurityDialog';
 import { reverseComplementIupac } from '../../scientific/restriction-analysis';
 import { ScientificSequence } from '../../scientific/nucleotide';
 import { generateId } from '../../utils/id';
@@ -47,6 +50,9 @@ export function AppCommandBar() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [cloningOpen, setCloningOpen] = useState(false);
   const [translationOpen, setTranslationOpen] = useState(false);
+  const [crisprOpen, setCrisprOpen] = useState(false);
+  const [goldenGateOpen, setGoldenGateOpen] = useState(false);
+  const [biosecurityOpen, setBiosecurityOpen] = useState(false);
   const activeDocument = documents.find(document => document.id === activeDocumentId);
   const activeSelection = activeDocument && selection?.documentId === activeDocument.id ? selection : null;
   const selectedSequence = activeDocument?.storageMode === 'memory' && activeSelection
@@ -163,6 +169,7 @@ export function AppCommandBar() {
               <DropdownMenuItem onClick={() => setActiveView('primers')}>Simulate PCR...</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setActiveView('enzymes')}>Restriction Digest...</DropdownMenuItem>
               {activeDocument && <DropdownMenuItem onClick={() => setCloningOpen(true)}>Restriction Cloning...</DropdownMenuItem>}
+              {activeDocument && <DropdownMenuItem onClick={() => setGoldenGateOpen(true)}>Golden Gate Assembly...</DropdownMenuItem>}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -174,6 +181,14 @@ export function AppCommandBar() {
               <DropdownMenuItem onClick={() => setActiveView('primers')}>Primer Analysis...</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setActiveView('enzymes')}>Restriction Analysis...</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setActiveView('compare')}>Compare Sequences...</DropdownMenuItem>
+              {activeDocument && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setCrisprOpen(true)}>CRISPR Target Radar & MMEJ...</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setGoldenGateOpen(true)}>Type IIS Golden Gate & Domestication...</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setBiosecurityOpen(true)}>Biosecurity & Select Agent Screener...</DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           
@@ -204,6 +219,14 @@ export function AppCommandBar() {
         {activeDocument && (
           <>
             <div className="w-px h-4 bg-[var(--border)] mx-1" />
+            <button
+              onClick={() => setBiosecurityOpen(true)}
+              className="cursor-pointer bg-[var(--panel-muted)] hover:bg-[var(--border)] text-[var(--text)] px-2.5 py-1 rounded-md text-[12px] font-medium inline-flex items-center gap-1.5 transition-colors border border-[var(--border)] shadow-xs"
+              title="Biosecurity & Select Agent Pre-Order Compliance (HHS/USDA 42 CFR 73.3)"
+            >
+              <ShieldCheck size={13} className="text-[var(--success)]" />
+              <span className="hidden sm:inline">Biosecurity</span>
+            </button>
             <ExportDialog document={activeDocument}>
               <div className="cursor-pointer bg-[var(--panel-muted)] hover:bg-[var(--border)] text-[var(--text)] px-3 py-1 rounded-md text-[12px] font-medium inline-flex items-center gap-1.5 transition-colors">
                 <Download size={14} />
@@ -218,6 +241,9 @@ export function AppCommandBar() {
       {activeDocument && activeSelection && featureOpen && <FeatureDialog document={activeDocument} selection={activeSelection} open onOpenChange={setFeatureOpen} />}
       {activeDocument && cloningOpen && <CloningDialog activeDocument={activeDocument} documents={documents} open onOpenChange={setCloningOpen} />}
       {activeDocument && activeSelection && translationOpen && <TranslationDialog document={activeDocument} selection={activeSelection} open onOpenChange={setTranslationOpen} />}
+      {activeDocument && crisprOpen && <CrisprDialog document={activeDocument} selection={activeSelection ?? undefined} open={crisprOpen} onOpenChange={setCrisprOpen} />}
+      {activeDocument && goldenGateOpen && <GoldenGateDialog activeDocument={activeDocument} documents={documents} open={goldenGateOpen} onOpenChange={setGoldenGateOpen} />}
+      {activeDocument && biosecurityOpen && <BiosecurityDialog document={activeDocument} open={biosecurityOpen} onOpenChange={setBiosecurityOpen} />}
     </header>
   );
 }

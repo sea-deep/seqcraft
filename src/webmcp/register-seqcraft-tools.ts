@@ -783,6 +783,312 @@ export const seqcraftFindOrfsTool = {
   )
 };
 
+export const seqcraftGenerateOpentronsProtocolTool = {
+  name: 'seqcraft_generate_opentrons_protocol',
+  description: 'Generate an executable Opentrons API v2 Python protocol (.py) for automated bench robotics setup of PCR reactions or restriction digests based on the active or selected DNA construct.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      reactionType: {
+        type: 'string',
+        enum: ['pcr', 'digest'],
+        description: 'Type of automated liquid handling reaction to generate.'
+      },
+      numReactions: {
+        type: 'integer',
+        minimum: 1,
+        maximum: 96,
+        description: 'Number of parallel reaction replicates or samples to set up (1–96).'
+      },
+      reactionVolumeUl: {
+        type: 'number',
+        minimum: 10,
+        maximum: 100,
+        description: 'Total reaction volume in microliters (default 50 uL).'
+      },
+      pcrParameters: {
+        type: 'object',
+        properties: {
+          forwardPrimerName: { type: 'string' },
+          reversePrimerName: { type: 'string' },
+          ampliconLengthBp: { type: 'integer', minimum: 50 },
+          annealingTempC: { type: 'number' }
+        },
+        description: 'Parameters required when reactionType is pcr.'
+      },
+      digestParameters: {
+        type: 'object',
+        properties: {
+          enzymeNames: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'List of restriction enzyme names to include in the reaction.'
+          },
+          incubationTempC: { type: 'number', description: 'Incubation temperature in Celsius (default 37).' },
+          incubationTimeMin: { type: 'number', description: 'Incubation duration in minutes (default 60).' }
+        },
+        description: 'Parameters required when reactionType is digest.'
+      }
+    },
+    required: ['reactionType'],
+    additionalProperties: false
+  },
+  annotations: { readOnlyHint: true, untrustedContentHint: true },
+  execute: wrapToolExecute(
+    'seqcraft_generate_opentrons_protocol',
+    (i) => `Generate Opentrons ${i.reactionType || 'protocol'} (${i.numReactions || 1} rxns)`,
+    async (input: any) => {
+      const doc = getActiveDocument();
+      if (!doc) return createError('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');
+      
+      const { compileOpentronsPCRProtocol, compileOpentronsDigestProtocol } = await import('../scientific/opentrons-compiler');
+      
+      if (input.reactionType === 'pcr') {
+        const p = input.pcrParameters || {};
+        const fwdName = p.forwardPrimerName || (doc.primers[0]?.name ?? 'Fwd-Primer');
+        const revName = p.reversePrimerName || (doc.primers[1]?.name ?? 'Rev-Primer');
+        const ampLen = p.ampliconLengthBp || Math.min(doc.length, 1000);
+        const annTemp = p.annealingTempC || 55.0;
+        
+        const res = compileOpentronsPCRProtocol({
+          templateDocName: doc.name,
+          forwardPrimerName: fwdName,
+          reversePrimerName: revName,
+          ampliconLengthBp: ampLen,
+          annealingTempC: annTemp,
+          numReactions: input.numReactions || 1,
+          reactionVolumeUl: input.reactionVolumeUl || 50
+        });
+        return createSuccess(res);
+      } else if (input.reactionType === 'digest') {
+        const d = input.digestParameters || {};
+        const enzymes = d.enzymeNames && d.enzymeNames.length > 0 ? d.enzymeNames : ['EcoRI'];
+        const res = compileOpentronsDigestProtocol({
+          dnaDocName: doc.name,
+          enzymeNames: enzymes,
+          incubationTempC: d.incubationTempC ?? 37,
+          incubationTimeMin: d.incubationTimeMin ?? 60,
+          numReactions: input.numReactions || 1,
+          reactionVolumeUl: input.reactionVolumeUl || 50
+        });
+        return createSuccess(res);
+      } else {
+        return createError('INVALID_REACTION_TYPE', 'reactionType must be "pcr" or "digest"');
+      }
+    }
+  )
+};
+
+export const seqcraftFindCrisprTargetsTool = {
+  name: 'seqcraft_find_crispr_targets',
+  description: 'Scan the active DNA construct for SpCas9 CRISPR target sites (5\'-NGG-3\' PAMs on both strands). Computes 20nt protospacer quality scores, GC% penalties, poly-T transcription abort hazards, and predicts Microhomology-Mediated End Joining (MMEJ) repair patterns and knockout frameshift likelihood.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      start1: { type: 'integer', minimum: 1, description: 'Optional 1-based start coordinate to restrict search window.' },
+      end1: { type: 'integer', minimum: 1, description: 'Optional 1-based end coordinate to restrict search window.' },
+      minQualityScore: { type: 'number', minimum: 0, maximum: 100, description: 'Minimum target quality score (0-100). Defaults to 50.' },
+      maxResults: { type: 'integer', minimum: 1, maximum: 100, description: 'Maximum guide targets to return (defaults to 25).' }
+    },
+    additionalProperties: false
+  },
+  annotations: { readOnlyHint: true, untrustedContentHint: true },
+  execute: wrapToolExecute(
+    'seqcraft_find_crispr_targets',
+    (i) => `Find CRISPR guides${i.minQualityScore ? ` (min score ${i.minQualityScore})` : ''}`,
+    async (input: any) => {
+      const doc = getActiveDocument();
+      if (!doc) return createError('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');
+      
+      const { findCrisprTargets } = await import('../scientific/crispr');
+      const targetRegion = input.start1 && input.end1 ? { start0: input.start1 - 1, end0Exclusive: input.end1 } : undefined;
+      
+      const targets = findCrisprTargets(getMemorySequence(doc).raw, doc.topology, {
+        targetRegion,
+        minQualityScore: input.minQualityScore ?? 50,
+        maxResults: input.maxResults ?? 25
+      });
+      
+      return createSuccess({
+        summary: `Identified ${targets.length} high-quality CRISPR targets in ${doc.name}`,
+        documentId: doc.id,
+        count: targets.length,
+        targets: targets.map(t => ({
+          id: t.id,
+          spacer: t.spacer,
+          pam: t.pam,
+          strand: t.strand,
+          pamRange: { start1: t.pamStart0 + 1, end1: t.pamEnd0Exclusive },
+          cutSite1: t.cutSite0 + 1,
+          gcPercent: t.gcPercent,
+          qualityScore: t.qualityScore,
+          penalties: t.penalties,
+          frameshiftProbability: t.frameshiftProbability,
+          topMmejDeletions: t.mmejDeletions.slice(0, 3).map(d => ({
+            microhomology: d.microhomology,
+            deletionSizeBp: d.deletionSizeBp,
+            isFrameshift: d.isFrameshift,
+            score: d.score
+          }))
+        }))
+      });
+    }
+  )
+};
+
+export const seqcraftSimulateGoldenGateTool = {
+  name: 'seqcraft_simulate_golden_gate',
+  description: 'Simulate Type IIS Golden Gate multi-part assembly (e.g. BsaI, BsmBI, BbsI, PaqCI, SapI). Digests parts to liberate scarless bodies with 4nt overhangs, validates all ligation junctions, and predicts recombinant circular construct.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      partDocumentIds: {
+        type: 'array',
+        items: { type: 'string' },
+        minItems: 2,
+        description: 'Array of document IDs to assemble in order.'
+      },
+      enzymeId: {
+        type: 'string',
+        enum: ['bsai', 'bsmbi', 'bbsi', 'paqci', 'sapi'],
+        description: 'Type IIS enzyme to use (default "bsai").'
+      },
+      topology: {
+        type: 'string',
+        enum: ['circular', 'linear'],
+        description: 'Desired recombinant topology (default "circular").'
+      }
+    },
+    required: ['partDocumentIds'],
+    additionalProperties: false
+  },
+  annotations: { readOnlyHint: true, untrustedContentHint: true },
+  execute: wrapToolExecute(
+    'seqcraft_simulate_golden_gate',
+    (i) => `Simulate Golden Gate assembly (${i.partDocumentIds?.length || 0} parts, ${i.enzymeId || 'BsaI'})`,
+    async (input: any) => {
+      const docs = useWorkspaceStore.getState().documents;
+      const partDocs = (input.partDocumentIds as string[]).map(id => docs.find(d => d.id === id));
+      
+      const missing = (input.partDocumentIds as string[]).filter((_, i) => !partDocs[i]);
+      if (missing.length > 0) {
+        return createError('DOCUMENTS_NOT_FOUND', `Could not find document(s): ${missing.join(', ')}`);
+      }
+      
+      const { TYPE_IIS_ENZYMES, assembleGoldenGate } = await import('../scientific/golden-gate');
+      const enzyme = TYPE_IIS_ENZYMES.find(e => e.id === (input.enzymeId || 'bsai')) || TYPE_IIS_ENZYMES[0];
+      
+      const parts = partDocs.map(doc => ({
+        id: doc!.id,
+        name: doc!.name,
+        sequence: getMemorySequence(doc!).raw,
+        features: doc!.features
+      }));
+      
+      const result = assembleGoldenGate(parts, enzyme, input.topology || 'circular');
+      
+      if (!result.success) {
+        return createError('ASSEMBLY_FAILED', result.errorMessage || 'Golden Gate assembly failed');
+      }
+      
+      return createSuccess({
+        recombinantLengthBp: result.recombinantSequence.length,
+        topology: result.topology,
+        enzyme: enzyme.name,
+        junctionCount: result.junctions.length,
+        junctions: result.junctions,
+        assembledPartCount: result.orderedPartNames.length,
+        orderedPartNames: result.orderedPartNames,
+        featureCount: result.assembledFeatures.length
+      });
+    }
+  )
+};
+
+export const seqcraftDomesticateSequenceTool = {
+  name: 'seqcraft_domesticate_sequence',
+  description: 'Detect and eliminate internal Type IIS recognition sites (e.g. BsaI, BsmBI) by proposing synonymous/silent codon mutations that preserve 100% of amino acid translation.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      enzymeId: {
+        type: 'string',
+        enum: ['bsai', 'bsmbi', 'bbsi', 'paqci', 'sapi'],
+        description: 'Type IIS enzyme whose internal sites should be removed (default "bsai").'
+      },
+      readingFrame: {
+        type: 'integer',
+        enum: [1, 2, 3],
+        description: 'Reading frame of the coding sequence (1, 2, or 3). Defaults to 1.'
+      }
+    },
+    additionalProperties: false
+  },
+  annotations: { readOnlyHint: true, untrustedContentHint: true },
+  execute: wrapToolExecute(
+    'seqcraft_domesticate_sequence',
+    (i) => `Domesticate internal ${i.enzymeId || 'BsaI'} sites`,
+    async (input: any) => {
+      const doc = getActiveDocument();
+      if (!doc) return createError('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');
+      
+      const { TYPE_IIS_ENZYMES, domesticateSequence } = await import('../scientific/golden-gate');
+      const enzyme = TYPE_IIS_ENZYMES.find(e => e.id === (input.enzymeId || 'bsai')) || TYPE_IIS_ENZYMES[0];
+      
+      const res = domesticateSequence(getMemorySequence(doc).raw, enzyme, input.readingFrame || 1);
+      
+      return createSuccess({
+        documentName: doc.name,
+        enzyme: enzyme.name,
+        hasInternalSites: res.hasInternalSites,
+        siteCount: res.siteCount,
+        mutations: res.mutations,
+        summary: res.summary
+      });
+    }
+  )
+};
+
+export const seqcraftScreenBiosecurityTool = {
+  name: 'seqcraft_screen_biosecurity',
+  description: 'Screen the active DNA sequence against regulated biological agents, HHS/USDA Select Agents (42 CFR Part 73), Australia Group Common Control List, and IGSC dual-use databases. Verifies pre-order compliance for commercial gene synthesis.',
+  inputSchema: {
+    type: 'object',
+    properties: {},
+    additionalProperties: false
+  },
+  annotations: { readOnlyHint: true, untrustedContentHint: true },
+  execute: wrapToolExecute(
+    'seqcraft_screen_biosecurity',
+    () => 'Screen DNA construct for biosecurity compliance',
+    async () => {
+      const doc = getActiveDocument();
+      if (!doc) return createError('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');
+      
+      const { screenBiosecurity } = await import('../scientific/biosecurity');
+      const report = screenBiosecurity(getMemorySequence(doc).raw, doc.topology);
+      
+      return createSuccess({
+        documentName: doc.name,
+        documentId: doc.id,
+        status: report.status,
+        isCompliant: report.isCompliant,
+        matchCount: report.matchCount,
+        matches: report.matches.map(m => ({
+          agentName: m.agentName,
+          category: m.category,
+          regulatoryFramework: m.regulatoryFramework,
+          range: { start1: m.start0 + 1, end1: m.end0Exclusive },
+          strand: m.strand,
+          providerAction: m.providerAction
+        })),
+        summary: report.summary,
+        recommendation: report.recommendation
+      });
+    }
+  )
+};
+
 export async function registerSeqCraftTools(targetContext?: any, signal?: AbortSignal): Promise<void> {
   const ctx = targetContext || getWebMCPContext();
   if (!ctx) return;
@@ -804,7 +1110,12 @@ export async function registerSeqCraftTools(targetContext?: any, signal?: AbortS
     seqcraftDetectKnownFeaturesTool,
     seqcraftProposeAnnotationTool,
     seqcraftPrepareRestrictionCloneTool,
-    seqcraftFindOrfsTool
+    seqcraftFindOrfsTool,
+    seqcraftGenerateOpentronsProtocolTool,
+    seqcraftFindCrisprTargetsTool,
+    seqcraftSimulateGoldenGateTool,
+    seqcraftDomesticateSequenceTool,
+    seqcraftScreenBiosecurityTool
   ];
 
   for (const t of tools) {

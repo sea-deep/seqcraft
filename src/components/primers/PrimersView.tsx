@@ -1,6 +1,6 @@
 import { getMemorySequence } from '../../utils/document-utils';
 import { useMemo, useState } from 'react';
-import { Edit3, Plus, Search, Trash2 } from 'lucide-react';
+import { Edit3, Plus, Search, Trash2, Bot } from 'lucide-react';
 import type { SequenceDocument } from '../../domain/document';
 import type { PCRResult } from '../../domain/pcr';
 import { ScientificSequence } from '../../scientific/nucleotide';
@@ -10,6 +10,7 @@ import { simulatePCR } from '../../scientific/pcr';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { generateId } from '../../utils/id';
 import { PrimerDialog } from './PrimerDialog';
+import { OpentronsExportDialog } from '../tools/OpentronsExportDialog';
 
 export function PrimersView({ document }: { document: SequenceDocument }) {
   const primers = useMemo(() => document.primers ?? [], [document.primers]);
@@ -20,6 +21,7 @@ export function PrimersView({ document }: { document: SequenceDocument }) {
   const [reversePrimerId, setReversePrimerId] = useState(primers[1]?.id ?? primers[0]?.id ?? '');
   const [pcrResult, setPcrResult] = useState<PCRResult | null>(null);
   const [pcrMessage, setPcrMessage] = useState<string | null>(null);
+  const [opentronsOpen, setOpentronsOpen] = useState(false);
   const selection = useWorkspaceStore(state => state.selection);
   const selectedPrimerId = useWorkspaceStore(state => state.selectedPrimerId);
   const selectPrimer = useWorkspaceStore(state => state.selectPrimer);
@@ -93,11 +95,51 @@ export function PrimersView({ document }: { document: SequenceDocument }) {
           <button onClick={runPCR} className="h-[34px] rounded-md bg-[var(--accent)] px-3 text-[12px] font-semibold text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] shadow-sm transition-colors cursor-pointer">Simulate PCR</button>
         </div>
         {pcrMessage && <div className="px-3 pb-3 text-[var(--text-secondary)]">{pcrMessage}</div>}
-        {pcrResult?.products.map(product => <div key={product.id} className="flex items-center border-t border-[var(--border)] px-3 py-2"><div><div className="font-medium">{product.lengthBp.toLocaleString()} bp amplicon</div><div className="font-mono text-[11px] text-[var(--text-muted)]">{product.segments.map(segment => `${segment.start0 + 1}–${segment.end0Exclusive}`).join(', ')}</div></div><button onClick={() => openProduct(product)} className="ml-auto h-[30px] rounded-md border border-[var(--border)] px-3 hover:bg-[var(--panel-muted)]">Open product</button></div>)}
+        {pcrResult?.products.map(product => {
+          return (
+            <div key={product.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border)] px-3 py-2">
+              <div>
+                <div className="font-medium">{product.lengthBp.toLocaleString()} bp amplicon</div>
+                <div className="font-mono text-[11px] text-[var(--text-muted)]">
+                  {product.segments.map(segment => `${segment.start0 + 1}–${segment.end0Exclusive}`).join(', ')}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setOpentronsOpen(true)} 
+                  className="flex items-center gap-1.5 h-[30px] rounded-md border border-[var(--border)] bg-[var(--panel-muted)] px-2.5 text-xs font-semibold text-[var(--accent)] hover:bg-[var(--panel)] transition-colors cursor-pointer shadow-sm"
+                >
+                  <Bot size={13} /> Export to Opentrons (.py)
+                </button>
+                <button 
+                  onClick={() => openProduct(product)} 
+                  className="h-[30px] rounded-md border border-[var(--border)] px-3 hover:bg-[var(--panel-muted)] text-xs font-medium cursor-pointer"
+                >
+                  Open product
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </section>
 
       {creating && <PrimerDialog document={document} selection={activeSelection ?? undefined} open onOpenChange={setCreating} />}
       {editingPrimer && editingPrimerId && <PrimerDialog document={document} primer={editingPrimer} open onOpenChange={open => !open && setEditingPrimerId(null)} />}
+      
+      {pcrResult?.products[0] && (
+        <OpentronsExportDialog
+          open={opentronsOpen}
+          onOpenChange={setOpentronsOpen}
+          mode="pcr"
+          pcrParams={{
+            templateDocName: document.name,
+            forwardPrimerName: primers.find(p => p.id === pcrResult.products[0].forwardPrimerId)?.name || 'Forward-Primer',
+            reversePrimerName: primers.find(p => p.id === pcrResult.products[0].reversePrimerId)?.name || 'Reverse-Primer',
+            ampliconLengthBp: pcrResult.products[0].lengthBp,
+            annealingTempC: 56.0
+          }}
+        />
+      )}
     </div>
   );
 }

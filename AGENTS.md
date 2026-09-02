@@ -137,6 +137,30 @@ During UI phases, implement only the atomic task explicitly requested by the use
 - WebMCP tests expanded to 10 tools
 - demo cloning donor generated successfully
 
+## Next-Gen Molecular Biology USPs & WebMCP Extensions
+- **Automated Wet-Lab Robotics Opentrons Protocol Compiler**:
+  - `src/scientific/opentrons-compiler.ts`, `OpentronsExportDialog.tsx`
+  - Generates executable Python scripts (Opentrons API v2.15) for OT-2 and Flex robots.
+  - Automatically calculates 10% pipetting dead-volume overages, 24-tube rack coordinates, 96-well reaction maps, and thermocycler elongation timings (30 s/kb).
+  - WebMCP tool: `seqcraft_generate_opentrons_protocol`.
+- **In-Browser CRISPR Guide Radar & MMEJ Forecaster**:
+  - `src/scientific/crispr.ts`, `CrisprDialog.tsx`
+  - Scans SpCas9 5′-NGG-3′ PAMs on sense and antisense strands with thermodynamic quality scoring, poly-T transcription termination penalties, and microhomology-mediated end joining (MMEJ) repair deletion forecasting to maximize out-of-frame knockout probability.
+  - WebMCP tool: `seqcraft_find_crispr_targets`.
+- **Type IIS Golden Gate Assembly & Domestication Engine**:
+  - `src/scientific/golden-gate.ts`, `GoldenGateDialog.tsx`
+  - Directional multi-fragment scarless assembly (BsaI, BsmBI, BbsI, PaqCI, SapI) with 4nt overhang junction verification and visual error diagnostics.
+  - Domestication optimizer eliminates internal recognition sites via synonymous/silent codon mutations that preserve 100% of the amino acid sequence.
+  - WebMCP tools: `seqcraft_simulate_golden_gate`, `seqcraft_domesticate_sequence`.
+- **Dual-Use Select Agent Biosecurity Screener**:
+  - `src/scientific/biosecurity.ts`, `BiosecurityDialog.tsx`
+  - 100% private, client-side pre-order compliance screener against HHS/USDA Select Agents (42 CFR Part 73), Australia Group Common Control List, and IGSC standards.
+  - Generates JSON compliance audit certificates for submission to commercial gene synthesis providers (Twist, IDT, GenScript).
+  - WebMCP tool: `seqcraft_screen_biosecurity`.
+- **WebMCP Ecosystem**:
+  - Expanded to 22 scientific and agentic tools registered via `window.document.modelContext`.
+  - Verified across real browser and unit/integration test suites.
+
 ## Deployment Notes
 - Production deployments must serve `Origin-Agent-Cluster: ?1` and `Permissions-Policy: tools=(self)` to comply with WebMCP isolation requirements.
 

@@ -51,11 +51,11 @@ describe('WebMCP Tool Registration and Execution', () => {
     useActivityStore.getState().clearEvents();
   });
 
-  it('registers exactly 17 tools asynchronously', async () => {
+  it('registers exactly 22 tools asynchronously', async () => {
     const controller = new AbortController();
     await registerSeqCraftTools(mockMcp, controller.signal);
     
-    expect(mockMcp.registerTool).toHaveBeenCalledTimes(17);
+    expect(mockMcp.registerTool).toHaveBeenCalledTimes(22);
     
     const expectedNames = [
       'seqcraft_analyze_primer',
@@ -75,6 +75,11 @@ describe('WebMCP Tool Registration and Execution', () => {
       'seqcraft_list_primers',
       'seqcraft_compare_documents',
       'seqcraft_propose_annotation',
+      'seqcraft_generate_opentrons_protocol',
+      'seqcraft_find_crispr_targets',
+      'seqcraft_simulate_golden_gate',
+      'seqcraft_domesticate_sequence',
+      'seqcraft_screen_biosecurity',
     ].sort();
     
     const actualNames = [...registeredTools.keys()].sort();
@@ -98,6 +103,11 @@ describe('WebMCP Tool Registration and Execution', () => {
       'seqcraft_compare_documents',
       'seqcraft_find_orfs',
       'seqcraft_detect_known_features',
+      'seqcraft_generate_opentrons_protocol',
+      'seqcraft_find_crispr_targets',
+      'seqcraft_simulate_golden_gate',
+      'seqcraft_domesticate_sequence',
+      'seqcraft_screen_biosecurity',
     ];
     for (const name of readOnlyTools) {
       expect(registeredTools.get(name)!.annotations.readOnlyHint).toBe(true);
@@ -341,9 +351,80 @@ describe('WebMCP Tool Registration and Execution', () => {
     
     // Every call received the signal
     const calls = mockMcp.registerTool.mock.calls;
-    expect(calls.length).toBe(17);
+    expect(calls.length).toBe(22);
     calls.forEach((call: any[]) => {
       expect(call[1].signal).toBe(controller.signal);
     });
+  });
+
+  it('generates executable Opentrons protocol via WebMCP tool', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const doc = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(doc);
+    useWorkspaceStore.getState().setActiveDocument(doc.id);
+
+    const res = await registeredTools.get('seqcraft_generate_opentrons_protocol')!.execute({
+      reactionType: 'pcr',
+      numReactions: 2,
+      pcrParameters: {
+        forwardPrimerName: 'Fwd-1',
+        reversePrimerName: 'Rev-1',
+        ampliconLengthBp: 850,
+        annealingTempC: 56.0
+      }
+    });
+
+    expect(res.ok).toBe(true);
+    expect(res.result.pythonCode).toContain('from opentrons import protocol_api');
+    expect(res.result.filename).toContain('opentrons_pcr_');
+    expect(res.result.billOfMaterials.length).toBeGreaterThan(3);
+  });
+
+  it('scans CRISPR SpCas9 target sites via WebMCP tool', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const doc = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(doc);
+    useWorkspaceStore.getState().setActiveDocument(doc.id);
+
+    const res = await registeredTools.get('seqcraft_find_crispr_targets')!.execute({
+      minQualityScore: 40,
+      maxResults: 10
+    });
+
+    expect(res.ok).toBe(true);
+    expect(res.result.count).toBeGreaterThan(0);
+    expect(res.result.targets[0].spacer.length).toBe(20);
+    expect(res.result.targets[0].pamRange).toBeDefined();
+    expect(res.result.targets[0].qualityScore).toBeGreaterThanOrEqual(40);
+  });
+
+  it('domesticates internal Type IIS sites via WebMCP tool', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const doc = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(doc);
+    useWorkspaceStore.getState().setActiveDocument(doc.id);
+
+    const res = await registeredTools.get('seqcraft_domesticate_sequence')!.execute({
+      enzymeId: 'bsai',
+      readingFrame: 1
+    });
+
+    expect(res.ok).toBe(true);
+    expect(res.result.enzyme).toBe('BsaI');
+    expect(res.result.summary).toBeDefined();
+  });
+
+  it('screens active DNA construct for biosecurity compliance via WebMCP tool', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    const doc = importGenBank(DEMO_GENBANK, 'pUC19')[0];
+    useWorkspaceStore.getState().addDocument(doc);
+    useWorkspaceStore.getState().setActiveDocument(doc.id);
+
+    const res = await registeredTools.get('seqcraft_screen_biosecurity')!.execute({});
+
+    expect(res.ok).toBe(true);
+    expect(res.result.isCompliant).toBe(true);
+    expect(res.result.status).toBe('COMPLIANT');
+    expect(res.result.summary).toContain('Screening passed');
   });
 });

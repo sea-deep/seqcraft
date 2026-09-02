@@ -20,7 +20,7 @@ describe('WebMCP Polyfill Runtime', () => {
 
     const tools = await (document as any).modelContext.getTools();
     const seqTools = tools.filter((t: any) => t.name.startsWith('seqcraft_'));
-    expect(seqTools.length).toBe(17);
+    expect(seqTools.length).toBe(22);
 
     const expectedNames = [
       "seqcraft_analyze_primer",
@@ -40,6 +40,11 @@ describe('WebMCP Polyfill Runtime', () => {
       "seqcraft_list_primers",
       "seqcraft_compare_documents",
       "seqcraft_propose_annotation",
+      "seqcraft_generate_opentrons_protocol",
+      "seqcraft_find_crispr_targets",
+      "seqcraft_simulate_golden_gate",
+      "seqcraft_domesticate_sequence",
+      "seqcraft_screen_biosecurity",
     ].sort();
 
     const actualNames = seqTools.map((t: any) => t.name).sort();

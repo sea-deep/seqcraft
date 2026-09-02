@@ -220,6 +220,70 @@ export function DocsPage() {
             </div>
           </section>
 
+          {/* Section 6: Next-Gen Capabilities (USPs) & WebMCP */}
+          <section id="next-gen-usps" className="space-y-4">
+            <h2 className="text-xl font-bold tracking-tight text-[var(--text)] border-b border-[var(--border)] pb-2 flex items-center gap-2">
+              <span className="text-[var(--accent)]">6.</span> Next-Generation Capabilities & WebMCP Extensions
+            </h2>
+            <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
+              SeqCraft bridges computational in-silico genetic engineering with physical bench robotics and regulatory compliance through its native 22-tool WebMCP architecture:
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[var(--accent)]" /> Opentrons Robotics Protocol Compiler
+                  </h4>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--accent-soft)] text-[var(--accent)] font-bold">OT-2 & Flex</span>
+                </div>
+                <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                  Exports executable Python scripts (API v2.15) for automated liquid handler reaction setup. Computes master mixes with 10% dead-volume overages, 24-tube rack coordinates, 96-well reaction maps, and thermocycler elongation timings.
+                </p>
+                <div className="text-[11px] font-mono text-[var(--text-muted)]">WebMCP: seqcraft_generate_opentrons_protocol</div>
+              </div>
+
+              <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[var(--success)]" /> CRISPR Radar & MMEJ Forecaster
+                  </h4>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--success)]/15 text-[var(--success)] font-bold">SpCas9 / MMEJ</span>
+                </div>
+                <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                  Scans 5′-NGG-3′ PAMs on both strands with thermodynamic scoring, poly-T transcription abort penalties, and microhomology-mediated end joining (MMEJ) repair deletion forecasting to maximize out-of-frame knockout probability.
+                </p>
+                <div className="text-[11px] font-mono text-[var(--text-muted)]">WebMCP: seqcraft_find_crispr_targets</div>
+              </div>
+
+              <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[var(--bio-promoter)]" /> Golden Gate Assembly & Domestication
+                  </h4>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--bio-promoter)]/15 text-[var(--bio-promoter)] font-bold">Type IIS</span>
+                </div>
+                <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                  Simulates multi-fragment scarless assembly (BsaI, BsmBI, BbsI, PaqCI, SapI) with 4nt overhang junction verification. Includes an intelligent domesticator that eliminates internal recognition sites via synonymous (silent) codon substitutions.
+                </p>
+                <div className="text-[11px] font-mono text-[var(--text-muted)]">WebMCP: seqcraft_simulate_golden_gate, seqcraft_domesticate_sequence</div>
+              </div>
+
+              <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[var(--warning)]" /> Dual-Use Biosecurity Screener
+                  </h4>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--warning)]/15 text-[var(--warning)] font-bold">HHS 42 CFR 73.3</span>
+                </div>
+                <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
+                  100% private, client-side pre-order compliance checking against HHS/USDA Select Agents, Australia Group Common Control List, and IGSC standards. Prevents synthesis shipment holds at commercial gene foundries (Twist, IDT, GenScript).
+                </p>
+                <div className="text-[11px] font-mono text-[var(--text-muted)]">WebMCP: seqcraft_screen_biosecurity</div>
+              </div>
+            </div>
+          </section>
+
         </div>
       </main>
     </div>

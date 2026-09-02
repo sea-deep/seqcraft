@@ -10,7 +10,8 @@ import { useWorkspaceStore } from '../../state/workspace-store';
 import { generateId } from '../../utils/id';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
-import { FilePlus, Languages, BookmarkPlus, LocateFixed } from 'lucide-react';
+import { FilePlus, Languages, BookmarkPlus, LocateFixed, Crosshair } from 'lucide-react';
+import { CrisprDialog } from '../tools/CrisprDialog';
 
 interface SelectionInspectorProps {
   document: SequenceDocument;
@@ -27,6 +28,7 @@ export function SelectionInspector({ document, selection }: SelectionInspectorPr
   } | null>(null);
   const [featureDialogOpen, setFeatureDialogOpen] = useState(false);
   const [primerDialogOpen, setPrimerDialogOpen] = useState(false);
+  const [crisprDialogOpen, setCrisprDialogOpen] = useState(false);
   
   const [seqSlice, setSeqSlice] = useState<string>('');
   const [loadingSeq, setLoadingSeq] = useState(true);
@@ -220,11 +222,21 @@ export function SelectionInspector({ document, selection }: SelectionInspectorPr
               <LocateFixed size={14} className="text-[var(--accent)]" />
               Design primer
             </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              className="w-full justify-start gap-2 text-[12px] h-[30px]"
+              onClick={() => setCrisprDialogOpen(true)}
+            >
+              <Crosshair size={14} className="text-[var(--accent)]" />
+              Scan CRISPR Guides
+            </Button>
           </>
         )}
       </div>
       {featureDialogOpen && <FeatureDialog document={document} selection={selection} open onOpenChange={setFeatureDialogOpen} />}
       {primerDialogOpen && <PrimerDialog document={document} selection={selection} open onOpenChange={setPrimerDialogOpen} />}
+      {crisprDialogOpen && <CrisprDialog document={document} selection={selection} open onOpenChange={setCrisprDialogOpen} />}
     </div>
   );
 }

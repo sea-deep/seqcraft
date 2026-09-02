@@ -1,12 +1,13 @@
 import { getMemorySequence } from '../../utils/document-utils';
 import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Bot } from 'lucide-react';
 import type { DigestResult } from '../../domain/digest';
 import type { SequenceDocument } from '../../domain/document';
 import { BUILTIN_ENZYMES } from '../../data/restriction-enzymes';
 import { simulateRestrictionDigest } from '../../scientific/digest';
 import { analyzeRestrictionSites, getEndType } from '../../scientific/restriction-analysis';
 import { useWorkspaceStore } from '../../state/workspace-store';
+import { OpentronsExportDialog } from '../tools/OpentronsExportDialog';
 
 type CutterFilter = 'all' | 'unique' | 'double' | 'noncutters';
 
@@ -15,6 +16,7 @@ export function EnzymesView({ document }: { document: SequenceDocument }) {
   const [filter, setFilter] = useState<CutterFilter>('all');
   const [selectedEnzymeIds, setSelectedEnzymeIds] = useState<string[]>([]);
   const [digestResult, setDigestResult] = useState<DigestResult | null>(null);
+  const [opentronsOpen, setOpentronsOpen] = useState(false);
   const selectedRestrictionSiteId = useWorkspaceStore(state => state.selectedRestrictionSiteId);
   const selectRestrictionSite = useWorkspaceStore(state => state.selectRestrictionSite);
   const setActiveView = useWorkspaceStore(state => state.setActiveView);
@@ -137,8 +139,16 @@ export function EnzymesView({ document }: { document: SequenceDocument }) {
       {selectedEnzymeIds.length > 0 && !digestResult && <div className="p-4 text-[var(--text-muted)]">Ready to digest with {selectedEnzymeIds.map(id => BUILTIN_ENZYMES.find(enzyme => enzyme.id === id)?.name).join(', ')}.</div>}
       {digestResult && (
         <section className="m-3 border border-[var(--border)] rounded-lg overflow-hidden bg-[var(--panel)]">
-          <div className="border-b border-[var(--border)] bg-[var(--panel-muted)] px-3 py-2 font-semibold text-[13px] text-[var(--text)]">
-            Digest result · {digestResult.cuts.length} cuts · {digestResult.fragments.length} fragments
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--panel-muted)] px-3 py-2">
+            <span className="font-semibold text-[13px] text-[var(--text)]">
+              Digest result · {digestResult.cuts.length} cuts · {digestResult.fragments.length} fragments
+            </span>
+            <button
+              onClick={() => setOpentronsOpen(true)}
+              className="flex items-center gap-1.5 h-7 px-2.5 rounded text-xs font-semibold border border-[var(--border)] bg-[var(--panel)] hover:bg-[var(--panel-muted)] text-[var(--accent)] transition-colors cursor-pointer shadow-sm"
+            >
+              <Bot size={13} /> Export to Opentrons (.py)
+            </button>
           </div>
           <div className="divide-y divide-[var(--border)]">
             {[...digestResult.fragments].sort((a, b) => b.lengthBp - a.lengthBp).map(fragment => (
@@ -150,6 +160,18 @@ export function EnzymesView({ document }: { document: SequenceDocument }) {
             ))}
           </div>
         </section>
+      )}
+
+      {digestResult && (
+        <OpentronsExportDialog
+          open={opentronsOpen}
+          onOpenChange={setOpentronsOpen}
+          mode="digest"
+          digestParams={{
+            dnaDocName: document.name,
+            enzymeNames: selectedEnzymeIds.map(id => BUILTIN_ENZYMES.find(e => e.id === id)?.name || id)
+          }}
+        />
       )}
     </div>
   );

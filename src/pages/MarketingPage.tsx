@@ -73,7 +73,7 @@ export function MarketingPage() {
                 </div>
               </div>
               <div className="px-5 py-3 border-t border-[var(--border)] bg-[var(--panel-muted)] font-mono text-[11px] text-[var(--text-muted)] flex justify-between">
-                <span>Coordinates: 0-based half-open</span><span>Verified in-browser</span>
+                <span>Standard 1-based biological coordinates</span><span>Verified in-browser</span>
               </div>
             </div>
           </div>

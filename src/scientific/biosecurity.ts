@@ -135,8 +135,7 @@ export interface BiosecurityScreeningReport {
  * Screen a DNA sequence against the regulated select agents and toxins database.
  */
 export function screenBiosecurity(
-  sequence: string,
-  _topology: "linear" | "circular" = "circular"
+  sequence: string
 ): BiosecurityScreeningReport {
   const seqUpper = sequence.toUpperCase();
   const seqLen = sequence.length;
@@ -149,50 +148,53 @@ export function screenBiosecurity(
       matchCount: 0,
       matches: [],
       highestRiskTier: "COMPLIANT",
-      summary: "Sequence is too short to match controlled pathogen signatures (<18 bp).",
-      recommendation: "Standard synthesis order processing."
+      summary: "Sequence too short for regulatory match identification (<18 bp).",
+      recommendation: "Commercial providers do not flag oligo sequences under 18-20 nt without specific match."
     };
   }
 
+  // Scan against regulated agent motifs
   for (const agent of REGULATED_AGENTS) {
-    for (const sig of agent.signatureSequences) {
-      const sigLen = sig.length;
-      const revSig = reverseComplementIupac(sig);
+    for (const signature of agent.signatureSequences) {
+      const sigUpper = signature.toUpperCase();
+      const revSig = reverseComplementIupac(sigUpper);
 
-      // Search forward strand
-      let fwdPos = seqUpper.indexOf(sig);
-      while (fwdPos !== -1) {
+      // Forward strand search
+      let fwdIdx = seqUpper.indexOf(sigUpper);
+      while (fwdIdx !== -1) {
         matches.push({
           agentId: agent.id,
           agentName: agent.name,
           category: agent.category,
           regulatoryFramework: agent.regulatoryFramework,
-          matchedSignature: sig,
+          matchedSignature: sigUpper,
           strand: 1,
-          start0: fwdPos,
-          end0Exclusive: fwdPos + sigLen,
+          start0: fwdIdx,
+          end0Exclusive: fwdIdx + sigUpper.length,
           identityPercent: 100,
           providerAction: agent.providerAction
         });
-        fwdPos = seqUpper.indexOf(sig, fwdPos + 1);
+        fwdIdx = seqUpper.indexOf(sigUpper, fwdIdx + 1);
       }
 
-      // Search reverse strand
-      let revPos = seqUpper.indexOf(revSig);
-      while (revPos !== -1) {
-        matches.push({
-          agentId: agent.id,
-          agentName: agent.name,
-          category: agent.category,
-          regulatoryFramework: agent.regulatoryFramework,
-          matchedSignature: sig,
-          strand: -1,
-          start0: revPos,
-          end0Exclusive: revPos + sigLen,
-          identityPercent: 100,
-          providerAction: agent.providerAction
-        });
-        revPos = seqUpper.indexOf(revSig, revPos + 1);
+      // Reverse strand search (if not self-reverse)
+      if (sigUpper !== revSig) {
+        let revIdx = seqUpper.indexOf(revSig);
+        while (revIdx !== -1) {
+          matches.push({
+            agentId: agent.id,
+            agentName: agent.name,
+            category: agent.category,
+            regulatoryFramework: agent.regulatoryFramework,
+            matchedSignature: sigUpper,
+            strand: -1,
+            start0: revIdx,
+            end0Exclusive: revIdx + revSig.length,
+            identityPercent: 100,
+            providerAction: agent.providerAction
+          });
+          revIdx = seqUpper.indexOf(revSig, revIdx + 1);
+        }
       }
     }
   }
@@ -209,8 +211,8 @@ export function screenBiosecurity(
 
   const isCompliant = status === "COMPLIANT";
 
-  let summary = "";
-  let recommendation = "";
+  let summary: string;
+  let recommendation: string;
 
   if (isCompliant) {
     summary = "Screening passed. Zero matches found against HHS/USDA Select Agents, Australia Group Common Control List, and IGSC Dual-Use Databases.";

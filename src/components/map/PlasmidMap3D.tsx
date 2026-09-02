@@ -21,10 +21,10 @@ import { RefreshCcw } from 'lucide-react';
 import { analyzePrimerBindings } from '../../scientific/primer-binding';
 import { PrimerArc3D } from './PrimerArc3D';
 
-// Helper component to expose camera info to window for Puppeteer tests
 function CameraExposer({ controlsRef }: { controlsRef: React.RefObject<OrbitControlsImpl | null> }) {
   const { camera } = useThree();
   useEffect(() => {
+    if (!import.meta.env.DEV && !(window as any).__PUPPETEER_TEST__) return;
     (window as any).__cameraInfo = () => ({
       pos: camera.position.toArray(),
       quat: camera.quaternion.toArray(),

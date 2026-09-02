@@ -4,33 +4,64 @@ import { deleteDocumentMetadata, listAllDocuments, saveDocumentMetadata, clearAl
 import { opfsStorage } from './opfs-backend';
 
 let stopSubscription: (() => void) | undefined;
+const SAVE_DEBOUNCE_MS = 500;
 
 export function initializeDocumentPersistence(onError: (error: unknown) => void = console.error): () => void {
   if (stopSubscription) return stopSubscription;
   let previous = new Map(useWorkspaceStore.getState().documents.map(document => [document.id, document]));
+  const timers = new Map<string, ReturnType<typeof setTimeout>>();
+  const queues = new Map<string, Promise<void>>();
+
+  const enqueue = (id: string, operation: () => Promise<void>) => {
+    const prior = queues.get(id) ?? Promise.resolve();
+    const next = prior.catch(() => undefined).then(operation);
+    queues.set(id, next);
+    void next.catch(onError).finally(() => {
+      if (queues.get(id) === next) queues.delete(id);
+    });
+  };
+
   stopSubscription = useWorkspaceStore.subscribe(state => {
     const current = new Map(state.documents.map(document => [document.id, document]));
     for (const document of current.values()) {
       const old = previous.get(document.id);
-      if (!old || old.version !== document.version) void saveDocumentMetadata(document).catch(onError);
+      if (!old || old.version !== document.version) {
+        const existing = timers.get(document.id);
+        if (existing) clearTimeout(existing);
+        timers.set(document.id, setTimeout(() => {
+          timers.delete(document.id);
+          enqueue(document.id, () => saveDocumentMetadata(document));
+        }, SAVE_DEBOUNCE_MS));
+      }
     }
     for (const old of previous.values()) {
       if (current.has(old.id)) continue;
-      void deletePersistedDocument(old).catch(onError);
+      const pending = timers.get(old.id);
+      if (pending) clearTimeout(pending);
+      timers.delete(old.id);
+      enqueue(old.id, () => deletePersistedDocument(old));
     }
     previous = current;
   });
+
   return () => {
+    for (const timer of timers.values()) clearTimeout(timer);
+    timers.clear();
     stopSubscription?.();
     stopSubscription = undefined;
   };
 }
 
 export async function deletePersistedDocument(document: SequenceDocument): Promise<void> {
-  await deleteDocumentMetadata(document.id);
+  // Delete OPFS file handle first to prevent orphaned disk files if metadata deletion precedes it
   if (document.storageMode === 'chunked' && document.storageRef) {
-    await opfsStorage.deleteSequence(document.storageRef.key);
+    try {
+      await opfsStorage.deleteSequence(document.storageRef.key);
+    } catch (err) {
+      console.warn(`Failed to delete OPFS sequence for ${document.id}:`, err);
+    }
   }
+  await deleteDocumentMetadata(document.id);
 }
 
 export async function clearAllWorkspaceStorage(): Promise<void> {

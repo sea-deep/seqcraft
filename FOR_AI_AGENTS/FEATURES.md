@@ -304,6 +304,26 @@ The demo data must support the complete headline workflow without external servi
 
 ---
 
+## 14. Next-Generation Molecular Biology Extensions (Client-Side USPs)
+
+Client-side extensions implemented in SeqCraft adhering to the zero-cloud sequence privacy contract:
+
+- **Type IIS Golden Gate Assembly & Domestication Engine**:
+  - Multi-part Golden Gate assembly simulation for BsaI, BsmBI, BbsI, PaqCI, and SapI.
+  - Automated domestication scanner detecting and mutating internal recognition sites.
+  - Silent/synonymous mutation priority preserving 100% coding integrity.
+- **In-Browser CRISPR Guide Radar & MMEJ Forecaster**:
+  - Scanning of SpCas9 5'-NGG-3' protospacer adjacent motifs across sense and antisense strands, including circular origin-crossing windows.
+  - Microhomology-mediated end joining (MMEJ) deletion forecasting and out-of-frame probability modeling.
+- **Automated Robotics Protocol Compiler**:
+  - Automated Opentrons OT-2 and Flex Python script synthesis with dead-volume calculation, 24-tube rack coordinates, and thermocycler elongation timings.
+- **Dual-Use Biosecurity Screener**:
+  - 100% client-side pre-order screening against HHS/USDA Select Agents and IGSC standards with downloadable compliance audit records.
+- **In-Place Sequence Modification Suite**:
+  - Local molecular transformations (insert, delete, replace, reverse complement, rotate origin) with deterministic coordinate transformation and strict human-in-the-loop staged approval.
+
+---
+
 # MVP Boundaries
 
 The following are intentionally **not** part of the MVP:
@@ -313,14 +333,9 @@ The following are intentionally **not** part of the MVP:
 - Sanger chromatogram viewing
 - multiple-sequence alignment
 - phylogenetic trees
-- CRISPR guide efficacy/off-target prediction
 - genome-scale annotation
-- codon optimization
-- Gibson Assembly
-- Golden Gate Assembly
 - Gateway cloning
 - TOPO cloning
-- full arbitrary nucleotide editing
 - real-time multiplayer collaboration
 - cloud storage of raw or derived biological sequences
 - server-side sequence computation without an explicit, separately reviewed opt-in privacy flow

@@ -9,9 +9,10 @@ export function createSeqCraftAuth(config: ServerConfig, db: Db, client: MongoCl
   }
 
   const trustedOrigins = [
-    config.APP_ORIGIN,
+    new URL(config.APP_ORIGIN).origin,
     'https://seqcraft.onrender.com',
-    ...(process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean),
+    'https://seqcraft.up.railway.app',
+    ...config.allowedOrigins,
   ].filter(Boolean);
 
   return betterAuth({
@@ -33,6 +34,9 @@ export function createSeqCraftAuth(config: ServerConfig, db: Db, client: MongoCl
     advanced: {
       database: { joins: true },
       useSecureCookies: config.isProduction,
+      defaultCookieAttributes: config.isProduction
+        ? { httpOnly: true, secure: true, sameSite: 'none' }
+        : { httpOnly: true, secure: false, sameSite: 'lax' },
     },
   });
 }

@@ -38,18 +38,30 @@ export function findCrisprTargets(sequence: string, topology: "linear" | "circul
   const endLimit = options.targetRegion ? Math.min(seqLen, options.targetRegion.end0Exclusive) : seqLen;
 
   const targets: CrisprTarget[] = [];
+  const isCircular = topology === "circular";
+
+  const getSub = (start: number, length: number): string => {
+    let s = "";
+    for (let k = 0; k < length; k++) {
+      s += seqUpper[(start + k + seqLen * 10) % seqLen];
+    }
+    return s;
+  };
 
   // 1. Scan Forward Strand for NGG (protospacer is 20bp upstream of NGG)
-  for (let i = 20; i < seqLen - 2; i++) {
-    if (i < startLimit || i + 3 > endLimit) continue;
-    const n = seqUpper[i];
-    const g1 = seqUpper[i + 1];
-    const g2 = seqUpper[i + 2];
+  const fwdStart = isCircular ? 0 : Math.max(20, startLimit);
+  const fwdEnd = isCircular ? seqLen : Math.min(seqLen - 2, endLimit);
+
+  for (let i = fwdStart; i < fwdEnd; i++) {
+    if (!isCircular && (i < startLimit || i + 3 > endLimit)) continue;
+
+    const pam = isCircular ? getSub(i, 3) : seqUpper.slice(i, i + 3);
+    const g1 = pam[1];
+    const g2 = pam[2];
 
     if (g1 === "G" && g2 === "G") {
-      const spacer = seqUpper.slice(i - 20, i);
-      const pam = n + g1 + g2;
-      const cutSite0 = i - 3;
+      const spacer = isCircular ? getSub(i - 20, 20) : seqUpper.slice(i - 20, i);
+      const cutSite0 = (i - 3 + seqLen) % seqLen;
 
       const target = evaluateCrisprTarget({
         id: "crispr_fwd_" + i,
@@ -57,7 +69,7 @@ export function findCrisprTargets(sequence: string, topology: "linear" | "circul
         pam,
         strand: 1,
         pamStart0: i,
-        pamEnd0Exclusive: i + 3,
+        pamEnd0Exclusive: (i + 3) % seqLen,
         cutSite0,
         fullSequence: seqUpper,
         topology
@@ -70,18 +82,21 @@ export function findCrisprTargets(sequence: string, topology: "linear" | "circul
   }
 
   // 2. Scan Reverse Strand for CCN (protospacer on reverse complement)
-  for (let i = 0; i <= seqLen - 23; i++) {
-    if (i < startLimit || i + 3 > endLimit) continue;
-    const c1 = seqUpper[i];
-    const c2 = seqUpper[i + 1];
-    const n = seqUpper[i + 2];
+  const revStart = isCircular ? 0 : Math.max(0, startLimit);
+  const revEnd = isCircular ? seqLen : Math.min(seqLen - 23, endLimit);
+
+  for (let i = revStart; i < revEnd; i++) {
+    if (!isCircular && (i < startLimit || i + 3 > endLimit)) continue;
+
+    const pamSense = isCircular ? getSub(i, 3) : seqUpper.slice(i, i + 3);
+    const c1 = pamSense[0];
+    const c2 = pamSense[1];
 
     if (c1 === "C" && c2 === "C") {
-      // PAM on bottom strand is 5'-CCN-3', which is 5'-NGG-3' on top strand reverse complement
-      const rawProtospacerSense = seqUpper.slice(i + 3, i + 23);
+      const rawProtospacerSense = isCircular ? getSub(i + 3, 20) : seqUpper.slice(i + 3, i + 23);
       const spacer = reverseComplementIupac(rawProtospacerSense);
-      const pam = reverseComplementIupac(c1 + c2 + n);
-      const cutSite0 = i + 3 + 3; // 3bp into the protospacer from PAM
+      const pam = reverseComplementIupac(pamSense);
+      const cutSite0 = (i + 6) % seqLen;
 
       const target = evaluateCrisprTarget({
         id: "crispr_rev_" + i,
@@ -89,7 +104,7 @@ export function findCrisprTargets(sequence: string, topology: "linear" | "circul
         pam,
         strand: -1,
         pamStart0: i,
-        pamEnd0Exclusive: i + 3,
+        pamEnd0Exclusive: (i + 3) % seqLen,
         cutSite0,
         fullSequence: seqUpper,
         topology

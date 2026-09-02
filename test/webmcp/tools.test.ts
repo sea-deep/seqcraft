@@ -439,19 +439,21 @@ describe('WebMCP Tool Registration and Execution', () => {
     useWorkspaceStore.getState().setActiveDocument(doc.id);
 
     const origLen = doc.length;
+    const origVersion = doc.version;
     const res = await registeredTools.get('seqcraft_edit_sequence')!.execute({
       actionType: 'insert',
       position1: 10,
       sequence: 'CACCACCACCACCACCAC' // 18 bp His-6
     });
 
-    expect(res.ok).toBe(true);
-    expect(res.result.newLength).toBe(origLen + 18);
-    expect(res.result.actionType).toBe('insert');
+    expect(res.ok).toBe(false);
+    expect(res.isError).toBe(true);
+    expect(res.error.code).toBe('HUMAN_APPROVAL_REQUIRED');
 
-    // Confirm store updated
+    // Confirm store remains unchanged without human approval
     const updated = useWorkspaceStore.getState().documents.find(d => d.id === doc.id)!;
-    expect(updated.length).toBe(origLen + 18);
+    expect(updated.length).toBe(origLen);
+    expect(updated.version).toBe(origVersion);
   });
 
   it('rotates circular plasmid origin via WebMCP tool', async () => {
@@ -460,12 +462,16 @@ describe('WebMCP Tool Registration and Execution', () => {
     useWorkspaceStore.getState().addDocument(doc);
     useWorkspaceStore.getState().setActiveDocument(doc.id);
 
+    const origVersion = doc.version;
     const res = await registeredTools.get('seqcraft_rotate_origin')!.execute({
       newOrigin1: 50
     });
 
-    expect(res.ok).toBe(true);
-    expect(res.result.newOrigin1).toBe(50);
-    expect(res.result.length).toBe(doc.length);
+    expect(res.ok).toBe(false);
+    expect(res.isError).toBe(true);
+    expect(res.error.code).toBe('HUMAN_APPROVAL_REQUIRED');
+
+    const updated = useWorkspaceStore.getState().documents.find(d => d.id === doc.id)!;
+    expect(updated.version).toBe(origVersion);
   });
 });

@@ -17,11 +17,14 @@ import { detectKnownFeatures } from '../scientific/known-feature-detection';
 
 const createError = (code: string, message: string, details?: any) => ({
   ok: false,
-  error: { code, message, details }
+  isError: true,
+  error: { code, message, details },
+  content: [{ type: 'text', text: `Error [${code}]: ${message}` }]
 });
 
 const createSuccess = (result: any) => ({
   ok: true,
+  isError: false,
   result
 });
 
@@ -69,13 +72,19 @@ const wrapToolExecute = (toolName: string, inputSummaryFn: (input: any) => strin
         // Fall back to raw string input if not JSON
       }
     }
+    let summary: string;
+    try {
+      summary = inputSummaryFn(parsedInput) || 'Execution';
+    } catch {
+      summary = 'Invalid input parameters';
+    }
     let result;
     try {
       result = await handler(parsedInput);
     } catch (err: any) {
       result = createError("INTERNAL_ERROR", err.message || String(err));
     }
-    return logActivity(toolName, inputSummaryFn(parsedInput), result, result.ok ? (result.result.summary || 'Success') : '');
+    return logActivity(toolName, summary, result, result.ok ? (result.result.summary || 'Success') : '');
   };
 };
 
@@ -1089,20 +1098,23 @@ export const seqcraftScreenBiosecurityTool = {
   )
 };
 
+// Re-enable only after a visible sequence-edit proposal can be approved/rejected.
+const agentSequenceEditApprovalAvailable = (): boolean => false;
+
 export const seqcraftEditSequenceTool = {
   name: 'seqcraft_edit_sequence',
-  description: 'In-place genetic engineering: insert, delete, replace, or reverse-complement DNA bases in the active construct. Automatically shifts, expands, or clips all annotated biological feature coordinates according to molecular biology rules.',
+  description: 'In-place molecular modification of active sequence. Requires human approval.',
   inputSchema: {
     type: 'object',
     properties: {
       actionType: {
         type: 'string',
         enum: ['insert', 'delete', 'replace', 'reverse_complement'],
-        description: 'Type of sequence modification to execute'
+        description: 'Type of sequence modification'
       },
       position1: {
         type: 'integer',
-        description: '1-based insertion coordinate (required for insert)'
+        description: '1-based insertion point (for insert action)'
       },
       range1: {
         type: 'object',
@@ -1111,7 +1123,7 @@ export const seqcraftEditSequenceTool = {
           end1: { type: 'integer' }
         },
         required: ['start1', 'end1'],
-        description: '1-based closed coordinate range [start1, end1] to delete, replace, or invert'
+        description: '1-based inclusive range [start1, end1] (for delete, replace, reverse_complement)'
       },
       sequence: {
         type: 'string',
@@ -1128,54 +1140,23 @@ export const seqcraftEditSequenceTool = {
     async (input: any) => {
       const doc = getActiveDocument();
       if (!doc) return createError('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');
+      if (!agentSequenceEditApprovalAvailable()) {
+        return createError(
+          'HUMAN_APPROVAL_REQUIRED',
+          'Agent-authored sequence edits are disabled until SeqCraft can stage them for explicit human approval.',
+          { requestedAction: input?.actionType }
+        );
+      }
       if (doc.storageMode !== 'memory') return createError('NOT_SUPPORTED', 'In-place edits currently require memory storage mode.');
 
-      const { mutateDocumentSequence } = useWorkspaceStore.getState();
-
-      let editAction: any;
-      if (input.actionType === 'insert') {
-        const pos1 = input.position1 ?? 1;
-        const pos0 = Math.max(0, Math.min(doc.length, pos1 - 1));
-        if (!input.sequence) return createError('INVALID_INPUT', 'Missing sequence to insert.');
-        editAction = { type: 'insert', index0: pos0, sequence: input.sequence };
-      } else if (input.actionType === 'delete') {
-        if (!input.range1) return createError('INVALID_INPUT', 'Missing range1 for delete action.');
-        const start0 = Math.max(0, input.range1.start1 - 1);
-        const end0Exclusive = Math.min(doc.length, input.range1.end1);
-        editAction = { type: 'delete', start0, end0Exclusive };
-      } else if (input.actionType === 'replace') {
-        if (!input.range1) return createError('INVALID_INPUT', 'Missing range1 for replace action.');
-        if (!input.sequence) return createError('INVALID_INPUT', 'Missing sequence for replace action.');
-        const start0 = Math.max(0, input.range1.start1 - 1);
-        const end0Exclusive = Math.min(doc.length, input.range1.end1);
-        editAction = { type: 'replace', start0, end0Exclusive, replacement: input.sequence };
-      } else if (input.actionType === 'reverse_complement') {
-        if (!input.range1) return createError('INVALID_INPUT', 'Missing range1 for reverse_complement action.');
-        const start0 = Math.max(0, input.range1.start1 - 1);
-        const end0Exclusive = Math.min(doc.length, input.range1.end1);
-        editAction = { type: 'reverse_complement', start0, end0Exclusive };
-      } else {
-        return createError('INVALID_ACTION', `Unknown actionType: ${input.actionType}`);
-      }
-
-      const res = mutateDocumentSequence(doc.id, editAction);
-
-      return createSuccess({
-        documentName: doc.name,
-        documentId: doc.id,
-        actionType: res.actionType,
-        summary: res.summary,
-        oldLength: doc.length,
-        newLength: res.newLength,
-        featureCount: res.newFeatures.length
-      });
+      return createError('NOT_IMPLEMENTED', 'Editing disabled.');
     }
   )
 };
 
 export const seqcraftRotateOriginTool = {
   name: 'seqcraft_rotate_origin',
-  description: 'Re-index the 0-origin of a circular plasmid to a new 1-based coordinate. Automatically rotates feature segments cyclically and splits origin-crossing features.',
+  description: 'Re-index the 0-origin of a circular plasmid to a new 1-based coordinate. Requires human approval.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -1191,27 +1172,18 @@ export const seqcraftRotateOriginTool = {
   execute: wrapToolExecute(
     'seqcraft_rotate_origin',
     (i) => `Rotate circular plasmid origin to ${i.newOrigin1}`,
-    async (input: any) => {
+    async () => {
       const doc = getActiveDocument();
       if (!doc) return createError('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');
+      if (!agentSequenceEditApprovalAvailable()) {
+        return createError(
+          'HUMAN_APPROVAL_REQUIRED',
+          'Agent-authored origin rotation is disabled until SeqCraft can stage it for explicit human approval.'
+        );
+      }
       if (doc.topology !== 'circular') return createError('INVALID_TOPOLOGY', 'Origin rotation is only valid for circular plasmids.');
 
-      const pos1 = input.newOrigin1 ?? 1;
-      const newOrigin0 = Math.max(0, Math.min(doc.length - 1, pos1 - 1));
-
-      const { mutateDocumentSequence } = useWorkspaceStore.getState();
-      const res = mutateDocumentSequence(doc.id, {
-        type: 'rotate_origin',
-        newOrigin0
-      });
-
-      return createSuccess({
-        documentName: doc.name,
-        documentId: doc.id,
-        newOrigin1: pos1,
-        summary: res.summary,
-        length: res.newLength
-      });
+      return createError('NOT_IMPLEMENTED', 'Origin rotation disabled.');
     }
   )
 };

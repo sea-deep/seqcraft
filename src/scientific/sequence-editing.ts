@@ -64,7 +64,39 @@ export function editSequence(
 
     case "delete": {
       const { start0, end0Exclusive } = action;
-      validateRange(start0, end0Exclusive, origLen);
+      const { isWrapped } = validateRange(start0, end0Exclusive, origLen, topology);
+      if (isWrapped) {
+        const deleteLen = (origLen - start0) + end0Exclusive;
+        const newSequence = currentSequence.slice(end0Exclusive, start0);
+        const newFeatures: Feature[] = [];
+        for (const f of features) {
+          const keptSegments: SequenceInterval[] = [];
+          for (const seg of f.segments) {
+            const clippedStart = Math.max(seg.start0, end0Exclusive);
+            const clippedEnd = Math.min(seg.end0Exclusive, start0);
+            if (clippedStart < clippedEnd) {
+              keptSegments.push({
+                start0: clippedStart - end0Exclusive,
+                end0Exclusive: clippedEnd - end0Exclusive
+              });
+            }
+          }
+          if (keptSegments.length > 0) {
+            newFeatures.push({
+              ...f,
+              segments: mergeAdjacentSegments(keptSegments)
+            });
+          }
+        }
+        return {
+          newSequence,
+          newLength: newSequence.length,
+          newFeatures,
+          summary: `Deleted ${deleteLen} bp wrapped origin region (${start0 + 1}–${origLen} and 1–${end0Exclusive})`,
+          actionType: "delete"
+        };
+      }
+
       const deleteLen = end0Exclusive - start0;
       if (deleteLen === 0) {
         return {
@@ -90,10 +122,44 @@ export function editSequence(
 
     case "replace": {
       const { start0, end0Exclusive, replacement } = action;
-      validateRange(start0, end0Exclusive, origLen);
+      const { isWrapped } = validateRange(start0, end0Exclusive, origLen, topology);
       const cleanRep = replacement.trim().toUpperCase().replace(/\s+/g, "");
       new ScientificSequence(cleanRep, "DNA");
       
+      if (isWrapped) {
+        const deleteLen = (origLen - start0) + end0Exclusive;
+        const insertLen = cleanRep.length;
+        const remaining = currentSequence.slice(end0Exclusive, start0);
+        const newSequence = cleanRep + remaining;
+        const newFeatures: Feature[] = [];
+        for (const f of features) {
+          const keptSegments: SequenceInterval[] = [];
+          for (const seg of f.segments) {
+            const clippedStart = Math.max(seg.start0, end0Exclusive);
+            const clippedEnd = Math.min(seg.end0Exclusive, start0);
+            if (clippedStart < clippedEnd) {
+              keptSegments.push({
+                start0: clippedStart - end0Exclusive + insertLen,
+                end0Exclusive: clippedEnd - end0Exclusive + insertLen
+              });
+            }
+          }
+          if (keptSegments.length > 0) {
+            newFeatures.push({
+              ...f,
+              segments: mergeAdjacentSegments(keptSegments)
+            });
+          }
+        }
+        return {
+          newSequence,
+          newLength: newSequence.length,
+          newFeatures,
+          summary: `Replaced ${deleteLen} bp wrapped origin region with ${insertLen} bp`,
+          actionType: "replace"
+        };
+      }
+
       const deleteLen = end0Exclusive - start0;
       const insertLen = cleanRep.length;
 
@@ -114,7 +180,25 @@ export function editSequence(
 
     case "reverse_complement": {
       const { start0, end0Exclusive } = action;
-      validateRange(start0, end0Exclusive, origLen);
+      const { isWrapped } = validateRange(start0, end0Exclusive, origLen, topology);
+      
+      if (isWrapped) {
+        const len1 = origLen - start0;
+        const len2 = end0Exclusive;
+        const wrappedTarget = currentSequence.slice(start0) + currentSequence.slice(0, end0Exclusive);
+        const inverted = reverseComplementIupac(wrappedTarget);
+        const invPart1 = inverted.slice(0, len1);
+        const invPart2 = inverted.slice(len1);
+        const newSequence = invPart2 + currentSequence.slice(end0Exclusive, start0) + invPart1;
+        return {
+          newSequence,
+          newLength: origLen,
+          newFeatures: structuredClone(features),
+          summary: `Reverse complemented ${len1 + len2} bp wrapped origin region`,
+          actionType: "reverse_complement"
+        };
+      }
+
       const targetSeq = currentSequence.slice(start0, end0Exclusive);
       const inverted = reverseComplementIupac(targetSeq);
 
@@ -162,13 +246,36 @@ export function editSequence(
   }
 }
 
-function validateRange(start0: number, end0Exclusive: number, len: number): void {
+function validateRange(start0: number, end0Exclusive: number, len: number, topology: 'linear' | 'circular' = 'linear'): { isWrapped: boolean } {
   if (start0 < 0 || end0Exclusive < 0 || start0 > len || end0Exclusive > len) {
     throw new RangeError(`Range [${start0}, ${end0Exclusive}) out of bounds for sequence of length ${len}`);
   }
   if (start0 > end0Exclusive) {
-    throw new RangeError(`Invalid range: start0 (${start0}) cannot exceed end0Exclusive (${end0Exclusive})`);
+    if (topology !== 'circular') {
+      throw new RangeError(`Invalid range: start0 (${start0}) cannot exceed end0Exclusive (${end0Exclusive}) on linear sequence`);
+    }
+    return { isWrapped: true };
   }
+  return { isWrapped: false };
+}
+
+export function mergeAdjacentSegments(segments: SequenceInterval[]): SequenceInterval[] {
+  if (segments.length <= 1) return segments;
+  const sorted = [...segments].sort((a, b) => a.start0 - b.start0);
+  const merged: SequenceInterval[] = [];
+  let current = { ...sorted[0] };
+
+  for (let i = 1; i < sorted.length; i++) {
+    const next = sorted[i];
+    if (current.end0Exclusive === next.start0) {
+      current.end0Exclusive = next.end0Exclusive;
+    } else {
+      merged.push(current);
+      current = { ...next };
+    }
+  }
+  merged.push(current);
+  return merged;
 }
 
 function transformFeaturesOnInsert(features: Feature[], index0: number, insertLen: number): Feature[] {
@@ -301,7 +408,7 @@ function transformFeaturesOnRotateOrigin(features: Feature[], newOrigin0: number
 
     return {
       ...f,
-      segments: newSegments.sort((a, b) => a.start0 - b.start0)
+      segments: mergeAdjacentSegments(newSegments)
     };
   });
 }

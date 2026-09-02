@@ -32,15 +32,25 @@ export function createApp({ config, projects, auth, resolveUserId, staticDir }: 
   });
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   
+  const allowedOrigins = new Set([
+    new URL(config.APP_ORIGIN).origin,
+    'https://seqcraft.onrender.com',
+    'https://seqcraft.up.railway.app',
+    ...config.allowedOrigins,
+  ]);
+
   const isAllowedOrigin = (origin: string | undefined): boolean => {
     if (!origin) return true;
-    if (origin === config.APP_ORIGIN) return true;
-    if (origin === 'https://seqcraft.onrender.com') return true;
-    if (origin.endsWith('.onrender.com') || origin.endsWith('.railway.app') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      return true;
+    try {
+      const parsed = new URL(origin).origin;
+      if (allowedOrigins.has(parsed)) return true;
+      if (!config.isProduction && /^http:\/\/(localhost|127\.0\.0\.1)(:[0-9]+)?$/.test(origin)) {
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
     }
-    const extra = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
-    return extra.includes(origin);
   };
 
   app.use(cors({

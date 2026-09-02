@@ -67,7 +67,7 @@ export function AuthPage() {
             ))}
           </div>
         </div>
-        <div className="font-mono text-[11px] text-[var(--text-muted)]">0-based half-open internally · 1-based inclusive when displayed</div>
+        <div className="font-mono text-[11px] text-[var(--text-muted)]">Standard 1-based biological coordinates in UI · Zero sequence cloud exposure</div>
       </section>
 
       <main className="flex items-center justify-center px-6 py-12 bg-[var(--panel)]">

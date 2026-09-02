@@ -1,5 +1,5 @@
 import type { Primer, PrimerBinding } from '../domain/primer';
-import { reverseComplementIupac, iupacToRegex } from './restriction-analysis';
+import { findIupacMatchStarts, reverseComplementIupac } from './restriction-analysis';
 import type { SequenceInterval } from '../domain/feature';
 
 export function analyzePrimerBindings(
@@ -23,16 +23,7 @@ export function analyzePrimerBindings(
   const hits: PrimerBinding[] = [];
 
   const findMatches = (pattern: string, orientation: 'forward' | 'reverse', extensionDir: 1 | -1) => {
-    const regex = iupacToRegex(pattern);
-    let match;
-    regex.lastIndex = 0;
-    while ((match = regex.exec(searchSeq)) !== null) {
-      const matchStart = match.index;
-      if (matchStart >= seqLen) {
-        regex.lastIndex = matchStart + 1;
-        continue;
-      }
-
+    for (const matchStart of findIupacMatchStarts(searchSeq, pattern, seqLen)) {
       const matchEnd = matchStart + primerLen;
       const start0 = matchStart;
       const end0Exclusive = matchEnd <= seqLen ? matchEnd : matchEnd % seqLen;
@@ -61,7 +52,6 @@ export function analyzePrimerBindings(
         threePrimeBase0 = start0;
       }
 
-      // Extract the actual exact reference sequence matched, taking into account origin wrapping
       let matchedRef = '';
       for (let i = 0; i < primerLen; i++) {
         matchedRef += sequence[(matchStart + i) % seqLen];
@@ -79,8 +69,6 @@ export function analyzePrimerBindings(
         wrapsOrigin,
         matchedReferenceSequence: matchedRef,
       });
-
-      regex.lastIndex = matchStart + 1;
     }
   };
 

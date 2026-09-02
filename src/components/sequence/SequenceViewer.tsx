@@ -24,6 +24,8 @@ interface SequenceViewerProps {
   document: SequenceDocument;
 }
 
+const MAX_INLINE_ANALYSIS_BP = 100_000;
+
 export function SequenceViewer({ document }: SequenceViewerProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const measureCharRef = useRef<HTMLSpanElement>(null);
@@ -53,18 +55,19 @@ export function SequenceViewer({ document }: SequenceViewerProps) {
   const isMemory = document.storageMode === 'memory';
   const seqLength = document.length;
   const rawSeq = isMemory ? getMemorySequence(document).raw : null;
+  const canAnalyzeInline = isMemory && seqLength <= MAX_INLINE_ANALYSIS_BP;
   const rowCount = Math.ceil(seqLength / BASES_PER_LINE);
 
   const restrictionSites = useMemo(() => {
-    return isMemory ? analyzeRestrictionSites(rawSeq!, document.topology, BUILTIN_ENZYMES) : [];
-  }, [isMemory ? rawSeq : '', document.topology, isMemory]);
+    return canAnalyzeInline ? analyzeRestrictionSites(rawSeq!, document.topology, BUILTIN_ENZYMES) : [];
+  }, [canAnalyzeInline, rawSeq, document.topology]);
 
   const primers = useMemo(() => document.primers ?? [], [document.primers]);
-  const primerBindings = useMemo(() => isMemory ? primers.flatMap(primer => analyzePrimerBindings(rawSeq!, document.topology, primer)) : [], [isMemory ? rawSeq : '', document.topology, primers, isMemory]);
+  const primerBindings = useMemo(() => canAnalyzeInline ? primers.flatMap(primer => analyzePrimerBindings(rawSeq!, document.topology, primer)) : [], [canAnalyzeInline, rawSeq, document.topology, primers]);
   
   const orfs = useMemo(() => {
-    return isMemory ? findORFs(rawSeq!, document.topology, 30) : [];
-  }, [isMemory ? rawSeq : '', document.topology, isMemory]);
+    return canAnalyzeInline ? findORFs(rawSeq!, document.topology, 30) : [];
+  }, [canAnalyzeInline, rawSeq, document.topology]);
 
   const rowVirtualizer = useVirtualizer({
     count: rowCount,

@@ -19,6 +19,7 @@ const environmentSchema = z.object({
   BETTER_AUTH_URL: z.string().url().default(defaultRailwayUrl || 'http://localhost:8787'),
   GOOGLE_CLIENT_ID: optionalTrimmed,
   GOOGLE_CLIENT_SECRET: optionalTrimmed,
+  ALLOWED_ORIGINS: z.string().default(''),
 }).superRefine((value, context) => {
   const authFields = [value.MONGODB_URI, value.BETTER_AUTH_SECRET];
   if (authFields.some(Boolean) && !authFields.every(Boolean)) {
@@ -56,9 +57,15 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env) {
   const env = environmentSchema.parse(mergedEnvironment);
   const authEnabled = Boolean(env.MONGODB_URI && env.BETTER_AUTH_SECRET);
   const googleEnabled = authEnabled && Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
+  const allowedOrigins = env.ALLOWED_ORIGINS
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean)
+    .map(origin => new URL(origin).origin);
 
   return {
     ...env,
+    allowedOrigins,
     authEnabled,
     googleEnabled,
     isProduction: env.NODE_ENV === 'production',

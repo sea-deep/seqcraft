@@ -428,14 +428,24 @@ export function domesticateSequence(
   }
 
   const hasInternalSites = mutations.length > 0;
+  const synonymousCount = mutations.filter(m => m.isSynonymous).length;
+  const nonsynonymousCount = mutations.length - synonymousCount;
+
+  let summary: string;
+  if (!hasInternalSites) {
+    summary = `No internal ${enzyme.name} sites detected. Sequence is already domesticated.`;
+  } else if (nonsynonymousCount === 0) {
+    summary = `Domesticated ${mutations.length} internal ${enzyme.name} recognition sites via synonymous codon mutations (100% amino acid sequence preserved).`;
+  } else {
+    summary = `Domesticated ${mutations.length} internal ${enzyme.name} recognition sites (${synonymousCount} synonymous, ${nonsynonymousCount} nonsynonymous substitution; caution: amino acid sequence altered).`;
+  }
+
   return {
     hasInternalSites,
     enzymeName: enzyme.name,
     siteCount: mutations.length,
     domesticatedSequence: currentSeq,
     mutations,
-    summary: hasInternalSites
-      ? "Domesticated " + mutations.length + " internal " + enzyme.name + " recognition sites via synonymous codon mutations."
-      : "No internal " + enzyme.name + " sites detected. Sequence is already domesticated."
+    summary
   };
 }

@@ -33,6 +33,41 @@ export function iupacToRegex(seq: string): RegExp {
   return new RegExp(pattern, 'gi');
 }
 
+const IUPAC_MASK: Record<string, number> = {
+  A: 0b0001, C: 0b0010, G: 0b0100, T: 0b1000, U: 0b1000,
+  R: 0b0101, Y: 0b1010, S: 0b0110, W: 0b1001,
+  K: 0b1100, M: 0b0011, B: 0b1110, D: 0b1101,
+  H: 0b1011, V: 0b0111, N: 0b1111,
+};
+
+export function findIupacMatchStarts(
+  sequence: string,
+  pattern: string,
+  maxStartExclusive = sequence.length,
+): number[] {
+  const reference = sequence.toUpperCase();
+  const query = pattern.toUpperCase();
+  const matches: number[] = [];
+  const lastStart = Math.min(
+    maxStartExclusive,
+    reference.length - query.length + 1,
+  );
+
+  for (let start = 0; start < lastStart; start++) {
+    let compatible = true;
+    for (let offset = 0; offset < query.length; offset++) {
+      const referenceMask = IUPAC_MASK[reference[start + offset]];
+      const queryMask = IUPAC_MASK[query[offset]];
+      if (!referenceMask || !queryMask || (referenceMask & queryMask) === 0) {
+        compatible = false;
+        break;
+      }
+    }
+    if (compatible) matches.push(start);
+  }
+  return matches;
+}
+
 export function analyzeRestrictionSites(
   sequence: string,
   topology: 'linear' | 'circular',
@@ -55,16 +90,7 @@ export function analyzeRestrictionSites(
     }
 
     const findMatches = (iupac: string, strand: 1 | -1) => {
-      const regex = iupacToRegex(iupac);
-      let match;
-      regex.lastIndex = 0;
-      while ((match = regex.exec(searchSeq)) !== null) {
-        const matchStart = match.index;
-        if (matchStart >= seqLen) {
-          regex.lastIndex = matchStart + 1;
-          continue;
-        }
-
+      for (const matchStart of findIupacMatchStarts(searchSeq, iupac, seqLen)) {
         const matchEnd = matchStart + patternLen;
         const start0 = matchStart;
         const end0Exclusive = matchEnd <= seqLen ? matchEnd : matchEnd % seqLen;
@@ -76,9 +102,6 @@ export function analyzeRestrictionSites(
           forwardCut0 = (start0 + enzyme.forwardCutOffset) % seqLen;
           reverseCut0 = (start0 + enzyme.reverseCutOffset) % seqLen;
         } else {
-          // For a reverse hit, start0 marks the 5' end of the MATCH on the top strand.
-          // Because we matched the reverse complement IUPAC sequence, 
-          // the enzyme is bound to the bottom strand.
           forwardCut0 = (matchEnd - enzyme.reverseCutOffset + seqLen) % seqLen;
           reverseCut0 = (matchEnd - enzyme.forwardCutOffset + seqLen) % seqLen;
         }
@@ -90,12 +113,10 @@ export function analyzeRestrictionSites(
           start0,
           end0Exclusive,
           strand,
-          recognitionSequence: fwdSeq, // The canonical sequence
+          recognitionSequence: fwdSeq,
           forwardCut0,
           reverseCut0
         });
-
-        regex.lastIndex = matchStart + 1;
       }
     };
 

@@ -20,6 +20,7 @@ import { AppCommandBar } from '../components/shell/AppCommandBar';
 import { ProjectSidebar } from '../components/shell/ProjectSidebar';
 import { EditorStatusBar } from '../components/shell/EditorStatusBar';
 import { AnnotationApprovalModal } from '../components/features/AnnotationApprovalModal';
+import { SequenceEditApprovalModal } from '../components/features/SequenceEditApprovalModal';
 
 export function AppShell() {
   const sidebarOpen = useWorkspaceStore(s => s.sidebarOpen);
@@ -129,6 +130,7 @@ export function AppShell() {
       <WebMCPBridge />
       <CloningApprovalModal />
       <AnnotationApprovalModal />
+      <SequenceEditApprovalModal />
     </div>
   );
 }

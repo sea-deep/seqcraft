@@ -1,8 +1,14 @@
 import { useWorkspaceStore, type WorkspaceView } from '../../state/workspace-store';
 import { SequenceViewer } from '../sequence/SequenceViewer';
-import { PlasmidMap3D } from '../map/PlasmidMap3D';
+import { MoleculeMap } from '../map/MoleculeMap';
+import { FeaturesView } from '../features/FeaturesView';
+import { PrimersView } from '../primers/PrimersView';
+import { EnzymesView } from '../enzymes/EnzymesView';
+import { HistoryView } from '../history/HistoryView';
+import { CompareView } from '../compare/CompareView';
 import { ImportDialog } from '../ui/ImportDialog';
 import { DocumentTabs } from '../shell/DocumentTabs';
+import { getDocumentCapabilities } from '../../domain/document';
 
 export function WorkspaceCenter() {
   const activeDocumentId = useWorkspaceStore(s => s.activeDocumentId);
@@ -38,6 +44,13 @@ export function WorkspaceCenter() {
     { id: 'enzymes', label: 'Enzymes' },
     { id: 'history', label: 'History' },
   ];
+  const capabilities = getDocumentCapabilities(activeDoc);
+  const unsupported = (view: WorkspaceView) =>
+    (view === 'map' && !capabilities.map) ||
+    (view === 'features' && !capabilities.annotations) ||
+    (view === 'primers' && !capabilities.primers) ||
+    (view === 'enzymes' && !capabilities.wholeSequenceAnalysis) ||
+    (view === 'compare' && !capabilities.wholeSequenceAnalysis);
 
   return (
     <div className="absolute inset-0 flex flex-col bg-[var(--bg)]">
@@ -51,12 +64,14 @@ export function WorkspaceCenter() {
             return (
               <button
                 key={view.id}
-                onClick={() => setActiveView(view.id)}
+                onClick={() => !unsupported(view.id) && setActiveView(view.id)}
+                disabled={unsupported(view.id)}
+                title={unsupported(view.id) ? 'Unavailable for chunked large-reference documents' : undefined}
                 className={`
                   px-3 h-[36px] flex items-center text-[12px] border-b-[3px] transition-colors font-ui
                   ${isActive 
                     ? 'border-[var(--accent)] text-[var(--text)] font-medium' 
-                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text)]'
+                    : `border-transparent text-[var(--text-muted)] ${unsupported(view.id) ? 'cursor-not-allowed opacity-40' : 'hover:text-[var(--text)]'}`
                   }
                 `}
               >
@@ -73,28 +88,19 @@ export function WorkspaceCenter() {
           <SequenceViewer document={activeDoc} />
         )}
         
-        {activeView === 'map' && (
-          <PlasmidMap3D document={activeDoc} />
+        {activeView === 'map' && capabilities.map && (
+          <MoleculeMap document={activeDoc} />
         )}
 
-        {/* Placeholders */}
-        {['features', 'primers', 'enzymes', 'history'].includes(activeView) && (
-          <div className="h-full w-full flex items-center justify-center text-center p-8 bg-[var(--bg)]">
-            <div className="text-[var(--text-muted)] font-ui">
-              <h2 className="text-[14px] text-[var(--text-muted)] font-semibold mb-2 uppercase tracking-wider">{activeView}</h2>
-              <p className="text-[12px]">View will appear here.</p>
-            </div>
-          </div>
-        )}
+        {activeView === 'features' && capabilities.annotations && <FeaturesView document={activeDoc} />}
+        {activeView === 'primers' && capabilities.primers && <PrimersView document={activeDoc} />}
+        {activeView === 'enzymes' && capabilities.wholeSequenceAnalysis && <EnzymesView document={activeDoc} />}
+        {activeView === 'history' && <HistoryView document={activeDoc} />}
         
-        {activeView === 'compare' && (
-          <div className="h-full w-full flex items-center justify-center text-center p-8 bg-[var(--bg)]">
-            <div className="text-[var(--text-muted)] font-ui">
-              <h2 className="text-[14px] text-[var(--text)] font-semibold mb-2">Compare sequences</h2>
-              <p className="text-[12px]">Choose another workspace sequence to compare with {activeDoc.name}.</p>
-            </div>
-          </div>
+        {activeView === 'compare' && capabilities.wholeSequenceAnalysis && (
+          <CompareView reference={activeDoc} documents={documents} />
         )}
+        {unsupported(activeView) && <div className="flex h-full items-center justify-center p-8 text-center text-[13px] text-[var(--text-muted)]"><div><div className="mb-2 font-medium text-[var(--text)]">Operation unavailable</div><div>Whole-document scientific analysis is intentionally disabled for chunked large-reference documents.</div></div></div>}
       </div>
     </div>
   );

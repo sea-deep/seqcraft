@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { WorkspaceCenter } from '../../src/components/workspace/WorkspaceCenter';
 import { useWorkspaceStore } from '../../src/state/workspace-store';
+import { ScientificSequence } from '../../src/scientific/nucleotide';
 
 describe('WorkspaceCenter View Switching', () => {
   beforeEach(() => {
@@ -9,8 +10,8 @@ describe('WorkspaceCenter View Switching', () => {
       documents: [{
         id: 'doc1',
         topology: 'linear',
-        sequence: { raw: 'ATGC', length: 4 },
-        alphabet: 'DNA', features: []
+        name: 'doc1', sequence: new ScientificSequence('ATGC'), length: 4, storageMode: 'memory',
+        alphabet: 'DNA', features: [], primers: [], source: 'raw', version: 1,
       }],
       activeDocumentId: 'doc1',
       activeView: 'sequence'
@@ -18,7 +19,7 @@ describe('WorkspaceCenter View Switching', () => {
   });
 
   it('renders sequence viewer by default', () => {
-    render(<WorkspaceCenter handleFileUpload={() => {}} />);
+    render(<WorkspaceCenter />);
     expect(screen.getByText('Map')).toBeDefined();
     expect(screen.getByText('Sequence')).toBeDefined();
   });

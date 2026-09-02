@@ -1,23 +1,18 @@
 import type { Feature } from '../../domain/feature';
 import { getFeatureLength } from '../../domain/feature';
+import type { SequenceDocument } from '../../domain/document';
+import { useState } from 'react';
+import { FeatureDialog } from '../features/FeatureDialog';
+import { getFeatureColor } from '../../domain/feature-colors';
 
-export function FeatureInspector({ feature }: { feature: Feature }) {
+export function FeatureInspector({ document, feature }: { document: SequenceDocument; feature: Feature }) {
+  const [editing, setEditing] = useState(false);
   const formatNum = new Intl.NumberFormat('en-US');
   const minStart = Math.min(...feature.segments.map(s => s.start0));
   const maxEnd = Math.max(...feature.segments.map(s => s.end0Exclusive));
   const length = getFeatureLength(feature);
 
-  // Semantic color marker logic matches FeatureSegment
-  let colorVar = 'var(--text-muted)';
-  if (feature.type === 'CDS' || feature.type === 'gene') {
-    colorVar = '#4f46e5';
-  } else if (feature.type === 'promoter') {
-    colorVar = '#d97706';
-  } else if (feature.type === 'origin') {
-    colorVar = '#0d9488';
-  } else {
-    colorVar = '#7c3aed';
-  }
+  const colorVar = getFeatureColor(feature.type);
 
   const qualifiers = Object.entries(feature.qualifiers || {});
 
@@ -69,6 +64,10 @@ export function FeatureInspector({ feature }: { feature: Feature }) {
           ))}
         </div>
       )}
+      <div className="border-t border-[var(--border)] pt-3">
+        <button onClick={() => setEditing(true)} className="text-[var(--accent)] hover:underline">Edit annotation</button>
+      </div>
+      {editing && <FeatureDialog document={document} feature={feature} open onOpenChange={setEditing} />}
     </div>
   );
 }

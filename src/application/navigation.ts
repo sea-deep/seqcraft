@@ -8,6 +8,7 @@
  *   WebMCP execute → application navigation → Zustand store → React/Three.js reactivity
  */
 
+import { getMemorySequence } from '../utils/document-utils';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { analyzeRestrictionSites } from '../scientific/restriction-analysis';
 import { BUILTIN_ENZYMES } from '../data/restriction-enzymes';
@@ -74,7 +75,7 @@ export function focusSequenceRegion(input: FocusRegionInput): NavigationResult<F
   if (!doc) return error('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');
 
   const { start1, end1, preferredView } = input;
-  const seqLen = doc.sequence.length;
+  const seqLen = doc.length;
 
   // Validate integer coordinates
   if (!Number.isInteger(start1) || !Number.isInteger(end1)) {
@@ -164,7 +165,7 @@ export function showRestrictionSite(input: ShowRestrictionSiteInput): Navigation
   }
 
   // Run restriction analysis for this enzyme only
-  const allSites = analyzeRestrictionSites(doc.sequence.raw, doc.topology, [enzyme]);
+  const allSites = analyzeRestrictionSites(getMemorySequence(doc).raw, doc.topology, [enzyme]);
   const enzymeSites = allSites.filter(s => s.enzymeId === enzyme.id);
 
   if (enzymeSites.length === 0) {

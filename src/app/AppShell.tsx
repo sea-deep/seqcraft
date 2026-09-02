@@ -1,7 +1,12 @@
-import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
+import {
+  Panel,
+  Group as PanelGroup,
+  Separator as PanelResizeHandle,
+  useDefaultLayout,
+} from "react-resizable-panels";
 import { useWorkspaceStore } from "../state/workspace-store";
 import { Info, X } from 'lucide-react';
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 
 import { loadDemoWorkspace } from "../data/demo-workspace";
@@ -10,10 +15,13 @@ import { Inspector } from "../components/inspector/Inspector";
 import { WebMCPBridge } from '../webmcp/WebMCPBridge';
 import { CloningApprovalModal } from '../components/cloning/CloningApprovalModal';
 import { useActivityStore, type ActivityEvent } from "../state/activity-store";
+import { applyThemePreference, useThemeStore } from "../state/theme-store";
 
 import { AppCommandBar } from '../components/shell/AppCommandBar';
 import { ProjectSidebar } from '../components/shell/ProjectSidebar';
 import { EditorStatusBar } from '../components/shell/EditorStatusBar';
+import { AnnotationApprovalModal } from '../components/features/AnnotationApprovalModal';
+import { initializeDocumentPersistence, loadPersistedDocuments } from '../storage/document-persistence';
 
 export function AppShell() {
   const documents = useWorkspaceStore(s => s.documents);
@@ -24,8 +32,18 @@ export function AppShell() {
   const setActiveView = useWorkspaceStore(s => s.setActiveView);
   const activeDocumentId = useWorkspaceStore(s => s.activeDocumentId);
   const closeDocumentTab = useWorkspaceStore(s => s.closeDocumentTab);
+  const themePreference = useThemeStore(s => s.preference);
   const initialized = useRef(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const panelIds = useMemo(() => [
+    ...(sidebarOpen ? ['sidebar'] : []),
+    'center',
+    ...(inspectorOpen ? ['inspector'] : []),
+  ], [inspectorOpen, sidebarOpen]);
+  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+    id: 'seqcraft-main-layout',
+    panelIds,
+  });
 
   // Keyboard Shortcuts
   useHotkeys('alt+b', (e) => { e.preventDefault(); setSidebarOpen(!sidebarOpen); }, [sidebarOpen]);
@@ -42,35 +60,64 @@ export function AppShell() {
   useHotkeys('5', () => setActiveView('enzymes'));
 
   useEffect(() => {
+    return initializeDocumentPersistence();
+  }, []);
+
+  useEffect(() => {
     if (!initialized.current && documents.length === 0) {
       initialized.current = true;
-      loadDemoWorkspace();
+      loadPersistedDocuments().then(dbDocs => {
+          if (dbDocs.length > 0) {
+            useWorkspaceStore.getState().addDocuments(dbDocs);
+          } else {
+            loadDemoWorkspace();
+          }
+      });
     }
   }, [documents.length]);
+
+  useEffect(() => {
+    applyThemePreference(themePreference);
+
+    if (themePreference !== 'system' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const colorScheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleColorSchemeChange = () => applyThemePreference('system');
+    colorScheme.addEventListener('change', handleColorSchemeChange);
+
+    return () => colorScheme.removeEventListener('change', handleColorSchemeChange);
+  }, [themePreference]);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[var(--bg)] text-[var(--text)] overflow-hidden font-ui">
       <AppCommandBar />
 
       <div className="flex-1 min-h-0">
-        <PanelGroup autoSaveId="seqcraft-main-layout" orientation="horizontal">
+        <PanelGroup
+          id="seqcraft-main-layout"
+          orientation="horizontal"
+          defaultLayout={defaultLayout}
+          onLayoutChanged={onLayoutChanged}
+        >
           {sidebarOpen && (
             <>
-              <Panel id="sidebar" order={1} defaultSize={220} minSize={200} maxSize={320} className="bg-[var(--panel-muted)] flex flex-col">
+              <Panel id="sidebar" defaultSize={220} minSize={200} maxSize={320} className="bg-[var(--panel-muted)] flex flex-col">
                 <ProjectSidebar />
               </Panel>
               <PanelResizeHandle className="w-px bg-[var(--border)] hover:bg-[var(--accent)] transition-colors cursor-col-resize" />
             </>
           )}
 
-          <Panel id="center" order={2} className="bg-[var(--bg)] relative">
+          <Panel id="center" className="bg-[var(--bg)] relative">
             <WorkspaceCenter />
           </Panel>
 
           {inspectorOpen && (
             <>
               <PanelResizeHandle className="w-px bg-[var(--border)] hover:bg-[var(--accent)] transition-colors cursor-col-resize" />
-              <Panel id="inspector" order={3} defaultSize={260} minSize={220} maxSize={380} className="bg-[var(--panel)] flex flex-col">
+              <Panel id="inspector" defaultSize={260} minSize={220} maxSize={380} className="bg-[var(--panel)] flex flex-col">
                 <div className="h-[36px] border-b border-[var(--border)] flex items-center justify-between px-3 shrink-0 bg-[var(--panel-muted)]">
                   <div className="flex items-center text-[var(--text-muted)] text-[11px] font-semibold tracking-wider uppercase">
                     <Info className="w-3.5 h-3.5 mr-1.5" />
@@ -102,6 +149,7 @@ export function AppShell() {
       
       <WebMCPBridge />
       <CloningApprovalModal />
+      <AnnotationApprovalModal />
     </div>
   );
 }

@@ -19,13 +19,16 @@ describe('Workspace selection state', () => {
     name: 'pUC19',
     topology: 'circular' as const,
     sequence: new ScientificSequence('ATGCATGCATGC', 'DNA'),
+    length: 12,
+    storageMode: 'memory' as const,
     alphabet: 'DNA' as const,
     features: [
       { id: 'f1', name: 'AmpR', type: 'CDS' as const, strand: 1 as const, segments: [{ start0: 2, end0Exclusive: 5 }], qualifiers: {}, source: 'imported' as const },
       { id: 'f2', name: 'ori', type: 'origin' as const, strand: -1 as const, segments: [{ start0: 8, end0Exclusive: 10 }], qualifiers: {}, source: 'imported' as const }
     ],
     primers: [],
-    source: 'genbank' as const
+    source: 'genbank' as const,
+    version: 1,
   };
 
   it('shared feature selection action sets both featureId and sequence bounds', () => {

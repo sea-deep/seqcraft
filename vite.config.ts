@@ -5,6 +5,9 @@ import { defineConfig } from "vite"
 
 export default defineConfig({
   server: {
+    proxy: {
+      "/api": "http://localhost:8787"
+    },
     headers: {
       "Origin-Agent-Cluster": "?1",
       "Permissions-Policy": "tools=(self)"
@@ -19,7 +22,9 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@seqcraft/genbank-parser": path.resolve(import.meta.dirname, "./node_modules/@teselagen/bio-parsers/src/genbankToJson.js"),
+      "@teselagen/sequence-utils": path.resolve(import.meta.dirname, "./src/import/teselagen-sequence-utils-shim.ts"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
 })

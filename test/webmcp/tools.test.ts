@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { 
   registerSeqCraftTools, 
+  seqcraftGetCapabilitiesTool,
   seqcraftGetActiveDocumentTool,
   seqcraftAnalyzeRestrictionSitesTool,
   seqcraftSimulateDigestTool,
@@ -28,7 +29,7 @@ describe('WebMCP Tool Registration and Execution', () => {
         expect(typeof tool.description).toBe('string');
         expect(tool.inputSchema).toBeDefined();
         expect(typeof tool.execute).toBe('function');
-        expect(tool.annotations.untrustedContentHint).toBe(false);
+        expect(typeof tool.annotations.untrustedContentHint).toBe('boolean');
         expect(options.signal).toBeInstanceOf(AbortSignal);
         
         // fail if it uses handler
@@ -49,23 +50,29 @@ describe('WebMCP Tool Registration and Execution', () => {
     useActivityStore.getState().clearEvents();
   });
 
-  it('registers exactly 10 tools asynchronously', async () => {
+  it('registers exactly 16 tools asynchronously', async () => {
     const controller = new AbortController();
     await registerSeqCraftTools(mockMcp, controller.signal);
     
-    expect(mockMcp.registerTool).toHaveBeenCalledTimes(10);
+    expect(mockMcp.registerTool).toHaveBeenCalledTimes(16);
     
     const expectedNames = [
       'seqcraft_analyze_primer',
       'seqcraft_analyze_restriction_sites',
       'seqcraft_focus_region',
       'seqcraft_get_active_document',
+      'seqcraft_get_capabilities',
       'seqcraft_show_feature',
       'seqcraft_show_restriction_site',
       'seqcraft_simulate_digest',
       'seqcraft_simulate_pcr',
       'seqcraft_list_documents',
       'seqcraft_prepare_restriction_clone',
+      'seqcraft_find_orfs',
+      'seqcraft_list_features',
+      'seqcraft_list_primers',
+      'seqcraft_compare_documents',
+      'seqcraft_propose_annotation',
     ].sort();
     
     const actualNames = [...registeredTools.keys()].sort();
@@ -77,24 +84,49 @@ describe('WebMCP Tool Registration and Execution', () => {
     
     // Scientific (read-only)
     const readOnlyTools = [
+      'seqcraft_get_capabilities',
       'seqcraft_get_active_document',
       'seqcraft_analyze_restriction_sites',
       'seqcraft_simulate_digest',
       'seqcraft_analyze_primer',
       'seqcraft_simulate_pcr',
+      'seqcraft_list_documents',
+      'seqcraft_list_features',
+      'seqcraft_list_primers',
+      'seqcraft_compare_documents',
+      'seqcraft_find_orfs',
     ];
     for (const name of readOnlyTools) {
       expect(registeredTools.get(name)!.annotations.readOnlyHint).toBe(true);
     }
 
-    // Action (navigation)
+    // Action (navigation or staged persistent change)
     const actionTools = [
       'seqcraft_focus_region',
       'seqcraft_show_restriction_site',
       'seqcraft_show_feature',
+      'seqcraft_propose_annotation',
+      'seqcraft_prepare_restriction_clone',
     ];
     for (const name of actionTools) {
       expect(registeredTools.get(name)!.annotations.readOnlyHint).toBe(false);
+    }
+  });
+
+  it('advertises privacy, coordinates, and approval semantics without returning user content', async () => {
+    const response = await seqcraftGetCapabilitiesTool.execute({});
+    expect(response.ok).toBe(true);
+    expect(response.result.privacy.rawSequences).toBe('browser-only');
+    expect(response.result.coordinateContract.internalApplicationState).toBe('0-based half-open');
+    expect(response.result.approval.persistentScientificChanges).toContain('human approval');
+    expect(seqcraftGetCapabilitiesTool.annotations.untrustedContentHint).toBe(false);
+  });
+
+  it('marks tools that can return imported or user-authored content as untrusted', async () => {
+    await registerSeqCraftTools(mockMcp, new AbortController().signal);
+    for (const [name, tool] of registeredTools) {
+      if (name === 'seqcraft_get_capabilities') continue;
+      expect(tool.annotations.untrustedContentHint).toBe(true);
     }
   });
 
@@ -290,7 +322,7 @@ describe('WebMCP Tool Registration and Execution', () => {
     
     // Every call received the signal
     const calls = mockMcp.registerTool.mock.calls;
-    expect(calls.length).toBe(10);
+    expect(calls.length).toBe(16);
     calls.forEach((call: any[]) => {
       expect(call[1].signal).toBe(controller.signal);
     });

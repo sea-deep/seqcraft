@@ -1,3 +1,4 @@
+import { getMemorySequence } from '../../utils/document-utils';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { useActivityStore } from '../../state/activity-store';
 import { analyzeRestrictionSites } from '../../scientific/restriction-analysis';
@@ -13,6 +14,7 @@ export function EditorStatusBar({ drawerOpen, setDrawerOpen }: EditorStatusBarPr
   const documents = useWorkspaceStore(s => s.documents);
   const selection = useWorkspaceStore(s => s.selection);
   const selectedFeatureId = useWorkspaceStore(s => s.selectedFeatureId);
+  const selectedPrimerId = useWorkspaceStore(s => s.selectedPrimerId);
   const selectedRestrictionSiteId = useWorkspaceStore(s => s.selectedRestrictionSiteId);
   const eventCount = useActivityStore(s => s.events.length);
   
@@ -22,8 +24,8 @@ export function EditorStatusBar({ drawerOpen, setDrawerOpen }: EditorStatusBarPr
   let leftStatus = 'Ready';
 
   if (activeDoc) {
-    if (selectedRestrictionSiteId) {
-      const sites = analyzeRestrictionSites(activeDoc.sequence.raw, activeDoc.topology, BUILTIN_ENZYMES);
+    if (selectedRestrictionSiteId && activeDoc.storageMode === 'memory') {
+      const sites = analyzeRestrictionSites(getMemorySequence(activeDoc).raw, activeDoc.topology, BUILTIN_ENZYMES);
       const site = sites.find(s => s.id === selectedRestrictionSiteId);
       if (site) {
         leftStatus = `${site.enzymeName} · cut ${site.forwardCut0 + 1} / ${site.reverseCut0 + 1}`;
@@ -33,14 +35,17 @@ export function EditorStatusBar({ drawerOpen, setDrawerOpen }: EditorStatusBarPr
       if (feat) {
         leftStatus = `${feat.name} · ${feat.type}`;
       }
+    } else if (selectedPrimerId) {
+      const primer = activeDoc.primers?.find(item => item.id === selectedPrimerId);
+      if (primer) leftStatus = `${primer.name} · primer · ${primer.sequence.length} nt`;
     } else if (selection && selection.documentId === activeDocumentId) {
       const len = selection.end0Exclusive < selection.start0 
-        ? (activeDoc.sequence.length - selection.start0 + selection.end0Exclusive) 
+        ? (activeDoc.length - selection.start0 + selection.end0Exclusive) 
         : (selection.end0Exclusive - selection.start0);
       leftStatus = `Selection ${formatNum.format(selection.start0 + 1)}–${formatNum.format(selection.end0Exclusive)} · ${formatNum.format(len)} bp`;
     } else {
       const isCircular = activeDoc.topology === 'circular';
-      leftStatus = `${activeDoc.name} · ${activeDoc.alphabet} · ${isCircular ? 'Circular' : 'Linear'} · ${formatNum.format(activeDoc.sequence.length)} bp`;
+      leftStatus = `${activeDoc.name} · ${activeDoc.alphabet} · ${isCircular ? 'Circular' : 'Linear'} · ${formatNum.format(activeDoc.length)} bp`;
     }
   }
 

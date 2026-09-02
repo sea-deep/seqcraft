@@ -112,7 +112,7 @@ export function CloningApprovalModal() {
                 {(proposal.sourceMetadata.vectorFeaturesOmitted > 0 || proposal.sourceMetadata.insertFeaturesOmitted > 0) && (
                   <div className="text-amber-600 flex items-center gap-1">
                     <AlertTriangle className="w-4 h-4" />
-                    Omitted {proposal.sourceMetadata.vectorFeaturesOmitted + proposal.sourceMetadata.insertFeaturesOmitted} cut-spanning features
+                    Omitted {proposal.sourceMetadata.vectorFeaturesOmitted + proposal.sourceMetadata.insertFeaturesOmitted} features lost during digestion
                   </div>
                 )}
               </div>

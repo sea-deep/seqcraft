@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { Inspector } from '../../src/components/inspector/Inspector';
 import { useWorkspaceStore } from '../../src/state/workspace-store';
 import type { SequenceDocument } from '../../src/domain/document';
+import { ScientificSequence } from '../../src/scientific/nucleotide';
 
 describe('Inspector Synchronization', () => {
   const doc: SequenceDocument = {
@@ -12,11 +13,9 @@ describe('Inspector Synchronization', () => {
     alphabet: 'DNA',
     source: 'fasta',
     version: 1,
-    sequence: {
-      raw: 'ATGCATGCATGCATGC', // 16 bp
-      length: 16,
-      alphabet: 'DNA'
-    },
+    sequence: new ScientificSequence('ATGCATGCATGCATGC', 'DNA'),
+    length: 16,
+    storageMode: 'memory',
     features: [
       {
         id: 'f1',

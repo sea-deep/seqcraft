@@ -6,6 +6,10 @@ import { type Feature } from '../../domain/feature';
 import { GROUP_SIZE, baseX, segmentWidth } from './sequence-geometry';
 import { FeatureSegment } from './FeatureSegment';
 import type { MouseEvent as ReactMouseEvent } from "react";
+import type { Primer, PrimerBinding } from '../../domain/primer';
+import { PrimerTrack } from './PrimerTrack';
+import type { PlacedPrimerBinding } from './primer-track-layout';
+import { OrfTrack, type PlacedOrf } from './OrfTrack';
 
 interface SequenceLineProps {
   startIndex: number;
@@ -17,13 +21,17 @@ interface SequenceLineProps {
   "data-index"?: number;
   selectedFeatureId: string | null;
   selectedRestrictionSiteId: string | null;
+  selectedPrimerId: string | null;
   restrictionSites?: PlacedRestrictionSite[];
+  primerBindings?: PlacedPrimerBinding[];
+  orfs?: PlacedOrf[];
   selection: { startIdx: number; endIdxExclusive: number } | null;
   onTextMouseDown: (e: ReactMouseEvent) => void;
   onTextMouseMove: (e: ReactMouseEvent) => void;
   onFeatureClick: (feature: Feature, e: ReactMouseEvent) => void;
   onRestrictionSiteClick?: (site: RestrictionSite, e: ReactMouseEvent) => void;
   onRestrictionSiteHover?: (site: RestrictionSite | null) => void;
+  onPrimerClick: (primer: Primer, binding: PrimerBinding, e: ReactMouseEvent) => void;
 }
 
 export function SequenceLine({ 
@@ -36,13 +44,17 @@ export function SequenceLine({
   "data-index": dataIndex,
   selectedFeatureId,
   selectedRestrictionSiteId,
+  selectedPrimerId,
   restrictionSites = [],
+  primerBindings = [],
+  orfs = [],
   selection,
   onTextMouseDown,
   onTextMouseMove,
   onFeatureClick,
   onRestrictionSiteClick,
   onRestrictionSiteHover,
+  onPrimerClick,
 }: SequenceLineProps) {
   const endIndexExclusive = startIndex + seqChunk.length;
   const currentLineIndex = Math.floor(startIndex / 60);
@@ -135,6 +147,8 @@ export function SequenceLine({
             ))}
           </div>
 
+          <PrimerTrack bindings={primerBindings} selectedPrimerId={selectedPrimerId} onPrimerClick={onPrimerClick} />
+
           {/* Sequence Text Container */}
           <div 
             className="tracking-normal font-mono text-[14px] text-[var(--text)] font-medium relative cursor-text select-none h-[24px] flex items-center"
@@ -165,6 +179,8 @@ export function SequenceLine({
               </span>
             ))}
           </div>
+          
+          <OrfTrack orfs={orfs} lineStart0={startIndex} />
         </div>
       </div>
     </div>

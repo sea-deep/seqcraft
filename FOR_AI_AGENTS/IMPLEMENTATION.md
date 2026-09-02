@@ -1,6 +1,6 @@
 # SeqCraft Proposed Implementation
 
-This document translates `FEATURES.md` and `DESIGN.md` into an implementation plan. It is the engineering contract for the MVP.
+This document translates `FEATURES.md` and `DESIGN.md` into an implementation plan. It is the engineering contract for the scientific MVP and its production-shaped account/control plane.
 
 The goal is a production-shaped browser application, not a proof-of-concept. Scientific computation must remain deterministic and isolated from UI concerns; UI state must remain predictable; WebMCP must expose the same real workflows available to a human user.
 
@@ -11,7 +11,7 @@ The goal is a production-shaped browser application, not a proof-of-concept. Sci
 SeqCraft must be:
 
 - **scientifically deterministic** — calculations come from the hardened `nucleotide-sequence` package or explicitly validated domain logic.
-- **browser-native** — no backend, auth, database, or remote scientific APIs are required for the MVP.
+- **local-first with an optional control plane** — raw sequences and interactive science stay in the browser; identity and bounded metadata may use the Node API.
 - **responsive under realistic plasmid workloads** — importing, navigating, annotating, restriction analysis, primers, PCR, ORFs, and comparison must not freeze the UI.
 - **agent-native without being agent-dependent** — every important workflow remains usable manually.
 - **strict about coordinates and units** — one internal coordinate convention, explicit units, no hidden conversions.
@@ -59,11 +59,23 @@ SeqCraft must be:
 - Current imperative **WebMCP** API
 - Feature-detect WebMCP and keep the human UI functional when unavailable
 
+## Control-plane backend
+
+- **Node.js 20+ + TypeScript**
+- **Express 5** with explicit security headers, origin allow-listing, request size limits, and rate limiting
+- **Better Auth** mounted before JSON parsing, using secure same-origin cookies
+- **Google OAuth** when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are configured
+- **MongoDB Atlas** through one process-wide `MongoClient`; Better Auth uses its MongoDB adapter
+- **Zod** at every API boundary
+- Dependency-injected in-memory repositories for tests; tests never require live Atlas or OAuth
+
+The browser app remains fully usable in guest/local mode when the API or credentials are unavailable.
+
 ---
 
 # 3. Architectural boundaries
 
-Use four clear layers.
+Use a local scientific data plane plus a remote control plane. The browser retains the four scientific layers.
 
 ```text
 UI / Interaction
@@ -79,6 +91,20 @@ Scientific / Parsing Adapters
 ```
 
 WebMCP enters through the **application/workflow layer**, never by mutating React components directly.
+
+```text
+Browser scientific data plane                 Node control plane
+
+UI / WebMCP                                   HTTP API / Better Auth
+      │                                                │
+Application commands                          service + policy layer
+      │                                                │
+Domain + workers                              metadata repositories
+      │                                                │
+OPFS / IndexedDB (raw sequences)              MongoDB Atlas (no sequences)
+```
+
+The API must not expose a generic document upload endpoint. All metadata DTOs are allow-listed; never serialize a `SequenceDocument` directly across the network.
 
 ### UI layer
 
@@ -135,6 +161,24 @@ Owns:
 - WebMCP browser API wrapper
 
 No React imports below the UI/application boundary.
+
+### Control-plane source layout
+
+```text
+server/
+├── app.ts                    # Express composition, no listener side effect
+├── index.ts                  # process bootstrap and graceful shutdown
+├── auth.ts                   # Better Auth configuration
+├── config.ts                 # validated environment contract
+├── db/mongo.ts               # singleton client lifecycle
+├── middleware/               # security, request IDs, errors, rate limits
+├── modules/health/           # readiness/capability discovery
+├── modules/projects/         # sequence-free metadata sync
+├── repositories/             # Mongo and in-memory implementations
+└── privacy/                  # DTO guards and redaction
+```
+
+Keep the existing frontend source layout at `src/`; do not churn the repository into a monorepo only for appearances.
 
 ---
 
@@ -1153,7 +1197,21 @@ Do not market genome-browser-scale support.
 
 # 24. Security and trust boundaries
 
-No remote APIs are required by the MVP.
+The local workspace requires no remote API. Account features use the optional control-plane API.
+
+Hard privacy invariants:
+
+- never send or store `sequence.raw`, sequence chunks, imported file bodies, clipboard sequence content, or derived constructs
+- never log authorization headers, cookies, request bodies, OAuth tokens, or biological content
+- metadata endpoints use explicit DTOs with bounded string/array lengths and reject unknown keys
+- project/document descriptors may contain ID, user-supplied display name, length, alphabet, topology, timestamps, and local opaque storage key only
+- API responses use `Cache-Control: no-store` for identity/private data
+- production cookies are secure, HTTP-only, same-site, and scoped to the application origin
+- state-changing endpoints require an authenticated session and same-origin/CSRF protection
+- secrets exist only in environment variables; `.env` is ignored and `.env.example` contains placeholders
+- Mongo indexes and TTL retention are intentionally small; no change streams, polling loops, GridFS, or raw event dumps on the free tier
+
+Backend-delegated jobs are not a loophole around privacy. Until a separate opt-in design is approved, they may accept only non-sequence metadata or bounded derived values that cannot reconstruct biological source data. Sequence-heavy analysis belongs in Web Workers/WASM.
 
 Treat imported data as untrusted:
 
@@ -1168,6 +1226,8 @@ Render them as text, never raw HTML.
 Do not execute imported content.
 
 WebMCP tool descriptions are static developer-authored strings; never concatenate imported/user content into tool descriptions.
+
+Every WebMCP tool uses the same validated application command as the visible UI, declares read-only/destructive behavior truthfully, caps outputs, and marks imported/user-authored content as untrusted. Persistent changes always return an approval proposal rather than mutating a document immediately.
 
 Returned imported content gets `untrustedContentHint`.
 

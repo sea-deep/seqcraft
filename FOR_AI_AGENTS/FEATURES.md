@@ -1,8 +1,22 @@
-# SeqCraft MVP Features
+# SeqCraft Product Features
 
 SeqCraft is a browser-based molecular biology workbench for inspecting DNA/plasmid sequences, planning common cloning/PCR workflows, comparing constructs, and collaborating with an AI agent through WebMCP.
 
-The MVP focuses on the most common sequence/plasmid tasks while keeping the workflow small enough to remain polished and reliable.
+The scientific MVP focuses on the most common sequence/plasmid tasks while keeping the workflow small enough to remain polished and reliable. The product release adds an optional account/control plane without weakening the local-first scientific workspace.
+
+## Product platform contract
+
+SeqCraft is a hybrid local-first application:
+
+- Raw nucleotide/amino-acid sequence bytes, imported files, derived constructs, and base-level selections remain in browser-owned storage and memory.
+- A Node.js API may store identity, profile, project metadata, preferences, redacted agent activity, and document descriptors that contain no sequence content.
+- MongoDB Atlas is metadata-only. Sequence text, sequence chunks, file blobs, feature qualifier values that may contain sequence, and analysis payloads derived closely enough to reconstruct a sequence are forbidden.
+- Authentication is optional for the deterministic demo and local scientific workspace. Accounts unlock cross-device preferences and metadata sync; they are not a prerequisite for judging or basic use.
+- Google sign-in is supported when server credentials are configured. Missing secrets must produce an honest disabled/configuration state, never simulated production auth.
+- Scientific work runs locally by default in deterministic browser workers. Server-side jobs are allowed only for bounded non-sequence work or an explicit future opt-in workflow with a separate privacy review.
+- Every persistent agent-authored scientific change remains staged for human approval.
+
+This contract is enforced at API schemas, persistence repositories, logging, and tests—not only in copy.
 
 ---
 
@@ -302,8 +316,8 @@ The following are intentionally **not** part of the MVP:
 - TOPO cloning
 - full arbitrary nucleotide editing
 - real-time multiplayer collaboration
-- user accounts
-- cloud database/storage
+- cloud storage of raw or derived biological sequences
+- server-side sequence computation without an explicit, separately reviewed opt-in privacy flow
 - built-in chatbot
 - external AI API requirement
 - clinical or pathogenicity prediction

@@ -1,0 +1,57 @@
+import React, { useState } from 'react';
+import { Download } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './dialog';
+import type { SequenceDocument } from '../../domain/document';
+import { downloadFile, serializeToFasta, serializeToSeqCraft } from '../../export/export-document';
+
+export function ExportDialog({ document, children }: { document: SequenceDocument; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const [format, setFormat] = useState<'seqcraft' | 'fasta'>('seqcraft');
+
+  const handleExport = () => {
+    if (format === 'seqcraft') {
+      const json = serializeToSeqCraft(document);
+      downloadFile(json, `${document.name}.seqcraft`, 'application/json');
+    } else {
+      const fasta = serializeToFasta(document);
+      downloadFile(fasta, `${document.name}.fasta`, 'text/plain');
+    }
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger>{children}</DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Export {document.name}</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-4 text-[13px]">
+          <div className="flex flex-col gap-2">
+            <label className="flex items-start gap-3 rounded-md border border-[var(--border)] p-3 cursor-pointer hover:bg-[var(--panel-muted)] transition-colors">
+              <input type="radio" name="export-format" value="seqcraft" checked={format === 'seqcraft'} onChange={() => setFormat('seqcraft')} className="mt-1" />
+              <div>
+                <div className="font-semibold text-[var(--text)]">SeqCraft Project (.seqcraft)</div>
+                <div className="text-[12px] text-[var(--text-muted)] mt-0.5">Lossless format. Preserves all features, primers, and topology metadata.</div>
+              </div>
+            </label>
+            <label className="flex items-start gap-3 rounded-md border border-[var(--border)] p-3 cursor-pointer hover:bg-[var(--panel-muted)] transition-colors">
+              <input type="radio" name="export-format" value="fasta" checked={format === 'fasta'} onChange={() => setFormat('fasta')} className="mt-1" />
+              <div>
+                <div className="font-semibold text-[var(--text)]">FASTA (.fasta)</div>
+                <div className="text-[12px] text-[var(--text-muted)] mt-0.5">Standard FASTA format. Exports only the raw nucleotide sequence.</div>
+              </div>
+            </label>
+          </div>
+          <button
+            onClick={handleExport}
+            className="w-full bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-white font-medium text-[13px] py-2 rounded-md transition-colors flex items-center justify-center gap-2"
+          >
+            <Download size={14} />
+            Download
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

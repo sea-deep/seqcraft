@@ -8,6 +8,8 @@ const createMockDoc = (id: string, seqString: string = "ATGC"): SequenceDocument
   name: `Doc ${id}`,
   topology: "linear",
   sequence: new ScientificSequence(seqString),
+  length: seqString.length,
+  storageMode: 'memory',
   alphabet: "DNA",
   features: [],
   primers: [],

@@ -1,4 +1,4 @@
-import { genbankToJson } from '@teselagen/bio-parsers';
+import genbankToJson from '@seqcraft/genbank-parser';
 import type { SequenceDocument } from '../domain/document';
 import type { Feature, SequenceInterval, FeatureType } from '../domain/feature';
 import { ScientificSequence } from '../scientific/nucleotide';
@@ -126,6 +126,8 @@ export function importGenBank(data: string, defaultName = 'GenBank Sequence'): S
       name: parsed.name || defaultName,
       topology: parsed.circular ? 'circular' : 'linear',
       sequence: new ScientificSequence(seqString, alphabet),
+      length: seqString.length,
+      storageMode: 'memory',
       alphabet,
       features: docFeatures,
       primers: [],

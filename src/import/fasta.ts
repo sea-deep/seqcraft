@@ -18,6 +18,8 @@ export function importFasta(data: string, defaultName = 'FASTA Sequence'): Seque
       name: r.id || `${defaultName} ${idx + 1}`,
       topology: 'linear',
       sequence: new ScientificSequence(seqString, alphabet),
+      length: seqString.length,
+      storageMode: 'memory',
       alphabet,
       features: [],
       primers: [],

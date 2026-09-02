@@ -12,6 +12,8 @@ export function importRawSequence(data: string, name: string = 'Untitled Sequenc
     name,
     topology: 'linear',
     sequence: new ScientificSequence(cleaned, alphabet),
+    length: cleaned.length,
+    storageMode: 'memory',
     alphabet,
     features: [],
     primers: [],

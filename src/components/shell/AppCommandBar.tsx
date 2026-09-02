@@ -1,26 +1,90 @@
+import { getMemorySequence } from '../../utils/document-utils';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { ImportDialog } from '../ui/ImportDialog';
-import { FileUp } from 'lucide-react';
+import { ExportDialog } from '../ui/ExportDialog';
+import { PanelLeft, PanelRight, Download, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuShortcut
+  DropdownMenuShortcut,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel
 } from '../ui/dropdown-menu';
+import { isThemePreference, useThemeStore } from '../../state/theme-store';
+import { FeatureDialog } from '../features/FeatureDialog';
+import { DocumentSettingsDialog } from '../documents/DocumentSettingsDialog';
+import { CloningDialog } from '../cloning/CloningDialog';
+import { TranslationDialog } from '../tools/TranslationDialog';
+import { DocsDialog } from '../docs/DocsView';
+import { reverseComplementIupac } from '../../scientific/restriction-analysis';
+import { ScientificSequence } from '../../scientific/nucleotide';
+import { generateId } from '../../utils/id';
+import type { SequenceDocument } from '../../domain/document';
 
 import { useState } from 'react';
 
 export function AppCommandBar() {
   const activeDocumentId = useWorkspaceStore(s => s.activeDocumentId);
+  const documents = useWorkspaceStore(s => s.documents);
+  const selection = useWorkspaceStore(s => s.selection);
   const closeDocumentTab = useWorkspaceStore(s => s.closeDocumentTab);
   const setActiveView = useWorkspaceStore(s => s.setActiveView);
+  const setSelection = useWorkspaceStore(s => s.setSelection);
+  const addDocument = useWorkspaceStore(s => s.addDocument);
+  const sidebarOpen = useWorkspaceStore(s => s.sidebarOpen);
+  const setSidebarOpen = useWorkspaceStore(s => s.setSidebarOpen);
+  const inspectorOpen = useWorkspaceStore(s => s.inspectorOpen);
+  const setInspectorOpen = useWorkspaceStore(s => s.setInspectorOpen);
+  const themePreference = useThemeStore(s => s.preference);
+  const setThemePreference = useThemeStore(s => s.setPreference);
   const [importOpen, setImportOpen] = useState(false);
+  const [featureOpen, setFeatureOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [cloningOpen, setCloningOpen] = useState(false);
+  const [translationOpen, setTranslationOpen] = useState(false);
+  const [docsOpen, setDocsOpen] = useState(false);
+  const activeDocument = documents.find(document => document.id === activeDocumentId);
+  const activeSelection = activeDocument && selection?.documentId === activeDocument.id ? selection : null;
+  const selectedSequence = activeDocument?.storageMode === 'memory' && activeSelection
+    ? (activeSelection.end0Exclusive >= activeSelection.start0
+      ? getMemorySequence(activeDocument).raw.slice(activeSelection.start0, activeSelection.end0Exclusive)
+      : getMemorySequence(activeDocument).raw.slice(activeSelection.start0) + getMemorySequence(activeDocument).raw.slice(0, activeSelection.end0Exclusive))
+    : (activeDocument?.storageMode === 'memory' ? getMemorySequence(activeDocument).raw : "") ?? '';
+
+  const copySequence = async () => {
+    if (!selectedSequence) return;
+    try {
+      await navigator.clipboard.writeText(selectedSequence);
+    } catch (err) {
+      console.error('Failed to copy', err);
+    }
+  };
+
+  const openReverseComplement = () => {
+    if (!activeDocument || !selectedSequence) return;
+    const nextDocument: SequenceDocument = {
+      length: selectedSequence.length,
+      storageMode: "memory",
+      id: generateId(), name: `${activeDocument.name} reverse complement`, topology: 'linear',
+      sequence: new ScientificSequence(reverseComplementIupac(selectedSequence), activeDocument.alphabet === 'RNA' ? 'RNA' : 'DNA'),
+      alphabet: activeDocument.alphabet, features: [], primers: [], source: 'raw', version: 1,
+    };
+    addDocument(nextDocument);
+    setActiveView('sequence');
+  };
 
   return (
     <header className="h-[36px] flex-none border-b border-[var(--border)] bg-[var(--panel)] flex items-center px-4 justify-between font-ui text-[13px] select-none">
       <div className="flex items-center gap-4">
+        
+        <Link to="/dashboard" className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors pr-2 border-r border-[var(--border)]" title="Back to Dashboard">
+          <ArrowLeft size={16} />
+        </Link>
         <h1 className="font-semibold text-[14px]">SeqCraft</h1>
         
         <div className="flex items-center gap-1">
@@ -31,10 +95,18 @@ export function AppCommandBar() {
               {activeDocumentId && (
                 <>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setSettingsOpen(true)}>Document Settings...</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => closeDocumentTab(activeDocumentId)}>Close Document<DropdownMenuShortcut>Alt+W</DropdownMenuShortcut></DropdownMenuItem>
                   <DropdownMenuItem onClick={() => useWorkspaceStore.getState().closeAllDocuments()}>Close All Documents</DropdownMenuItem>
                 </>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => { if (window.confirm('Are you sure you want to delete all sequences, history, and workspace data? This cannot be undone.')) useWorkspaceStore.getState().clearWorkspace(); }}
+                className="text-[var(--danger)] focus:bg-[var(--danger)]/10 focus:text-[var(--danger)]"
+              >
+                Clear Workspace Data...
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <ImportDialog open={importOpen} onOpenChange={setImportOpen} />
@@ -42,9 +114,18 @@ export function AppCommandBar() {
           <DropdownMenu>
             <DropdownMenuTrigger className="px-2 py-1 rounded hover:bg-[var(--panel-muted)] outline-none data-[state=open]:bg-[var(--panel-muted)] cursor-default">Edit</DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem disabled>Copy</DropdownMenuItem>
-              <DropdownMenuItem disabled>Select All</DropdownMenuItem>
-              <DropdownMenuItem disabled>Add Feature</DropdownMenuItem>
+              {activeSelection ? (
+                <>
+                  <DropdownMenuItem onClick={copySequence}>Copy Selection<DropdownMenuShortcut>Cmd+C</DropdownMenuShortcut></DropdownMenuItem>
+                  <DropdownMenuItem onClick={openReverseComplement}>Open Reverse Complement</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setFeatureOpen(true)}>Create Feature...</DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem disabled>Select bases to edit</DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => activeDocumentId && setSelection(activeDocumentId, 0, activeDocument?.length ?? 0)}>Select All<DropdownMenuShortcut>Cmd+A</DropdownMenuShortcut></DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -60,38 +141,78 @@ export function AppCommandBar() {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => useWorkspaceStore.getState().setSidebarOpen(!useWorkspaceStore.getState().sidebarOpen)}>Toggle Project Panel<DropdownMenuShortcut>Alt+B</DropdownMenuShortcut></DropdownMenuItem>
               <DropdownMenuItem onClick={() => useWorkspaceStore.getState().setInspectorOpen(!useWorkspaceStore.getState().inspectorOpen)}>Toggle Inspector<DropdownMenuShortcut>Alt+I</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup value={themePreference} onValueChange={(v) => isThemePreference(v) && setThemePreference(v)}>
+                <DropdownMenuLabel>Theme</DropdownMenuLabel>
+                <DropdownMenuRadioItem value="system">System</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="light">Light</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="dark">Dark</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger className="px-2 py-1 rounded hover:bg-[var(--panel-muted)] outline-none data-[state=open]:bg-[var(--panel-muted)] cursor-default">Actions</DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem disabled>Simulate PCR...</DropdownMenuItem>
-              <DropdownMenuItem disabled>Restriction Digest...</DropdownMenuItem>
-              <DropdownMenuItem disabled>Restriction Cloning...</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('primers')}>Simulate PCR...</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('enzymes')}>Restriction Digest...</DropdownMenuItem>
+              {activeDocument && <DropdownMenuItem onClick={() => setCloningOpen(true)}>Restriction Cloning...</DropdownMenuItem>}
             </DropdownMenuContent>
           </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger className="px-2 py-1 rounded hover:bg-[var(--panel-muted)] outline-none data-[state=open]:bg-[var(--panel-muted)] cursor-default">Tools</DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem disabled>Translate Selection</DropdownMenuItem>
-              <DropdownMenuItem disabled>Primer Analysis...</DropdownMenuItem>
-              <DropdownMenuItem disabled>Restriction Analysis...</DropdownMenuItem>
+              {activeSelection && <DropdownMenuItem onClick={() => setTranslationOpen(true)}>Translate Selection</DropdownMenuItem>}
+              {!activeSelection && activeDocument && <DropdownMenuItem onClick={() => setActiveView('sequence')}>Select Bases to Translate</DropdownMenuItem>}
+              <DropdownMenuItem onClick={() => setActiveView('primers')}>Primer Analysis...</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveView('enzymes')}>Restriction Analysis...</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setActiveView('compare')}>Compare Sequences...</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          <DocsDialog open={docsOpen} onOpenChange={setDocsOpen} />
+          <DropdownMenu>
+            <DropdownMenuTrigger className="px-2 py-1 rounded hover:bg-[var(--panel-muted)] outline-none data-[state=open]:bg-[var(--panel-muted)] cursor-default">Help</DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setDocsOpen(true)}>Documentation</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
 
-      <div>
-        <ImportDialog>
-          <div className="cursor-pointer bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-white px-3 py-1 rounded-md text-[12px] font-medium inline-flex items-center gap-1.5 transition-colors">
-            <FileUp size={14} />
-            Import
-          </div>
-        </ImportDialog>
+      <div className="flex items-center gap-2">
+        <button
+          className={`p-1 rounded flex items-center justify-center transition-colors cursor-pointer outline-none ${sidebarOpen ? 'bg-[var(--panel-muted)] text-[var(--text)]' : 'text-[var(--text-muted)] hover:bg-[var(--panel-muted)] hover:text-[var(--text)]'}`}
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          title="Toggle Project Panel (Alt+B)"
+        >
+          <PanelLeft size={16} />
+        </button>
+        <button
+          className={`p-1 rounded flex items-center justify-center transition-colors cursor-pointer outline-none ${inspectorOpen ? 'bg-[var(--panel-muted)] text-[var(--text)]' : 'text-[var(--text-muted)] hover:bg-[var(--panel-muted)] hover:text-[var(--text)]'}`}
+          onClick={() => setInspectorOpen(!inspectorOpen)}
+          title="Toggle Inspector (Alt+I)"
+        >
+          <PanelRight size={16} />
+        </button>
+        {activeDocument && (
+          <>
+            <div className="w-px h-4 bg-[var(--border)] mx-1" />
+            <ExportDialog document={activeDocument}>
+              <div className="cursor-pointer bg-[var(--panel-muted)] hover:bg-[var(--border)] text-[var(--text)] px-3 py-1 rounded-md text-[12px] font-medium inline-flex items-center gap-1.5 transition-colors">
+                <Download size={14} />
+                Export
+              </div>
+            </ExportDialog>
+          </>
+        )}
       </div>
+
+      {activeDocument && settingsOpen && <DocumentSettingsDialog document={activeDocument} open onOpenChange={setSettingsOpen} />}
+      {activeDocument && activeSelection && featureOpen && <FeatureDialog document={activeDocument} selection={activeSelection} open onOpenChange={setFeatureOpen} />}
+      {activeDocument && cloningOpen && <CloningDialog activeDocument={activeDocument} documents={documents} open onOpenChange={setCloningOpen} />}
+      {activeDocument && activeSelection && translationOpen && <TranslationDialog document={activeDocument} selection={activeSelection} open onOpenChange={setTranslationOpen} />}
     </header>
   );
 }

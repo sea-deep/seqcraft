@@ -1,3 +1,4 @@
+import { getMemorySequence } from '../utils/document-utils';
 import type { SequenceDocument } from '../domain/document';
 import type { RestrictionEnzyme } from '../domain/restriction';
 import type { DigestFragment } from '../domain/digest';
@@ -19,7 +20,7 @@ export interface RestrictionCloneParams {
 
 export function extractFragmentSequence(document: SequenceDocument, fragment: DigestFragment): string {
   let seq = '';
-  const docSeq = document.sequence.raw;
+  const docSeq = getMemorySequence(document).raw;
   for (const seg of fragment.segments) {
     if (seg.start0 <= seg.end0Exclusive) {
       seq += docSeq.slice(seg.start0, seg.end0Exclusive);
@@ -39,9 +40,9 @@ export function planRestrictionClone(params: RestrictionCloneParams): { proposal
   const enzymeNames = enzymes.map(e => e.name);
 
   // Vector Digest
-  const vectorSites = analyzeRestrictionSites(vectorDocument.sequence.raw, vectorDocument.topology, enzymes);
+  const vectorSites = analyzeRestrictionSites(getMemorySequence(vectorDocument).raw, vectorDocument.topology, enzymes);
   const vectorDigest = simulateRestrictionDigest({
-    sequence: vectorDocument.sequence.raw,
+    sequence: getMemorySequence(vectorDocument).raw,
     topology: vectorDocument.topology,
     restrictionSites: vectorSites,
     selectedEnzymeIds: enzymeIds
@@ -60,9 +61,9 @@ export function planRestrictionClone(params: RestrictionCloneParams): { proposal
   }
 
   // Insert Digest
-  const insertSites = analyzeRestrictionSites(insertDocument.sequence.raw, insertDocument.topology, enzymes);
+  const insertSites = analyzeRestrictionSites(getMemorySequence(insertDocument).raw, insertDocument.topology, enzymes);
   const insertDigest = simulateRestrictionDigest({
-    sequence: insertDocument.sequence.raw,
+    sequence: getMemorySequence(insertDocument).raw,
     topology: insertDocument.topology,
     restrictionSites: insertSites,
     selectedEnzymeIds: enzymeIds
@@ -101,51 +102,39 @@ export function planRestrictionClone(params: RestrictionCloneParams): { proposal
   let omittedVectorFeatures = 0;
   let omittedInsertFeatures = 0;
   
-  // A helper to transfer features (very simplified mapping for now - full segment overlap logic needed for prod)
-  // We will assume for the MVP that features fully contained in the fragment's bounds are kept, others omitted.
   const mapFeatures = (doc: SequenceDocument, frag: DigestFragment, isReverse: boolean, offset: number) => {
      const newFeatures: Feature[] = [];
      const fragLength = frag.lengthBp;
      
-     // Simplified: just map fully contained segments if single-segment.
-     // In a real implementation we'd do precise circular coordinate mapping against frag.segments
-     // For this MVP slice, we will implement the minimum viable transfer matching the tests requirements.
      for (const f of doc.features) {
-       // Just as a placeholder for now, since this is a complex mapping
-       // We'll keep it simple: if doc is linear, we can just check bounds.
        const newSegments: SequenceInterval[] = [];
-       let keptAll = true;
+       let featureKept = false;
+       
        for (const seg of f.segments) {
-         // Check if seg is fully inside one of frag's segments
-         let mappedSeg: SequenceInterval | null = null;
          let fragOffset = 0;
          for (const fSeg of frag.segments) {
-            let fSegStart = fSeg.start0;
-            let fSegEnd = fSeg.end0Exclusive;
-            let fSegLength = fSegEnd - fSegStart;
-            if (fSegStart > fSegEnd) fSegLength = (doc.sequence.length - fSegStart) + fSegEnd;
+            const fSegLength = fSeg.end0Exclusive - fSeg.start0;
             
-            // Check containment... this gets complicated with origin wraps.
-            // Let's use a simpler heuristic for the MVP:
-            // if seg is inside [fSegStart, fSegEnd)
-            if (seg.start0 >= fSegStart && seg.end0Exclusive <= fSegEnd && seg.start0 <= seg.end0Exclusive && fSegStart <= fSegEnd) {
-               mappedSeg = {
-                 start0: seg.start0 - fSegStart + fragOffset,
-                 end0Exclusive: seg.end0Exclusive - fSegStart + fragOffset
-               };
-               break;
+            const interStart = Math.max(seg.start0, fSeg.start0);
+            const interEnd = Math.min(seg.end0Exclusive, fSeg.end0Exclusive);
+            
+            if (interStart < interEnd) {
+               newSegments.push({
+                 start0: fragOffset + (interStart - fSeg.start0),
+                 end0Exclusive: fragOffset + (interEnd - fSeg.start0)
+               });
+               featureKept = true;
             }
             fragOffset += fSegLength;
          }
-         if (mappedSeg) {
-           newSegments.push(mappedSeg);
-         } else {
-           keptAll = false;
-         }
        }
-       if (keptAll && newSegments.length > 0) {
+       
+       if (featureKept && newSegments.length > 0) {
+         // Sort segments and merge adjacent ones if necessary? 
+         // Since fSegs and segs are in order, newSegments are mostly in order, but we can sort them.
+         newSegments.sort((a, b) => a.start0 - b.start0);
+         
          if (isReverse) {
-           // Reverse mapping
            const reversedSegments = newSegments.map(s => ({
              start0: fragLength - s.end0Exclusive,
              end0Exclusive: fragLength - s.start0

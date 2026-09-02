@@ -110,19 +110,19 @@ Panel
 
 ## 5. Typography
 
-Use system fonts; do not depend on downloadable fonts.
+Bundle the product fonts with the application so typography is deterministic, offline-capable, and does not leak visits to a font CDN.
 
 ```css
 --font-ui:
-  Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+  "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
   "Segoe UI", sans-serif;
 
 --font-mono:
-  "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono",
+  "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono",
   ui-monospace, monospace;
 ```
 
-If Inter/JetBrains Mono are unavailable, the system fallback is expected.
+Use locally bundled variable-font packages with only the required weights/styles. The fallback stack is still mandatory for resilient first paint.
 
 ### Scale
 
@@ -160,39 +160,39 @@ Use semantic tokens. Components should not hardcode arbitrary colors.
 ### Light
 
 ```css
---bg:             #F7F8FA;
+--bg:             #F5F8F7;
 --panel:          #FFFFFF;
---panel-muted:    #F1F3F6;
---text:           #171A1F;
---text-muted:     #626A76;
---border:         #D9DEE7;
+--panel-muted:    #EDF3F1;
+--text:           #14201E;
+--text-muted:     #5B6B67;
+--border:         #D2DEDB;
 
---accent:         #2563EB;
---accent-soft:    #E8F0FF;
+--accent:         #0F766E;
+--accent-soft:    #DDF4F0;
 
---success:        #16875D;
---warning:        #A66300;
---danger:         #C63737;
---info:           #2563EB;
+--success:        #177245;
+--warning:        #9A5B00;
+--danger:         #B83232;
+--info:           #245EA8;
 ```
 
 ### Dark
 
 ```css
---bg:             #0F1115;
---panel:          #15181E;
---panel-muted:    #1B1F27;
---text:           #E8EAF0;
---text-muted:     #989FAA;
---border:         #2A303A;
+--bg:             #0D1514;
+--panel:          #121D1B;
+--panel-muted:    #182522;
+--text:           #E8F1EF;
+--text-muted:     #9FB0AC;
+--border:         #293B37;
 
---accent:         #6EA0FF;
---accent-soft:    #182744;
+--accent:         #5EEAD4;
+--accent-soft:    #123F39;
 
---success:        #56C59A;
---warning:        #E5A84B;
---danger:         #F07878;
---info:           #6EA0FF;
+--success:        #6ED6A0;
+--warning:        #F0B35C;
+--danger:         #FF8585;
+--info:           #78A9E8;
 ```
 
 ### Scientific categorical colors
@@ -218,6 +218,9 @@ Rules:
 - The UI accent is for interaction: focus, selection, active tabs, primary actions.
 - Do not paint every card/header with the accent.
 - Avoid rainbow palettes when only 2–3 categories are visible.
+- Normal text and controls target WCAG AA contrast (4.5:1); large text and non-text focus/selection indicators target at least 3:1.
+- Scientific geometry is computed from canonical coordinates, never inferred from labels or rounded display values.
+- Numeric columns use tabular figures; coordinate ranges shown to humans are clearly labeled as 1-based inclusive while internal/application contracts remain 0-based half-open.
 
 ---
 

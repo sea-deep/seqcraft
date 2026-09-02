@@ -1,8 +1,13 @@
+@import "@fontsource-variable/ibm-plex-sans/standard.css";
+@import "@fontsource/ibm-plex-mono/latin-400.css";
+@import "@fontsource/ibm-plex-mono/latin-500.css";
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @theme {
-  --font-ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", ui-monospace, monospace;
+  --font-ui: "IBM Plex Sans Variable", "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", ui-monospace, monospace;
 
   --color-background: var(--bg);
   --color-foreground: var(--text);
@@ -16,39 +21,95 @@
   --color-border: var(--border);
 }
 
-:root {
-  --bg:             #F7F8FA;
-  --panel:          #FFFFFF;
-  --panel-muted:    #F1F3F6;
-  --text:           #171A1F;
-  --text-muted:     #626A76;
-  --border:         #D9DEE7;
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
 
-  --accent:         #2563EB;
-  --accent-soft:    #E8F0FF;
+  --bg-app:             #F5F8F7;
+  --bg-panel:           #FFFFFF;
+  --bg-panel-muted:     #EDF3F1;
+  --bg-editor:          #FAFCFB;
+  --bg-elevated:        #FFFFFF;
 
-  --success:        #16875D;
-  --warning:        #A66300;
-  --danger:         #C63737;
-  --info:           #2563EB;
+  --border-subtle:      #D2DEDB;
+  --border-strong:      #AABCB7;
+
+  --text-primary:       #14201E;
+  --text-secondary:     #4A5C58;
+  --text-muted:         #647570;
+
+  --accent:             #0F766E;
+  --accent-hover:       #0B625C;
+  --accent-selected:    #DDF4F0;
+
+  --success:            #177245;
+  --warning:            #9A5B00;
+  --danger:             #B83232;
+  --info:               #245EA8;
+
+  --selection-bg:       rgb(15 118 110 / 24%);
+  --selection-border:   #0F766E;
+
+  --bio-cds:            #4F46E5;
+  --bio-promoter:       #B86B00;
+  --bio-origin:         #0D8178;
+  --bio-primer:         #087E8B;
+  --bio-misc:           #7C3AED;
+
+  /* Compatibility aliases while existing components converge on semantic names. */
+  --bg:                 var(--bg-app);
+  --panel:              var(--bg-panel);
+  --panel-muted:        var(--bg-panel-muted);
+  --text:               var(--text-primary);
+  --border:             var(--border-subtle);
+  --accent-soft:        var(--accent-selected);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg-app:             #0D1514;
+  --bg-panel:           #121D1B;
+  --bg-panel-muted:     #182522;
+  --bg-editor:          #0F1917;
+  --bg-elevated:        #1A2926;
+
+  --border-subtle:      #293B37;
+  --border-strong:      #45605A;
+
+  --text-primary:       #E8F1EF;
+  --text-secondary:     #B6C5C1;
+  --text-muted:         #91A49F;
+
+  --accent:             #5EEAD4;
+  --accent-hover:       #7EF0DF;
+  --accent-selected:    #123F39;
+
+  --success:            #6ED6A0;
+  --warning:            #F0B35C;
+  --danger:             #FF8585;
+  --info:               #78A9E8;
+
+  --selection-bg:       rgb(94 234 212 / 26%);
+  --selection-border:   #7EF0DF;
+
+  --bio-cds:            #818CF8;
+  --bio-promoter:       #F2B45B;
+  --bio-origin:         #35B8AC;
+  --bio-primer:         #45C4D4;
+  --bio-misc:           #A78BFA;
+
+  --bg:                 var(--bg-app);
+  --panel:              var(--bg-panel);
+  --panel-muted:        var(--bg-panel-muted);
+  --text:               var(--text-primary);
+  --border:             var(--border-subtle);
+  --accent-soft:        var(--accent-selected);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg:             #0F1115;
-    --panel:          #15181E;
-    --panel-muted:    #1B1F27;
-    --text:           #E8EAF0;
-    --text-muted:     #989FAA;
-    --border:         #2A303A;
-
-    --accent:         #6EA0FF;
-    --accent-soft:    #182744;
-
-    --success:        #56C59A;
-    --warning:        #E5A84B;
-    --danger:         #F07878;
-    --info:           #6EA0FF;
+  :root:not([data-theme]) {
+    color-scheme: dark;
   }
 }
 
@@ -57,6 +118,22 @@ body {
   background-color: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);
+  font-feature-settings: "kern" 1, "ss02" 1;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.scientific-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--border) 48%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--border) 48%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 @utility scrollbar-none {

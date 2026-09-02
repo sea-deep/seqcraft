@@ -54,6 +54,8 @@ export function approveRestrictionClone() {
 
   const docId = generateId();
   const recombinantDoc: SequenceDocument = {
+    length: candidate.recombinantSequence.length,
+    storageMode: "memory",
     id: docId,
     name: `${proposal.vectorDocumentName} - ${proposal.insertDocumentName} Recombinant`,
     topology: 'circular',

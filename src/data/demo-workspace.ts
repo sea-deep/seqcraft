@@ -95,6 +95,8 @@ export function createDemoDonorDocument() {
   const seq = leftFlank + ecori + payload + hindiii + rightFlank;
   
   return {
+    length: seq.length,
+    storageMode: 'memory' as const,
     id: 'demo-donor-1',
     name: 'Directional Cloning Donor',
     topology: 'linear' as const,

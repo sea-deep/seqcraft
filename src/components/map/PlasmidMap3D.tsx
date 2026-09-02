@@ -1,3 +1,4 @@
+import { getMemorySequence } from '../../utils/document-utils';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
@@ -17,6 +18,8 @@ import { resolveCircularDragRange } from './pointer-coordinate';
 import type { SequenceDocument } from '../../domain/document';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { RefreshCcw } from 'lucide-react';
+import { analyzePrimerBindings } from '../../scientific/primer-binding';
+import { PrimerArc3D } from './PrimerArc3D';
 
 // Helper component to expose camera info to window for Puppeteer tests
 function CameraExposer({ controlsRef }: { controlsRef: React.RefObject<OrbitControlsImpl | null> }) {
@@ -47,24 +50,28 @@ export function PlasmidMap3D({ document }: { document: SequenceDocument }) {
 
   const selectedFeatureId = useWorkspaceStore(s => s.selectedFeatureId);
   const selectedRestrictionSiteId = useWorkspaceStore(s => s.selectedRestrictionSiteId);
+  const selectedPrimerId = useWorkspaceStore(s => s.selectedPrimerId);
   const selection = useWorkspaceStore(s => s.selection);
   const setSelection = useWorkspaceStore(s => s.setSelection);
   const selectFeature = useWorkspaceStore(s => s.selectFeature);
   const selectDocumentFeature = useWorkspaceStore(s => s.selectDocumentFeature);
 
-  const formatLen = new Intl.NumberFormat('en-US').format(document.sequence.length);
+  const formatLen = new Intl.NumberFormat('en-US').format(document.length);
   const placedFeatures = assignFeatureLanes(document.features);
   const maxLane = Math.max(...placedFeatures.map(pf => pf.lane), -1);
-  const selectionRadius = RADIUS + FEATURE_INNER_OFFSET + Math.max(0, maxLane) * (FEATURE_WIDTH + FEATURE_LANE_SPACING) + FEATURE_WIDTH + 0.25;
+  const primerBindings = useMemo(() => (document.primers ?? []).flatMap(primer => analyzePrimerBindings(getMemorySequence(document).raw, document.topology, primer).map(binding => ({ primer, binding }))), [document.primers, getMemorySequence(document).raw, document.topology]);
+  const primerLaneCount = Math.min(2, primerBindings.length);
+  const maxVisualLane = Math.max(0, maxLane) + primerLaneCount;
+  const selectionRadius = RADIUS + FEATURE_INNER_OFFSET + maxVisualLane * (FEATURE_WIDTH + FEATURE_LANE_SPACING) + FEATURE_WIDTH + 0.25;
   const restrictionBaseRadius = selectionRadius + 0.5;
 
   const restrictionSites = useMemo(() => {
-    return analyzeRestrictionSites(document.sequence.raw, document.topology, BUILTIN_ENZYMES);
-  }, [document.sequence.raw, document.topology]);
+    return analyzeRestrictionSites(getMemorySequence(document).raw, document.topology, BUILTIN_ENZYMES);
+  }, [getMemorySequence(document).raw, document.topology]);
   
   const placedRestrictionSites = useMemo(() => {
-    return assignRestrictionMapLanes(restrictionSites, document.sequence.length);
-  }, [restrictionSites, document.sequence.length]);
+    return assignRestrictionMapLanes(restrictionSites, document.length);
+  }, [restrictionSites, document.length]);
   
   const selectedFeature = document.features.find(f => f.id === selectedFeatureId) || null;
 
@@ -80,9 +87,9 @@ export function PlasmidMap3D({ document }: { document: SequenceDocument }) {
       fullCircleReached: false
     };
     selectFeature(null);
-    const end0 = coord + 1 > document.sequence.length ? document.sequence.length : coord + 1;
+    const end0 = coord + 1 > document.length ? document.length : coord + 1;
     setSelection(document.id, coord, end0);
-  }, [document.id, document.sequence.length, selectFeature, setSelection]);
+  }, [document.id, document.length, selectFeature, setSelection]);
 
   const handleDragMove = useCallback((coord: number, angle: number) => {
     if (!dragAnchorRef.current) return;
@@ -103,7 +110,7 @@ export function PlasmidMap3D({ document }: { document: SequenceDocument }) {
       anchorCoord, 
       coord, 
       nextAccumulated, 
-      document.sequence.length,
+      document.length,
       isNowFullCircle
     );
 
@@ -116,7 +123,7 @@ export function PlasmidMap3D({ document }: { document: SequenceDocument }) {
     ) {
       setSelection(document.id, range.start0, range.end0Exclusive);
     }
-  }, [document.id, document.sequence.length, setSelection]);
+  }, [document.id, document.length, setSelection]);
 
   const handleDragEnd = useCallback(() => {
     dragAnchorRef.current = null;
@@ -164,7 +171,7 @@ export function PlasmidMap3D({ document }: { document: SequenceDocument }) {
         <PlasmidCameraController 
           selectedFeature={selectedFeature}
           selectedRestrictionSite={restrictionSites.find(s => s.id === selectedRestrictionSiteId) || null}
-          sequenceLength={document.sequence.length}
+          sequenceLength={document.length}
           controlsRef={controlsRef}
           resetToken={resetToken}
           selection={selection?.documentId === document.id ? selection : null}
@@ -182,7 +189,7 @@ export function PlasmidMap3D({ document }: { document: SequenceDocument }) {
             <FeatureArc3D
               key={pf.feature.id}
               feature={pf.feature}
-              sequenceLength={document.sequence.length}
+              sequenceLength={document.length}
               lane={pf.lane}
               isHovered={hoveredFeatureId === pf.feature.id}
               isSelected={selectedFeatureId === pf.feature.id}
@@ -192,6 +199,10 @@ export function PlasmidMap3D({ document }: { document: SequenceDocument }) {
                 else setHoveredFeatureId((cur) => cur === pf.feature.id ? null : cur);
               }}
             />
+          ))}
+
+          {primerBindings.map(({ primer, binding }, index) => (
+            <PrimerArc3D key={`${primer.id}-${binding.start0}-${binding.orientation}`} primer={primer} binding={binding} sequenceLength={document.length} lane={Math.max(0, maxLane) + 1 + (index % 2)} selected={selectedPrimerId === primer.id} />
           ))}
 
           {placedRestrictionSites.map((placed) => (
@@ -206,7 +217,7 @@ export function PlasmidMap3D({ document }: { document: SequenceDocument }) {
 
           {/* Dedicated transparent circular interaction ring for direct nucleotide selection */}
           <PlasmidInteractionRing
-            sequenceLength={document.sequence.length}
+            sequenceLength={document.length}
             onDragStart={handleDragStart}
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
@@ -217,7 +228,7 @@ export function PlasmidMap3D({ document }: { document: SequenceDocument }) {
             <SelectionArc3D 
               start0={selection.start0}
               end0Exclusive={selection.end0Exclusive}
-              sequenceLength={document.sequence.length}
+              sequenceLength={document.length}
               baseRadius={selectionRadius}
               showHandles={isDraggingSelection}
             />
@@ -226,8 +237,8 @@ export function PlasmidMap3D({ document }: { document: SequenceDocument }) {
 
         <Html center className="pointer-events-none select-none">
           <div className="text-center font-ui flex flex-col items-center">
-            <h1 className="text-[20px] font-semibold text-white whitespace-nowrap">{document.name}</h1>
-            <p className="text-[13px] text-slate-400 whitespace-nowrap">{formatLen} bp</p>
+            <h1 className="text-[20px] font-semibold text-[var(--text-primary)] whitespace-nowrap">{document.name}</h1>
+            <p className="text-[13px] text-[var(--text-secondary)] whitespace-nowrap">{formatLen} bp</p>
           </div>
         </Html>
         

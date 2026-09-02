@@ -109,6 +109,18 @@ During UI phases, implement only the atomic task explicitly requested by the use
 - activity drawer with expandable tool execution history
 - real browser agent navigation verified (EcoRI site, AmpR feature, region focus)
 
+## MVP Workflows Completed
+
+- Exact coordinate-aware interval intersection logic established for feature transfer during restriction cloning.
+
+- Circular origin-spanning feature intersections mapped and correctly truncated.
+
+- Open Reading Frame (ORF) scientific discovery logic completed (`nucleotide-sequence` wrapper).
+
+- Multi-frame ORF Visualization (`OrfTrack.tsx`) added to `SequenceViewer`.
+
+- WebMCP `seqcraft_find_orfs` tool established.
+
 ## Restriction Cloning
 - restriction cloning domain established (proposals, candidates, ends)
 - ligation compatibility engine completed (sticky/blunt end analysis)

@@ -107,7 +107,7 @@ export function AnnotationApprovalModal() {
           </button>
           <button 
             onClick={() => decide(true)} 
-            className="h-[34px] px-4 rounded-md bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white font-medium transition-colors cursor-pointer flex items-center gap-1.5"
+            className="h-[34px] px-4 rounded-md bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] font-semibold text-[13px] transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
           >
             <Check size={14} /> Apply annotation
           </button>

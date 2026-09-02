@@ -6,7 +6,7 @@ import {
 } from "react-resizable-panels";
 import { useWorkspaceStore } from "../state/workspace-store";
 import { Info, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 
 import { WorkspaceCenter } from "../components/workspace/WorkspaceCenter";
@@ -20,10 +20,9 @@ import { AppCommandBar } from '../components/shell/AppCommandBar';
 import { ProjectSidebar } from '../components/shell/ProjectSidebar';
 import { EditorStatusBar } from '../components/shell/EditorStatusBar';
 import { AnnotationApprovalModal } from '../components/features/AnnotationApprovalModal';
-import { initializeDocumentPersistence, loadPersistedDocuments } from '../storage/document-persistence';
+import { initializeDocumentPersistence, hydrateWorkspaceFromStorage } from '../storage/document-persistence';
 
 export function AppShell() {
-  const documents = useWorkspaceStore(s => s.documents);
   const sidebarOpen = useWorkspaceStore(s => s.sidebarOpen);
   const setSidebarOpen = useWorkspaceStore(s => s.setSidebarOpen);
   const inspectorOpen = useWorkspaceStore(s => s.inspectorOpen);
@@ -32,7 +31,6 @@ export function AppShell() {
   const activeDocumentId = useWorkspaceStore(s => s.activeDocumentId);
   const closeDocumentTab = useWorkspaceStore(s => s.closeDocumentTab);
   const themePreference = useThemeStore(s => s.preference);
-  const initialized = useRef(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const panelIds = useMemo(() => [
     ...(sidebarOpen ? ['sidebar'] : []),
@@ -63,15 +61,8 @@ export function AppShell() {
   }, []);
 
   useEffect(() => {
-    if (!initialized.current && documents.length === 0) {
-      initialized.current = true;
-      loadPersistedDocuments().then(dbDocs => {
-        if (dbDocs.length > 0) {
-          useWorkspaceStore.getState().addDocuments(dbDocs);
-        }
-      });
-    }
-  }, [documents.length]);
+    void hydrateWorkspaceFromStorage();
+  }, []);
 
   useEffect(() => {
     applyThemePreference(themePreference);

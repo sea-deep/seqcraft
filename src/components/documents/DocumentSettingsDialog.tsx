@@ -25,8 +25,8 @@ export function DocumentSettingsDialog({ document, open, onOpenChange }: { docum
         </div>
         <DialogFooter className="items-center">
           <button onClick={() => { if (window.confirm(`Remove “${document.name}” from this workspace?`)) { removeDocument(document.id); onOpenChange(false); } }} className="mr-auto h-[34px] rounded-md px-3 text-[var(--danger)] hover:bg-[var(--panel-muted)]">Remove document</button>
-          <button onClick={() => onOpenChange(false)} className="h-[34px] rounded-md border border-[var(--border)] px-3 hover:bg-[var(--panel-muted)]">Cancel</button>
-          <button onClick={save} className="h-[34px] rounded-md bg-[var(--accent)] px-3 font-medium text-white">Save</button>
+          <button onClick={() => onOpenChange(false)} className="h-[34px] rounded-md border border-[var(--border)] px-3 hover:bg-[var(--panel-muted)] cursor-pointer">Cancel</button>
+          <button onClick={save} className="h-[34px] rounded-md bg-[var(--accent)] px-3 text-[13px] font-semibold text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] shadow-sm transition-colors cursor-pointer">Save</button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

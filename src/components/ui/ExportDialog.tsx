@@ -45,7 +45,7 @@ export function ExportDialog({ document, children }: { document: SequenceDocumen
           </div>
           <button
             onClick={handleExport}
-            className="w-full bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-white font-medium text-[13px] py-2 rounded-md transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] font-semibold text-[13px] py-2 rounded-md shadow-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
           >
             <Download size={14} />
             Download

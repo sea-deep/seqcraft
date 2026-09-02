@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   Dna, Plus, Search, FileUp, Circle, Minus, BookOpen, Trash2, 
@@ -8,6 +8,8 @@ import {
 import { useWorkspaceStore } from '../state/workspace-store';
 import { ImportDialog } from '../components/ui/ImportDialog';
 import { useWorkspaceCloudSync } from '../platform/workspace-sync';
+import { hydrateWorkspaceFromStorage } from '../storage/document-persistence';
+import { DocumentCardSkeleton } from '../components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -21,8 +23,13 @@ import { Button } from '../components/ui/button';
 export function DashboardPage() {
   const navigate = useNavigate();
   const documents = useWorkspaceStore(s => s.documents);
+  const isHydrated = useWorkspaceStore(s => s.isHydrated);
   const setActiveDocument = useWorkspaceStore(s => s.setActiveDocument);
   const removeDocument = useWorkspaceStore(s => s.removeDocument);
+
+  useEffect(() => {
+    void hydrateWorkspaceFromStorage();
+  }, []);
   const cloud = useWorkspaceCloudSync();
 
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -230,7 +237,7 @@ export function DashboardPage() {
 
                     {/* Primary New Sequence Action */}
                     <ImportDialog>
-                      <button className="h-9 px-3.5 text-[13px] font-medium rounded-md bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors flex items-center gap-1.5 shadow-sm">
+                      <button className="h-9 px-3.5 text-[13px] font-semibold rounded-md bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer">
                         <Plus size={15} /> New Sequence
                       </button>
                     </ImportDialog>
@@ -242,7 +249,13 @@ export function DashboardPage() {
         </div>
 
         {/* Sequences Content */}
-        {documents.length === 0 ? (
+        {!isHydrated ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <DocumentCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : documents.length === 0 ? (
           /* Empty State */
           <div className="max-w-2xl mx-auto flex flex-col items-center justify-center border border-dashed border-[var(--border)] rounded-xl py-20 px-6 text-center bg-[var(--panel)]/40 shadow-sm">
             <div className="w-14 h-14 bg-[var(--panel-muted)] border border-[var(--border)] rounded-full flex items-center justify-center mb-4 text-[var(--accent)]">
@@ -253,7 +266,7 @@ export function DashboardPage() {
               Import a GenBank, FASTA, or raw nucleotide sequence to begin inspecting, annotating, and designing.
             </p>
             <ImportDialog>
-              <button className="h-10 px-5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white rounded-md text-[13px] font-medium flex items-center gap-2 transition-colors shadow-sm cursor-pointer">
+              <button className="h-10 px-5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] rounded-md text-[13px] font-semibold flex items-center gap-2 transition-colors shadow-sm cursor-pointer">
                 <FileUp size={15} /> Import FASTA / GenBank
               </button>
             </ImportDialog>

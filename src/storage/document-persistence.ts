@@ -51,3 +51,26 @@ export async function loadPersistedDocuments(onRecoveryIssue: (message: string) 
   }
   return available;
 }
+
+let hydrationPromise: Promise<SequenceDocument[]> | null = null;
+
+export async function hydrateWorkspaceFromStorage(): Promise<SequenceDocument[]> {
+  if (hydrationPromise) return hydrationPromise;
+  hydrationPromise = (async () => {
+    try {
+      const docs = await loadPersistedDocuments();
+      if (docs.length > 0) {
+        const state = useWorkspaceStore.getState();
+        const existingIds = new Set(state.documents.map(d => d.id));
+        const newDocs = docs.filter(d => !existingIds.has(d.id));
+        if (newDocs.length > 0) {
+          state.addDocuments(newDocs);
+        }
+      }
+      return docs;
+    } finally {
+      useWorkspaceStore.getState().setIsHydrated(true);
+    }
+  })();
+  return hydrationPromise;
+}

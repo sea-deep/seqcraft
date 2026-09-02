@@ -146,7 +146,7 @@ export function ImportDialog({ children, open: controlledOpen, onOpenChange }: {
               <button
                 onClick={onPasteSubmit}
                 disabled={!pastedText.trim()}
-                className="mt-2 bg-[var(--accent)] hover:bg-[var(--accent)]/90 text-white font-medium text-[13px] py-2 rounded-md disabled:opacity-50 flex items-center justify-center gap-2"
+                className="mt-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] font-semibold text-[13px] py-2 rounded-md disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
               >
                 <FileText className="w-4 h-4" />
                 Import Text

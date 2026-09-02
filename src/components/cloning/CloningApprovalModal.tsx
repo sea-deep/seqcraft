@@ -167,7 +167,7 @@ export function CloningApprovalModal() {
           <button
             onClick={approveRestrictionClone}
             disabled={!candidate?.isValid}
-            className="h-[34px] px-4 text-[13px] font-medium text-white bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5"
+            className="h-[34px] px-4 text-[13px] font-semibold text-[var(--accent-foreground)] bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1.5 shadow-sm"
           >
             <Check size={14} /> Create recombinant
           </button>

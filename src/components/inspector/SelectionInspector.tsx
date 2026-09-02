@@ -9,6 +9,7 @@ import { opfsStorage } from '../../storage/opfs-backend';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { generateId } from '../../utils/id';
 import { Button } from '../ui/button';
+import { Skeleton } from '../ui/skeleton';
 import { FilePlus, Languages, BookmarkPlus, LocateFixed } from 'lucide-react';
 
 interface SelectionInspectorProps {
@@ -141,7 +142,11 @@ export function SelectionInspector({ document, selection }: SelectionInspectorPr
 
       <div className="border-t border-[var(--border)] pt-3 mt-1 grid grid-cols-[80px_1fr]">
         <div className="text-[var(--text-muted)]">Sequence</div>
-        <div className="font-mono text-[11px] text-[var(--accent)] break-all font-medium">{preview}</div>
+        {loadingSeq ? (
+          <Skeleton className="h-4 w-full mt-0.5" />
+        ) : (
+          <div className="font-mono text-[11px] text-[var(--accent)] break-all font-medium">{preview}</div>
+        )}
       </div>
       
       {activeTranslation && !loadingSeq && (

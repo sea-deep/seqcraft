@@ -29,7 +29,7 @@ export function CloningDialog({ activeDocument, documents, open, onOpenChange }:
           {message && <div className="rounded border border-[var(--warning)] p-2 text-[var(--warning)]">{message}</div>}
           <div className="text-[var(--text-muted)]">The predicted construct remains staged for review before a recombinant document is created.</div>
         </div>
-        <DialogFooter><button onClick={() => onOpenChange(false)} className="h-[34px] rounded-md border border-[var(--border)] px-3">Cancel</button><button onClick={prepare} className="h-[34px] rounded-md bg-[var(--accent)] px-3 font-medium text-white">Prepare proposal</button></DialogFooter>
+        <DialogFooter><button onClick={() => onOpenChange(false)} className="h-[34px] rounded-md border border-[var(--border)] px-3 hover:bg-[var(--panel-muted)] cursor-pointer">Cancel</button><button onClick={prepare} className="h-[34px] rounded-md bg-[var(--accent)] px-3 text-[13px] font-semibold text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] shadow-sm transition-colors cursor-pointer">Prepare proposal</button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

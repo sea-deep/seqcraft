@@ -1,4 +1,4 @@
-import { del, get, keys, set } from 'idb-keyval';
+import { del, get, getMany, keys, set } from 'idb-keyval';
 import type { SequenceDocument } from '../domain/document';
 import { assertDocumentInvariant } from '../domain/document';
 import type { Feature } from '../domain/feature';
@@ -81,11 +81,18 @@ export async function deleteDocumentMetadata(id: string): Promise<void> {
 export async function listAllDocuments(): Promise<SequenceDocument[]> {
   if (!hasIndexedDB()) return [];
   const allKeys = await keys();
+  const docKeys = allKeys.filter((key): key is string => typeof key === 'string' && key.startsWith(META_PREFIX));
+  if (docKeys.length === 0) return [];
+  const dtos = await getMany<PersistedDocumentDTO>(docKeys);
   const docs: SequenceDocument[] = [];
-  for (const key of allKeys) {
-    if (typeof key !== 'string' || !key.startsWith(META_PREFIX)) continue;
-    const raw = await get<PersistedDocumentDTO>(key);
-    if (raw) docs.push(hydrateDocument(raw));
+  for (const raw of dtos) {
+    if (raw) {
+      try {
+        docs.push(hydrateDocument(raw));
+      } catch (err) {
+        console.warn('Failed to hydrate document from IndexedDB:', err);
+      }
+    }
   }
   return docs;
 }

@@ -71,7 +71,7 @@ export function EnzymesView({ document }: { document: SequenceDocument }) {
         <button 
           onClick={digest} 
           disabled={selectedEnzymeIds.length === 0}
-          className="ml-auto h-[30px] rounded-md bg-[var(--accent)] px-3 text-[12px] font-medium text-white hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
+          className="ml-auto h-[30px] rounded-md bg-[var(--accent)] px-3 text-[12px] font-semibold text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
         >
           Digest selected ({selectedEnzymeIds.length})
         </button>

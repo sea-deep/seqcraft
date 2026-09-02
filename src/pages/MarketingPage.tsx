@@ -10,17 +10,19 @@ const workflow = [
 
 export function MarketingPage() {
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] selection:bg-[var(--accent)] selection:text-white">
-      <nav className="h-16 border-b border-[var(--border)] bg-[var(--panel)]/92 backdrop-blur sticky top-0 z-50">
-        <div className="h-full max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5 text-[var(--accent)] font-semibold text-lg tracking-[-0.02em]">
-            <span className="size-8 rounded-md bg-[var(--accent-soft)] grid place-items-center"><Dna size={18} /></span>
-            SeqCraft
-          </Link>
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] selection:bg-[var(--accent)] selection:text-[var(--accent-foreground)]">
+      <nav className="border-b border-[var(--border)] bg-[var(--panel)]/85 backdrop-blur sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent)] flex items-center justify-center text-[var(--accent-foreground)] font-bold">
+              <Dna size={18} />
+            </div>
+            <span className="font-semibold text-[17px] tracking-tight">SeqCraft</span>
+          </div>
           <div className="flex gap-3 text-[13px] font-medium items-center">
             <Link to="/docs" className="hidden sm:inline-flex text-[var(--text-muted)] hover:text-[var(--text)] px-3 py-2">Documentation</Link>
             <Link to="/auth" className="px-4 py-2 rounded-md border border-[var(--border)] bg-[var(--panel)] hover:bg-[var(--panel-muted)] transition-colors">Sign in</Link>
-            <Link to="/dashboard" className="px-4 py-2 rounded-md bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)] transition-colors">Open workspace</Link>
+            <Link to="/dashboard" className="px-4 py-2 rounded-md bg-[var(--accent)] text-[var(--accent-foreground)] font-semibold hover:bg-[var(--accent-hover)] shadow-sm transition-colors">Open workspace</Link>
           </div>
         </div>
       </nav>
@@ -39,7 +41,7 @@ export function MarketingPage() {
                 Inspect plasmids, simulate PCR and restriction digests, compare constructs, and prepare cloning proposals in one exact, private workspace. Every agent result stays visible and verifiable.
               </p>
               <div className="mt-9 flex flex-wrap gap-3">
-                <Link to="/dashboard" className="h-11 inline-flex items-center gap-2 px-5 rounded-md bg-[var(--accent)] text-white text-[14px] font-medium hover:bg-[var(--accent-hover)] transition-colors">
+                <Link to="/dashboard" className="h-11 inline-flex items-center gap-2 px-5 rounded-md bg-[var(--accent)] text-[var(--accent-foreground)] text-[14px] font-semibold hover:bg-[var(--accent-hover)] shadow-sm transition-colors">
                   Launch SeqCraft <ArrowRight size={17} />
                 </Link>
                 <Link to="/docs" className="h-11 inline-flex items-center gap-2 px-5 rounded-md border border-[var(--border)] bg-[var(--panel)] text-[14px] font-medium hover:bg-[var(--panel-muted)] transition-colors">

@@ -99,8 +99,8 @@ export function FeatureDialog({ document, feature, selection, open, onOpenChange
               className="mr-auto h-[34px] rounded-md px-3 text-[var(--danger)] hover:bg-[var(--panel-muted)]"
             >Delete</button>
           )}
-          <button onClick={() => onOpenChange(false)} className="h-[34px] rounded-md border border-[var(--border)] px-3 hover:bg-[var(--panel-muted)]">Cancel</button>
-          <button onClick={handleSave} className="h-[34px] rounded-md bg-[var(--accent)] px-3 font-medium text-white hover:bg-[var(--accent-hover)]">Save feature</button>
+          <button onClick={() => onOpenChange(false)} className="h-[34px] rounded-md border border-[var(--border)] px-3 hover:bg-[var(--panel-muted)] cursor-pointer">Cancel</button>
+          <button onClick={handleSave} className="h-[34px] rounded-md bg-[var(--accent)] px-3 text-[13px] font-semibold text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] shadow-sm transition-colors cursor-pointer">Save feature</button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

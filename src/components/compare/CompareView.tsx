@@ -10,6 +10,7 @@ import { useWorkspaceStore } from '../../state/workspace-store';
 import { compareSequenceDocuments } from '../../application/sequence-diff';
 import { CircularDiffMap2D } from './CircularDiffMap2D';
 import { SequenceDiffReport } from './SequenceDiffReport';
+import { Skeleton } from '../ui/skeleton';
 
 const BASES_PER_ROW = 80;
 
@@ -137,7 +138,33 @@ export function CompareView({ reference, documents }: { reference: SequenceDocum
         )}
       </div>
       {!query && <div className="flex flex-1 items-center justify-center text-[var(--text-muted)]">Import or open another sequence to compare.</div>}
-      {loading && <div className="flex flex-1 items-center justify-center gap-2 text-[var(--text-muted)]"><LoaderCircle size={17} className="animate-spin" />Canonicalizing and comparing in a worker…</div>}
+      {loading && (
+        <div className="flex-1 overflow-auto p-4 sm:p-6 bg-[var(--bg-editor)]">
+          <div className="mx-auto max-w-5xl space-y-5">
+            <div className="flex items-center gap-2 text-[13px] text-[var(--text-muted)]">
+              <LoaderCircle size={15} className="animate-spin text-[var(--accent)]" />
+              <span>Canonicalizing and comparing in background worker…</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-4 animate-pulse space-y-2">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-6 w-28" />
+                  <Skeleton className="h-3 w-36" />
+                </div>
+              ))}
+            </div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--panel)] p-4 animate-pulse space-y-3">
+              <Skeleton className="h-5 w-40" />
+              <div className="grid sm:grid-cols-3 gap-2">
+                <Skeleton className="h-14 w-full rounded-md" />
+                <Skeleton className="h-14 w-full rounded-md" />
+                <Skeleton className="h-14 w-full rounded-md" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {error && <div className="m-4 rounded-md border border-[var(--danger)]/30 bg-[var(--danger)]/5 p-4 text-[var(--danger)]">Comparison failed: {error.message}</div>}
       {ready && query && view === 'report' && <main className="min-h-0 flex-1 overflow-hidden"><SequenceDiffReport result={ready.result} onSelectDifference={focusDifference} /></main>}
       {ready && query && view !== 'report' && (

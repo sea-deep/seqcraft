@@ -35,7 +35,7 @@ export function FeaturesView({ document }: { document: SequenceDocument }) {
         </div>
         <button onClick={() => setScanning(true)} className="ml-auto flex h-[30px] items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 font-medium hover:bg-[var(--panel-muted)]"><ScanSearch size={14} />Scan known</button>
         {activeSelection ? (
-          <button onClick={() => setCreating(true)} className="flex h-[30px] items-center gap-1.5 rounded-md bg-[var(--accent)] px-3 font-medium text-white"><Plus size={14} />Add from selection</button>
+          <button onClick={() => setCreating(true)} className="flex h-[30px] items-center gap-1.5 rounded-md bg-[var(--accent)] px-3 text-[12px] font-semibold text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] shadow-sm transition-colors cursor-pointer"><Plus size={14} />Add from selection</button>
         ) : (
           <button onClick={() => setActiveView('sequence')} className="h-[30px] rounded-md border border-[var(--border)] px-3 text-[var(--text-secondary)] hover:bg-[var(--panel-muted)]">Select bases to add feature</button>
         )}

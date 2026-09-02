@@ -97,7 +97,7 @@ export function AuthPage() {
               <input type="password" required minLength={8} autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'} value={password} onChange={event => setPassword(event.target.value)} disabled={!authEnabled || isLoading} className="mt-1.5 w-full h-[38px] bg-[var(--bg)] border border-[var(--border)] rounded-md px-3 outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 disabled:opacity-55" placeholder="At least 8 characters" />
             </label>
             {error && <p role="alert" className="text-[13px] text-[var(--danger)]">{error}</p>}
-            <button type="submit" disabled={!authEnabled || isLoading} className="w-full h-[38px] bg-[var(--accent)] text-white font-medium rounded-md hover:bg-[var(--accent-hover)] disabled:opacity-55 transition-colors">
+            <button type="submit" disabled={!authEnabled || isLoading} className="w-full h-[38px] bg-[var(--accent)] text-[var(--accent-foreground)] font-semibold rounded-md hover:bg-[var(--accent-hover)] disabled:opacity-55 shadow-sm transition-colors cursor-pointer">
               {isLoading ? 'Working…' : mode === 'sign-in' ? 'Sign in' : 'Create account'}
             </button>
           </form>

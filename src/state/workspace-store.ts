@@ -30,6 +30,8 @@ interface WorkspaceState {
   inspectorOpen: boolean;
   stagedProposals: StagedProposal[];
   historyEntries: WorkspaceHistoryEntry[];
+  isHydrated: boolean;
+  setIsHydrated: (hydrated: boolean) => void;
   addDocument: (doc: SequenceDocument) => void;
   addDocuments: (docs: SequenceDocument[]) => void;
   setActiveDocument: (id: string) => void;
@@ -67,7 +69,9 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   documents: [], activeDocumentId: null, openDocumentIds: [], activeView: 'sequence', selection: null,
   selectedFeatureId: null, selectedPrimerId: null, selectedRestrictionSiteId: null,
   sidebarOpen: true, inspectorOpen: true, stagedProposals: [], historyEntries: [],
+  isHydrated: false,
 
+  setIsHydrated: isHydrated => set({ isHydrated }),
   setSidebarOpen: sidebarOpen => set({ sidebarOpen }),
   setInspectorOpen: inspectorOpen => set({ inspectorOpen }),
   setActiveView: activeView => set({ activeView }),

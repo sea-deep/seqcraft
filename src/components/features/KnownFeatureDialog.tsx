@@ -45,7 +45,7 @@ export function KnownFeatureDialog({ document, onClose }: { document: SequenceDo
             return (
               <label key={match.id} className={`grid grid-cols-[28px_1fr_auto] gap-2 border-b border-[var(--border)] px-4 py-3 ${match.alreadyAnnotated ? 'cursor-not-allowed opacity-55' : 'cursor-pointer hover:bg-[var(--panel-muted)]'}`}>
                 <input type="checkbox" checked={match.alreadyAnnotated || selected} disabled={match.alreadyAnnotated} onChange={() => toggle(match.id)} className="sr-only" />
-                <span className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded border ${match.alreadyAnnotated || selected ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-[var(--border)]'}`}>{(match.alreadyAnnotated || selected) && <Check size={13} />}</span>
+                <span className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded border ${match.alreadyAnnotated || selected ? 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-foreground)]' : 'border-[var(--border)]'}`}>{(match.alreadyAnnotated || selected) && <Check size={13} />}</span>
                 <span><span className="flex items-center gap-2 font-medium">{match.name}<span className="rounded bg-[var(--panel-muted)] px-1.5 py-0.5 text-[11px] font-normal text-[var(--text-muted)]">{match.type}</span>{match.alreadyAnnotated && <span className="text-[11px] text-[var(--success)]">already annotated</span>}</span><span className="mt-1 block text-[11px] text-[var(--text-muted)]">{match.description}</span></span>
                 <span className="text-right font-mono text-[11px]"><span className="block">{coordinate}</span><span className="text-[var(--text-muted)]">{match.strand === 1 ? 'forward' : 'reverse'} · {match.lengthBp} bp</span></span>
               </label>
@@ -55,7 +55,7 @@ export function KnownFeatureDialog({ document, onClose }: { document: SequenceDo
 
         <footer className="flex items-center justify-between border-t border-[var(--border)] bg-[var(--panel-muted)] px-4 py-3 text-[11px] text-[var(--text-muted)]">
           <span>{available.length} new match{available.length === 1 ? '' : 'es'} · {selectedIds.size} selected</span>
-          <div className="flex gap-2"><button onClick={onClose} className="h-[34px] rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 text-[var(--text)]">Cancel</button><button onClick={apply} disabled={selectedIds.size === 0} className="h-[34px] rounded-md bg-[var(--accent)] px-3 font-medium text-white disabled:opacity-40">Add selected annotations</button></div>
+          <div className="flex gap-2"><button onClick={onClose} className="h-[34px] rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 text-[var(--text)] hover:bg-[var(--panel-muted)] cursor-pointer">Cancel</button><button onClick={apply} disabled={selectedIds.size === 0} className="h-[34px] rounded-md bg-[var(--accent)] px-3 text-[13px] font-semibold text-[var(--accent-foreground)] disabled:opacity-40 shadow-sm hover:bg-[var(--accent-hover)] transition-colors cursor-pointer">Add selected annotations</button></div>
         </footer>
       </div>
     </div>

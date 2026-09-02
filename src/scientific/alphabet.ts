@@ -1,7 +1,7 @@
 import { type Alphabet } from 'nucleotide-sequence';
 
 export function inferAlphabet(sequence: string): Alphabet {
-  const validIUPAC = /^[ACGTURYSWKMBDHVN\-\.\s]*$/i;
+  const validIUPAC = /^[ACGTURYSWKMBDHVN\-.\s]*$/i;
   if (!validIUPAC.test(sequence)) {
     throw new Error('Invalid nucleotide sequence: contains non-IUPAC characters.');
   }

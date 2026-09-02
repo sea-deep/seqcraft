@@ -38,6 +38,6 @@ export function getIntervalMidpointAngle(start0: number, end0Exclusive: number, 
   if (span < 0) {
     span += sequenceLength;
   }
-  let midCoord = (start0 + span / 2) % sequenceLength;
+  const midCoord = (start0 + span / 2) % sequenceLength;
   return coordinateToAngle(midCoord, sequenceLength);
 }

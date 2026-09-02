@@ -61,16 +61,21 @@ export function SequenceLine({
 
   interface PlacedSegment {
     feature: Feature;
+    segment: import('../../domain/feature').SequenceInterval;
+    segmentIndex: number;
     lineStart: number;
     lineEndExclusive: number;
   }
 
   const placedSegments: PlacedSegment[] = [];
   for (const feature of features) {
-    for (const seg of feature.segments) {
+    for (let segIdx = 0; segIdx < feature.segments.length; segIdx++) {
+      const seg = feature.segments[segIdx];
       if (seg.start0 < endIndexExclusive && seg.end0Exclusive > startIndex) {
         placedSegments.push({
           feature,
+          segment: seg,
+          segmentIndex: segIdx,
           lineStart: Math.max(0, seg.start0 - startIndex),
           lineEndExclusive: Math.min(seqChunk.length, seg.end0Exclusive - startIndex)
         });
@@ -101,6 +106,8 @@ export function SequenceLine({
     groups.push(seqChunk.slice(i, i + GROUP_SIZE));
   }
 
+  const hasTopTracks = restrictionSites.length > 0 || tracks.length > 0 || primerBindings.length > 0;
+
   return (
     <div
       ref={measureRef}
@@ -112,53 +119,70 @@ export function SequenceLine({
         paddingBottom: '4px',
       }}
     >
-      <div className="flex">
-        <div className="w-12 text-right text-[12px] text-[var(--text-muted)] select-none mr-4 self-end h-[24px] flex items-center justify-end">
-          {startIndex + 1}
-        </div>
-        <div className="flex-1 relative pb-1 pt-1">
-          {/* Restriction Sites */}
-          <RestrictionTrack 
-            sites={restrictionSites} 
-            lineStart0={startIndex} 
-            selectedSiteId={selectedRestrictionSiteId} 
-            onSiteClick={(site, e) => onRestrictionSiteClick?.(site, e)}
-            onSiteHover={(site) => onRestrictionSiteHover?.(site)}
-          />
+      <div className="relative">
+        {/* Tracks Above Sequence */}
+        {hasTopTracks && (
+          <div className="pl-16 relative">
+            {/* Restriction Sites */}
+            <RestrictionTrack 
+              sites={restrictionSites} 
+              lineStart0={startIndex} 
+              selectedSiteId={selectedRestrictionSiteId} 
+              onSiteClick={(site, e) => onRestrictionSiteClick?.(site, e)}
+              onSiteHover={(site) => onRestrictionSiteHover?.(site)}
+            />
 
-          {/* Feature Tracks */}
-          <div className="relative" style={{ height: tracks.length * 16, marginBottom: tracks.length > 0 ? "4px" : "0" }}>
-            {tracks.map((track, trackIdx) => (
-              <div key={trackIdx}>
-                {track.map((pseg, idx) => (
-                  <FeatureSegment
-                    key={`${pseg.feature.id}-${idx}`}
-                    feature={pseg.feature}
-                    startIdx={pseg.lineStart}
-                    endIdxExclusive={pseg.lineEndExclusive}
-                    trackIndex={trackIdx}
-                    lineStartIndex={startIndex}
-                    isSelected={selectedFeatureId === pseg.feature.id}
-                    onClick={(e) => onFeatureClick(pseg.feature, e)}
-                    showLabel={getLineIndexForLabel(pseg.feature, seqLength) === currentLineIndex}
-                  />
+            {/* Feature Tracks */}
+            {tracks.length > 0 && (
+              <div className="relative" style={{ height: tracks.length * 16, marginBottom: "4px" }}>
+                {tracks.map((track, trackIdx) => (
+                  <div key={trackIdx}>
+                    {track.map((pseg, idx) => (
+                      <FeatureSegment
+                        key={`${pseg.feature.id}-${pseg.segmentIndex}-${idx}`}
+                        feature={pseg.feature}
+                        segment={pseg.segment}
+                        segmentIndex={pseg.segmentIndex}
+                        sequenceLength={seqLength}
+                        startIdx={pseg.lineStart}
+                        endIdxExclusive={pseg.lineEndExclusive}
+                        trackIndex={trackIdx}
+                        lineStartIndex={startIndex}
+                        isSelected={selectedFeatureId === pseg.feature.id}
+                        onClick={(e) => onFeatureClick(pseg.feature, e)}
+                        showLabel={getLineIndexForLabel(pseg.feature, seqLength) === currentLineIndex}
+                      />
+                    ))}
+                  </div>
                 ))}
               </div>
-            ))}
+            )}
+
+            {/* Primers */}
+            <PrimerTrack 
+              bindings={primerBindings} 
+              lineStart0={startIndex}
+              selectedPrimerId={selectedPrimerId} 
+              onPrimerClick={onPrimerClick} 
+            />
+          </div>
+        )}
+
+        {/* Sequence Text Row: Line Number + Sequence Characters */}
+        <div className="flex items-center">
+          <div className="w-12 text-right text-[12px] text-[var(--text-muted)] select-none mr-4 h-[24px] flex items-center justify-end flex-none font-mono">
+            {startIndex + 1}
           </div>
 
-          <PrimerTrack bindings={primerBindings} selectedPrimerId={selectedPrimerId} onPrimerClick={onPrimerClick} />
-
-          {/* Sequence Text Container */}
           <div 
-            className="tracking-normal font-mono text-[14px] text-[var(--text)] font-medium relative editor-cursor-sequence select-none h-[24px] flex items-center"
+            className="flex-1 tracking-normal font-mono text-[14px] text-[var(--text)] font-medium relative editor-cursor-sequence select-none h-[24px] flex items-center"
             onMouseDown={onTextMouseDown}
             onMouseMove={onTextMouseMove}
           >
             {/* Selection Highlight */}
             {selection && (
               <div 
-                className="absolute top-0 h-full bg-[var(--accent)]/30 pointer-events-none"
+                className="absolute top-0 h-full bg-[var(--selection-bg)] rounded-sm pointer-events-none"
                 style={{
                   left: `${baseX(selection.startIdx)}ch`,
                   width: `${segmentWidth(selection.startIdx, selection.endIdxExclusive)}ch`
@@ -179,9 +203,14 @@ export function SequenceLine({
               </span>
             ))}
           </div>
-          
-          <OrfTrack orfs={orfs} lineStart0={startIndex} />
         </div>
+
+        {/* Tracks Below Sequence (ORFs) */}
+        {orfs.length > 0 && (
+          <div className="pl-16 relative">
+            <OrfTrack orfs={orfs} lineStart0={startIndex} />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Feature } from '../../../src/domain/feature';
-import { circularArcPath, circularPoint, clientPointToCircularCoordinate, clusterCircularRestrictionSites, featureMidpoint0, localPointToCircularCoordinate, placeCircularFeatureLabels, resolveScreenCircularDragRange } from '../../../src/components/map/circular-map-2d-geometry';
+import { circularArcPath, circularPoint, clientPointToCircularCoordinate, clusterCircularRestrictionSites, createDirectionalCircularArcGeometry, featureMidpoint0, localPointToCircularCoordinate, placeCircularFeatureLabels, resolveScreenCircularDragRange } from '../../../src/components/map/circular-map-2d-geometry';
 
 function feature(id: string, start0: number, end0Exclusive: number): Feature {
   return { id, name: id, type: 'CDS', strand: 1, segments: [{ start0, end0Exclusive }], qualifiers: {}, source: 'manual' };
@@ -48,5 +48,15 @@ describe('2D circular editor geometry', () => {
     const site = (id: string, coordinate0: number) => ({ id, enzymeId: id, enzymeName: id, start0: coordinate0, end0Exclusive: coordinate0 + 1, strand: 1 as const, recognitionSequence: 'A', forwardCut0: coordinate0, reverseCut0: coordinate0 });
     const clusters = clusterCircularRestrictionSites([site('a', 10), site('b', 12), site('c', 60)], 360);
     expect(clusters.map(cluster => cluster.sites.map(item => item.id))).toEqual([['a', 'b'], ['c']]);
+  });
+
+  it('shortens the ribbon body so a strand-aligned arrowhead owns the endpoint', () => {
+    const forward = feature('forward', 10, 30);
+    const geometry = createDirectionalCircularArcGeometry(forward, 0, 100, 180, 10);
+    expect(geometry.terminal).toBe('clockwise-arrow');
+    expect(geometry.bodyInterval.start0).toBe(10);
+    expect(geometry.bodyInterval.end0Exclusive).toBeLessThan(30);
+    expect(geometry.arrowPoints?.[0]).toEqual(circularPoint(30, 100, 180));
+    expect(geometry.arrowPoints).toHaveLength(3);
   });
 });

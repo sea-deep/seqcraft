@@ -8,6 +8,7 @@ import { BUILTIN_ENZYMES } from '../../data/restriction-enzymes';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { analyzePrimerBindings } from '../../scientific/primer-binding';
 import { assignFeatureLanes } from './map-layout';
+import { getSegmentTerminal, type TerminalType } from './feature-endpoints';
 import {
   coordinateToLinearX,
   LINEAR_MAP_END_X,
@@ -27,15 +28,15 @@ function featureY(feature: Feature, lane: number): number {
     : BASELINE_Y + 20 + lane * (FEATURE_HEIGHT + FEATURE_GAP);
 }
 
-function featurePoints(feature: Feature, x1: number, x2: number, y: number): string {
+function featurePoints(x1: number, x2: number, y: number, terminal: TerminalType): string {
   const width = x2 - x1;
-  if (width < 10) {
+  if (terminal === 'none' || width < 6) {
     return `${x1},${y} ${x2},${y} ${x2},${y + FEATURE_HEIGHT} ${x1},${y + FEATURE_HEIGHT}`;
   }
 
-  const arrow = Math.min(12, width / 3);
+  const arrow = Math.min(12, Math.max(3, width * 0.35));
   const middle = y + FEATURE_HEIGHT / 2;
-  if (feature.strand === 1) {
+  if (terminal === 'clockwise-arrow') {
     return `${x1},${y} ${x2 - arrow},${y} ${x2},${middle} ${x2 - arrow},${y + FEATURE_HEIGHT} ${x1},${y + FEATURE_HEIGHT}`;
   }
   return `${x1 + arrow},${y} ${x2},${y} ${x2},${y + FEATURE_HEIGHT} ${x1 + arrow},${y + FEATURE_HEIGHT} ${x1},${middle}`;
@@ -60,12 +61,13 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
   const selectRestrictionSite = useWorkspaceStore(state => state.selectRestrictionSite);
   const selectPrimer = useWorkspaceStore(state => state.selectPrimer);
 
+  const rawSeq = document.storageMode === 'memory' ? getMemorySequence(document).raw : '';
   const placedFeatures = useMemo(() => assignFeatureLanes(document.features), [document.features]);
   const restrictionSites = useMemo(
-    () => analyzeRestrictionSites(getMemorySequence(document).raw, 'linear', BUILTIN_ENZYMES),
-    [getMemorySequence(document).raw],
+    () => analyzeRestrictionSites(rawSeq, 'linear', BUILTIN_ENZYMES),
+    [rawSeq],
   );
-  const primerBindings = useMemo(() => (document.primers ?? []).flatMap(primer => analyzePrimerBindings(getMemorySequence(document).raw, 'linear', primer).map(binding => ({ primer, binding }))), [document.primers, getMemorySequence(document).raw]);
+  const primerBindings = useMemo(() => (document.primers ?? []).flatMap(primer => analyzePrimerBindings(rawSeq, 'linear', primer).map(binding => ({ primer, binding }))), [document.primers, rawSeq]);
   const activeSelection = selection?.documentId === document.id ? selection : null;
   const formattedLength = new Intl.NumberFormat('en-US').format(document.length);
 
@@ -184,6 +186,7 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
           const y = featureY(feature, lane);
           const label = visibleFeatureLabel(feature.name, x2 - x1);
           const selected = selectedFeatureId === feature.id;
+          const terminal = getSegmentTerminal(feature, segmentIndex, document.length);
           return (
             <g
               key={`${feature.id}-${segmentIndex}`}
@@ -195,7 +198,7 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
             >
               <title>{`${feature.name} · ${feature.type} · ${segment.start0 + 1}–${segment.end0Exclusive}`}</title>
               <polygon
-                points={featurePoints(feature, x1, x2, y)}
+                points={featurePoints(x1, x2, y, terminal)}
                 fill={getFeatureColor(feature.type)}
                 fillOpacity={selected ? 1 : 0.82}
                 stroke={selected ? 'var(--selection-border)' : 'var(--bg-panel)'}
@@ -245,7 +248,38 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
           const x2 = coordinateToLinearX(segment.end0Exclusive, document.length);
           const y = 330 + (bindingIndex % 3) * 22;
           const reverse = binding.orientation === 'reverse';
-          return <g key={`${primer.id}-${bindingIndex}-${segmentIndex}`} className="cursor-pointer" onClick={() => { setSelection(document.id, binding.start0, binding.end0Exclusive); selectPrimer(primer.id); }}><title>{`${primer.name} · ${binding.orientation} primer`}</title><polygon points={reverse ? `${x1 + 8},${y} ${x2},${y} ${x2},${y + 14} ${x1 + 8},${y + 14} ${x1},${y + 7}` : `${x1},${y} ${x2 - 8},${y} ${x2},${y + 7} ${x2 - 8},${y + 14} ${x1},${y + 14}`} fill="var(--bio-primer)" fillOpacity={selectedPrimerId === primer.id ? 1 : 0.72} stroke={selectedPrimerId === primer.id ? 'var(--selection-border)' : 'none'} /><text x={(x1 + x2) / 2} y={y + 11} textAnchor="middle" fill="#fff" fontSize="10" pointerEvents="none">{primer.name}</text></g>;
+          const width = Math.max(0, x2 - x1);
+          const isTerminal = segmentIndex === (reverse ? 0 : binding.segments.length - 1);
+          const arrow = isTerminal && width >= 6 ? Math.min(8, Math.max(3, width * 0.4)) : 0;
+          
+          let points: string;
+          if (isTerminal && reverse && arrow > 0) {
+            points = `${x1 + arrow},${y} ${x2},${y} ${x2},${y + 14} ${x1 + arrow},${y + 14} ${x1},${y + 7}`;
+          } else if (isTerminal && !reverse && arrow > 0) {
+            points = `${x1},${y} ${x2 - arrow},${y} ${x2},${y + 7} ${x2 - arrow},${y + 14} ${x1},${y + 14}`;
+          } else {
+            points = `${x1},${y} ${x2},${y} ${x2},${y + 14} ${x1},${y + 14}`;
+          }
+
+          return (
+            <g 
+              key={`${primer.id}-${bindingIndex}-${segmentIndex}`} 
+              className="cursor-pointer" 
+              onClick={() => { setSelection(document.id, binding.start0, binding.end0Exclusive); selectPrimer(primer.id); }}
+            >
+              <title>{`${primer.name} · ${binding.orientation} primer`}</title>
+              <polygon 
+                points={points} 
+                fill="var(--bio-primer)" 
+                fillOpacity={selectedPrimerId === primer.id ? 1 : 0.72} 
+                stroke={selectedPrimerId === primer.id ? 'var(--selection-border)' : 'none'} 
+                strokeWidth={selectedPrimerId === primer.id ? 1.5 : 0}
+              />
+              <text x={(x1 + x2) / 2} y={y + 11} textAnchor="middle" fill="#fff" fontSize="10" pointerEvents="none">
+                {primer.name}
+              </text>
+            </g>
+          );
         }))}
 
       </svg>

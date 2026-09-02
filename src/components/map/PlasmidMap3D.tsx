@@ -59,15 +59,16 @@ export function PlasmidMap3D({ document }: { document: SequenceDocument }) {
   const formatLen = new Intl.NumberFormat('en-US').format(document.length);
   const placedFeatures = assignFeatureLanes(document.features);
   const maxLane = Math.max(...placedFeatures.map(pf => pf.lane), -1);
-  const primerBindings = useMemo(() => (document.primers ?? []).flatMap(primer => analyzePrimerBindings(getMemorySequence(document).raw, document.topology, primer).map(binding => ({ primer, binding }))), [document.primers, getMemorySequence(document).raw, document.topology]);
+  const rawSeq = document.storageMode === 'memory' ? getMemorySequence(document).raw : '';
+  const primerBindings = useMemo(() => (document.primers ?? []).flatMap(primer => analyzePrimerBindings(rawSeq, document.topology, primer).map(binding => ({ primer, binding }))), [document.primers, rawSeq, document.topology]);
   const primerLaneCount = Math.min(2, primerBindings.length);
   const maxVisualLane = Math.max(0, maxLane) + primerLaneCount;
   const selectionRadius = RADIUS + FEATURE_INNER_OFFSET + maxVisualLane * (FEATURE_WIDTH + FEATURE_LANE_SPACING) + FEATURE_WIDTH + 0.25;
   const restrictionBaseRadius = selectionRadius + 0.5;
 
   const restrictionSites = useMemo(() => {
-    return analyzeRestrictionSites(getMemorySequence(document).raw, document.topology, BUILTIN_ENZYMES);
-  }, [getMemorySequence(document).raw, document.topology]);
+    return analyzeRestrictionSites(rawSeq, document.topology, BUILTIN_ENZYMES);
+  }, [rawSeq, document.topology]);
   
   const placedRestrictionSites = useMemo(() => {
     return assignRestrictionMapLanes(restrictionSites, document.length);

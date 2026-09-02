@@ -9,7 +9,6 @@ import { Info, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 
-import { loadDemoWorkspace } from "../data/demo-workspace";
 import { WorkspaceCenter } from "../components/workspace/WorkspaceCenter";
 import { Inspector } from "../components/inspector/Inspector";
 import { WebMCPBridge } from '../webmcp/WebMCPBridge';
@@ -67,11 +66,9 @@ export function AppShell() {
     if (!initialized.current && documents.length === 0) {
       initialized.current = true;
       loadPersistedDocuments().then(dbDocs => {
-          if (dbDocs.length > 0) {
-            useWorkspaceStore.getState().addDocuments(dbDocs);
-          } else {
-            loadDemoWorkspace();
-          }
+        if (dbDocs.length > 0) {
+          useWorkspaceStore.getState().addDocuments(dbDocs);
+        }
       });
     }
   }, [documents.length]);

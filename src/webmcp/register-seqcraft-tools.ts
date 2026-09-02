@@ -65,7 +65,9 @@ const wrapToolExecute = (toolName: string, inputSummaryFn: (input: any) => strin
     if (typeof input === 'string') {
       try {
         parsedInput = JSON.parse(input);
-      } catch(e) {}
+      } catch {
+        // Fall back to raw string input if not JSON
+      }
     }
     let result;
     try {

@@ -81,7 +81,7 @@ export function RestrictionTrack({ sites, lineStart0, selectedSiteId, onSiteClic
           >
             {/* Label */}
             <div 
-              className={`absolute font-ui text-[11px] font-medium transition-colors ${isSelected ? 'text-blue-500' : 'text-[var(--text-muted)] group-hover:text-blue-400'}`}
+              className={`absolute font-ui text-[11px] font-medium transition-colors ${isSelected ? 'text-[var(--accent)] font-semibold' : 'text-[var(--text-muted)] group-hover:text-[var(--accent)]'}`}
               style={{ top: topPx, left: '0.5ch' }}
             >
               {site.enzymeName}
@@ -89,18 +89,18 @@ export function RestrictionTrack({ sites, lineStart0, selectedSiteId, onSiteClic
 
             {/* Vertical Line */}
             <div 
-              className={`absolute border-l transition-colors ${isSelected ? 'border-blue-500' : 'border-[var(--text-muted)] group-hover:border-blue-400'}`}
+              className={`absolute border-l transition-colors ${isSelected ? 'border-[var(--accent)]' : 'border-[var(--border-strong)] group-hover:border-[var(--accent)]'}`}
               style={{
                 left: '0.5ch',
                 top: topPx + 14,
                 bottom: 0, // Stretch down to sequence
-                opacity: isSelected ? 1 : 0.4
+                opacity: isSelected ? 1 : 0.6
               }}
             />
             
             {/* Notch at bottom */}
             <div 
-              className={`absolute w-0 h-0 border-l-[3px] border-r-[3px] border-t-[4px] border-l-transparent border-r-transparent transition-colors ${isSelected ? 'border-t-blue-500' : 'border-t-[var(--text-muted)] group-hover:border-t-blue-400'}`}
+              className={`absolute w-0 h-0 border-l-[3px] border-r-[3px] border-t-[4px] border-l-transparent border-r-transparent transition-colors ${isSelected ? 'border-t-[var(--accent)]' : 'border-t-[var(--border-strong)] group-hover:border-t-[var(--accent)]'}`}
               style={{
                 left: 'calc(0.5ch - 3px)',
                 bottom: -2 // Touch the text

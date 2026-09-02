@@ -113,9 +113,20 @@ export function createApp({ config, projects, auth, resolveUserId, staticDir }: 
   });
 
   if (staticDir) {
-    app.use(express.static(staticDir, { index: false, maxAge: config.isProduction ? '1h' : 0 }));
+    app.use(express.static(staticDir, {
+      index: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.includes('/assets/')) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        } else {
+          res.setHeader('Cache-Control', config.isProduction ? 'public, max-age=3600' : 'no-cache');
+        }
+      },
+    }));
     app.get('/{*path}', (_request, response) => {
-      response.setHeader('Cache-Control', 'no-cache');
+      response.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      response.setHeader('Pragma', 'no-cache');
+      response.setHeader('Expires', '0');
       response.sendFile(path.join(staticDir, 'index.html'));
     });
   }

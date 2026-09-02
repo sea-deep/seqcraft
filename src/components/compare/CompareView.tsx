@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Download, FileJson, GitCompareArrows, LoaderCircle } from 'lucide-react';
+import { Download, FileJson, GitCompareArrows, LoaderCircle, PanelRight } from 'lucide-react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { SequenceDocument } from '../../domain/document';
 import type { BaseDifference, SequenceDiffResult } from '../../domain/sequence-diff';
@@ -72,6 +72,7 @@ export function CompareView({ reference, documents }: { reference: SequenceDocum
   const options = documents.filter(document => document.id !== reference.id && document.storageMode === 'memory');
   const [queryDocumentId, setQueryDocumentId] = useState(options[0]?.id ?? '');
   const [view, setView] = useState<'report' | 'circular' | 'alignment'>('report');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [state, setState] = useState<ComparisonState>({ status: 'idle' });
   const query = options.find(document => document.id === queryDocumentId);
   const requestKey = query ? `${reference.id}:${reference.version}:${query.id}:${query.version}` : '';
@@ -114,27 +115,53 @@ export function CompareView({ reference, documents }: { reference: SequenceDocum
   const changedFeatureCount = ready?.result.featureDifferences.filter(difference => difference.kind !== 'unchanged').length ?? 0;
   return (
     <div className="flex h-full min-h-0 flex-col bg-[var(--bg)] font-ui text-[12px]">
-      <div className="flex h-[44px] shrink-0 items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)] px-3">
-        <GitCompareArrows size={15} className="text-[var(--accent)]" /><span className="font-medium">Compare {reference.name} with</span>
-        <select value={queryDocumentId} onChange={event => setQueryDocumentId(event.target.value)} className="h-[30px] min-w-[220px] rounded-md border border-[var(--border)] bg-[var(--bg)] px-2"><option value="">Choose a document</option>{options.map(document => <option key={document.id} value={document.id}>{document.name}</option>)}</select>
-        {ready && <span className="ml-2 text-[var(--text-secondary)]">{ready.result.identityPercent.toFixed(2)}% identity · {ready.result.differences.length} base · {changedFeatureCount} annotation differences{!ready.result.exact ? ' · bounded fallback' : ''}</span>}
-        {ready && <span className="ml-auto font-mono text-[10px] text-[var(--text-muted)]">{ready.result.id}</span>}
-        {ready && <div className="ml-2 flex rounded-md border border-[var(--border)] p-0.5"><button onClick={() => setView('report')} className={`h-6 rounded px-2 ${view === 'report' ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'text-[var(--text-muted)]'}`}>Report</button>{canShowCircular && <button onClick={() => setView('circular')} className={`h-6 rounded px-2 ${view === 'circular' ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'text-[var(--text-muted)]'}`}>Circular 2D</button>}<button onClick={() => setView('alignment')} className={`h-6 rounded px-2 ${view === 'alignment' ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'text-[var(--text-muted)]'}`}>Alignment</button></div>}
-        {ready?.geometry && query && <button onClick={() => downloadSvg(ready.geometry!, reference.name, query.name)} className="flex h-[30px] items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 hover:bg-[var(--panel-muted)]"><Download size={13} />SVG</button>}
-        {ready && query && <button onClick={() => downloadJson(ready.result, reference.name, query.name)} className="flex h-[30px] items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 hover:bg-[var(--panel-muted)]"><FileJson size={13} />JSON</button>}
+      <div className="flex min-h-[48px] shrink-0 items-center gap-2 overflow-x-auto border-b border-[var(--border)] bg-[var(--panel)] px-3 scrollbar-none">
+        <GitCompareArrows size={15} className="shrink-0 text-[var(--accent)]" />
+        <span className="max-w-[260px] shrink-0 truncate font-medium" title={reference.name}>{reference.name}</span>
+        <span className="shrink-0 text-[var(--text-muted)]">with</span>
+        <select aria-label="Sequence to compare" value={queryDocumentId} onChange={event => { setQueryDocumentId(event.target.value); setView('report'); }} className="h-[30px] min-w-[150px] max-w-[260px] flex-1 rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 outline-none focus:border-[var(--accent)]"><option value="">Choose a document</option>{options.map(document => <option key={document.id} value={document.id}>{document.name}</option>)}</select>
+        {ready && view !== 'report' && <span className="shrink-0 rounded bg-[var(--panel-muted)] px-2 py-1 font-mono text-[10px] text-[var(--text-secondary)]">{ready.result.identityPercent.toFixed(1)}%</span>}
+        {ready && <div className="ml-auto flex shrink-0 rounded-md border border-[var(--border)] p-0.5"><button onClick={() => setView('report')} className={`h-7 rounded px-2.5 ${view === 'report' ? 'bg-[var(--accent-soft)] font-medium text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}>Summary</button>{canShowCircular && <button onClick={() => setView('circular')} className={`h-7 rounded px-2.5 ${view === 'circular' ? 'bg-[var(--accent-soft)] font-medium text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}>Map</button>}<button onClick={() => setView('alignment')} className={`h-7 rounded px-2.5 ${view === 'alignment' ? 'bg-[var(--accent-soft)] font-medium text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}>Alignment</button></div>}
+        {view === 'circular' && ready?.geometry && query && <button title="Export circular diff as SVG" onClick={() => downloadSvg(ready.geometry!, reference.name, query.name)} className="flex h-[30px] shrink-0 items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 hover:bg-[var(--panel-muted)]"><Download size={13} />SVG</button>}
+        {ready && query && <button title="Export structured comparison as JSON" onClick={() => downloadJson(ready.result, reference.name, query.name)} className="flex h-[30px] shrink-0 items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 hover:bg-[var(--panel-muted)]"><FileJson size={13} />JSON</button>}
+        {ready && view !== 'report' && (
+          <button
+            type="button"
+            title={sidebarOpen ? "Hide differences sidebar" : "Show differences sidebar"}
+            onClick={() => setSidebarOpen(s => !s)}
+            className={`flex h-[30px] shrink-0 items-center gap-1.5 rounded-md border border-[var(--border)] px-2.5 transition-colors ${sidebarOpen ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-medium' : 'text-[var(--text-muted)] hover:bg-[var(--panel-muted)] hover:text-[var(--text)]'}`}
+          >
+            <PanelRight size={13} />
+            <span className="text-[11px]">{sidebarOpen ? 'Hide Panel' : 'Differences'}</span>
+          </button>
+        )}
       </div>
       {!query && <div className="flex flex-1 items-center justify-center text-[var(--text-muted)]">Import or open another sequence to compare.</div>}
       {loading && <div className="flex flex-1 items-center justify-center gap-2 text-[var(--text-muted)]"><LoaderCircle size={17} className="animate-spin" />Canonicalizing and comparing in a worker…</div>}
       {error && <div className="m-4 rounded-md border border-[var(--danger)]/30 bg-[var(--danger)]/5 p-4 text-[var(--danger)]">Comparison failed: {error.message}</div>}
-      {ready && query && (
-        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_300px]">
-          <main className="min-h-0 overflow-hidden bg-[var(--bg-editor)]">{view === 'report' ? <SequenceDiffReport result={ready.result} onSelectDifference={focusDifference} /> : view === 'circular' && ready.geometry ? <CircularDiffMap2D geometry={ready.geometry} onSelectDifference={focusDifference} /> : <AlignmentRows result={ready.result} />}</main>
+      {ready && query && view === 'report' && <main className="min-h-0 flex-1 overflow-hidden"><SequenceDiffReport result={ready.result} onSelectDifference={focusDifference} /></main>}
+      {ready && query && view !== 'report' && (
+        <div className={`grid min-h-0 flex-1 ${sidebarOpen ? 'grid-cols-[minmax(0,1fr)_280px]' : 'grid-cols-[1fr]'}`}>
+          <main className="min-h-0 overflow-hidden bg-[var(--bg-editor)]">{view === 'circular' && ready.geometry ? <CircularDiffMap2D geometry={ready.geometry} onSelectDifference={focusDifference} /> : <AlignmentRows result={ready.result} />}</main>
+          {sidebarOpen && (
           <aside className="min-h-0 overflow-auto border-l border-[var(--border)] bg-[var(--panel)]">
-            <section><div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--panel-muted)] px-3 py-2 font-semibold">Base differences</div>{ready.result.differences.length === 0 && <p className="p-3 text-[var(--text-muted)]">No base differences after canonical orientation.</p>}{ready.result.differences.map(difference => <button key={difference.id} onClick={() => focusDifference(difference.id)} className="block w-full border-b border-[var(--border)] px-3 py-2 text-left hover:bg-[var(--panel-muted)]"><span className="flex items-center justify-between"><span className="font-medium capitalize">{difference.kind}</span><span className="max-w-[150px] truncate font-mono text-[11px]">{differenceLabel(difference)}</span></span><span className="font-mono text-[10px] text-[var(--text-muted)]">Canonical ref {difference.referenceStart0 + 1}–{Math.max(difference.referenceStart0 + 1, difference.referenceEnd0Exclusive)}</span></button>)}</section>
+            <section><div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--panel-muted)] px-3 py-2 font-semibold">Base differences</div>{ready.result.differences.length === 0 && <p className="p-3 text-[var(--text-muted)]">No base differences after canonical orientation.</p>}{ready.result.differences.map(difference => {
+              const badgeColor = difference.kind === 'insertion' ? 'text-[var(--success)]' : difference.kind === 'deletion' ? 'text-[var(--danger)]' : 'text-[var(--warning)]';
+              return (
+                <button key={difference.id} onClick={() => focusDifference(difference.id)} className="block w-full border-b border-[var(--border)] px-3 py-2 text-left hover:bg-[var(--panel-muted)] transition-colors">
+                  <span className="flex items-center justify-between">
+                    <span className={`font-semibold capitalize text-[11px] ${badgeColor}`}>{difference.kind}</span>
+                    <span className="max-w-[150px] truncate font-mono text-[11px] font-medium text-[var(--text)]">{differenceLabel(difference)}</span>
+                  </span>
+                  <span className="font-mono text-[10px] text-[var(--text-muted)]">Canonical ref {difference.referenceStart0 + 1}–{Math.max(difference.referenceStart0 + 1, difference.referenceEnd0Exclusive)}</span>
+                </button>
+              );
+            })}</section>
             {changedFeatureCount > 0 && <section><div className="sticky top-0 border-y border-[var(--border)] bg-[var(--panel-muted)] px-3 py-2 font-semibold">Annotation differences</div>{ready.result.featureDifferences.filter(difference => difference.kind !== 'unchanged').map(difference => <div key={difference.id} className="border-b border-[var(--border)] px-3 py-2"><div className="flex justify-between gap-2"><span className="font-medium">{difference.referenceFeature?.name ?? difference.queryFeature?.name}</span><span className="capitalize text-[var(--text-muted)]">{difference.kind}</span></div>{difference.changes.length > 0 && <div className="mt-1 text-[10px] text-[var(--text-muted)]">Changed: {difference.changes.join(', ')}</div>}</div>)}</section>}
             {ready.result.proteinConsequences.length > 0 && <section><div className="sticky top-0 border-y border-[var(--border)] bg-[var(--panel-muted)] px-3 py-2 font-semibold">CDS consequences</div>{ready.result.proteinConsequences.map(consequence => <div key={consequence.id} className="border-b border-[var(--border)] px-3 py-2"><div className="font-medium">{consequence.featureName}</div><div className="mt-1 flex flex-wrap gap-1">{consequence.kinds.map(kind => <span key={kind} className="rounded bg-[var(--accent-soft)] px-1.5 py-0.5 text-[10px] text-[var(--accent)]">{kind.replaceAll('_', ' ')}</span>)}</div>{consequence.firstAffectedAminoAcid1 && <div className="mt-1 font-mono text-[10px] text-[var(--text-muted)]">AA {consequence.firstAffectedAminoAcid1}: {consequence.referenceAminoAcids || '∅'} → {consequence.queryAminoAcids || '∅'}</div>}</div>)}</section>}
             <section className="p-3 text-[10px] leading-4 text-[var(--text-muted)]"><div>Reference: {ready.result.reference.orientation} · rotation {ready.result.reference.rotation0}</div><div>Query: {ready.result.query.orientation} · rotation {ready.result.query.rotation0}</div><div>Coordinates are canonical 0-based half-open internally; UI positions are 1-based.</div></section>
           </aside>
+          )}
         </div>
       )}
     </div>

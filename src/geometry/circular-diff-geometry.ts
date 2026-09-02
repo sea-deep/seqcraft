@@ -1,5 +1,6 @@
 import type { FeatureType } from '../domain/feature';
 import type { BaseDifferenceKind, CanonicalFeature, FeatureDifferenceKind, SequenceDiffResult } from '../domain/sequence-diff';
+import { getSegmentTerminal } from '../components/map/feature-endpoints';
 
 export interface Point2D { x: number; y: number }
 
@@ -153,18 +154,35 @@ function createArc(center: Point2D, radius: number, start0: number, end0Exclusiv
   return { center, radius, startAngle, endAngle, clockwise: true, start: pointAt(center, radius, startAngle), end: pointAt(center, radius, endAngle), fullCircle };
 }
 
-function createArrow(center: Point2D, radius: number, angle: number, direction: 1 | -1, width: number): { tip: Point2D; left: Point2D; right: Point2D } {
-  const tip = pointAt(center, radius, angle);
-  const tangent = direction === 1
-    ? { x: -Math.sin(angle), y: Math.cos(angle) }
-    : { x: Math.sin(angle), y: -Math.cos(angle) };
-  const radial = { x: Math.cos(angle), y: Math.sin(angle) };
-  const base = { x: tip.x - tangent.x * width * 1.35, y: tip.y - tangent.y * width * 1.35 };
-  return {
-    tip,
-    left: { x: base.x + radial.x * width * 0.72, y: base.y + radial.y * width * 0.72 },
-    right: { x: base.x - radial.x * width * 0.72, y: base.y - radial.y * width * 0.72 },
-  };
+function createArrow(
+  center: Point2D,
+  radius: number,
+  tipAngle: number,
+  baseAngleOrDirection: number,
+  width: number
+): { tip: Point2D; left: Point2D; right: Point2D } {
+  if (baseAngleOrDirection === 1 || baseAngleOrDirection === -1) {
+    const angle = tipAngle;
+    const direction = baseAngleOrDirection;
+    const tip = pointAt(center, radius, angle);
+    const tangent = direction === 1
+      ? { x: -Math.sin(angle), y: Math.cos(angle) }
+      : { x: Math.sin(angle), y: -Math.cos(angle) };
+    const radial = { x: Math.cos(angle), y: Math.sin(angle) };
+    const base = { x: tip.x - tangent.x * width * 1.35, y: tip.y - tangent.y * width * 1.35 };
+    return {
+      tip,
+      left: { x: base.x + radial.x * width * 0.72, y: base.y + radial.y * width * 0.72 },
+      right: { x: base.x - radial.x * width * 0.72, y: base.y - radial.y * width * 0.72 },
+    };
+  }
+
+  const baseAngle = baseAngleOrDirection;
+  const tip = pointAt(center, radius, tipAngle);
+  const flare = width * 0.58;
+  const left = pointAt(center, radius + flare, baseAngle);
+  const right = pointAt(center, radius - flare, baseAngle);
+  return { tip, left, right };
 }
 
 function featuresOverlap(left: CanonicalFeature, right: CanonicalFeature): boolean {
@@ -226,15 +244,15 @@ function diffKindByFeature(result: SequenceDiffResult): Map<string, FeatureDiffe
   return map;
 }
 
-interface LabelCandidate { id: string; targetId: string; text: string; coordinate: number; radius: number; priority: number }
+interface LabelCandidate { id: string; targetId: string; text: string; coordinate: number; radius: number; priority: number; moleculeLength: number }
 
-function placeLabels(candidates: LabelCandidate[], center: Point2D, length: number, originAngle: number, options: Required<Pick<CircularDiffGeometryOptions, 'width' | 'height' | 'labelRadius' | 'labelFontSize' | 'labelLineHeight' | 'labelPadding' | 'labelMargin' | 'maxLabels'>>, colors: CircularDiffColors): { labels: LabelGeometry[]; hidden: number } {
+function placeLabels(candidates: LabelCandidate[], center: Point2D, originAngle: number, options: Required<Pick<CircularDiffGeometryOptions, 'width' | 'height' | 'labelRadius' | 'labelFontSize' | 'labelLineHeight' | 'labelPadding' | 'labelMargin' | 'maxLabels'>>, colors: CircularDiffColors): { labels: LabelGeometry[]; hidden: number } {
   const perSideCapacity = Math.max(1, Math.floor((options.height - options.labelMargin * 2) / options.labelLineHeight) + 1);
   const visible = [...candidates]
     .sort((left, right) => right.priority - left.priority || left.coordinate - right.coordinate || left.id.localeCompare(right.id))
     .slice(0, Math.min(options.maxLabels, perSideCapacity * 2));
   const prepared = visible.map(candidate => {
-    const angle = coordinateAngle(candidate.coordinate, length, originAngle);
+    const angle = coordinateAngle(candidate.coordinate, candidate.moleculeLength, originAngle);
     const anchor = pointAt(center, candidate.radius, angle);
     const side: LabelGeometry['side'] = Math.cos(angle) < 0 ? 'left' : 'right';
     const width = Math.max(38, candidate.text.length * options.labelFontSize * 0.58 + options.labelPadding * 2);
@@ -301,15 +319,17 @@ export function createCircularDiffGeometry(result: SequenceDiffResult, input: Ci
     featureTypes: { ...DEFAULT_CIRCULAR_DIFF_COLORS.featureTypes, ...input.colors?.featureTypes },
   };
   const options = {
-    width, height, labelRadius,
+    width,
+    height,
+    labelRadius,
     labelFontSize: input.labelFontSize ?? 11,
-    labelLineHeight: input.labelLineHeight ?? 18,
-    labelPadding: input.labelPadding ?? 5,
-    labelMargin: input.labelMargin ?? 14,
-    maxLabels: input.maxLabels ?? 28,
+    labelLineHeight: input.labelLineHeight ?? 22,
+    labelPadding: input.labelPadding ?? 6,
+    labelMargin: input.labelMargin ?? 16,
+    maxLabels: input.maxLabels ?? 24,
   };
-  const referenceFeatures = result.reference.features.filter(feature => feature.type !== 'source');
-  const queryFeatures = result.query.features.filter(feature => feature.type !== 'source');
+  const referenceFeatures = result.reference.features.filter(f => f.type !== 'source');
+  const queryFeatures = result.query.features.filter(f => f.type !== 'source');
   const referenceLanes = assignLanes(referenceFeatures);
   const queryLanes = assignLanes(queryFeatures);
   const kinds = diffKindByFeature(result);
@@ -324,9 +344,33 @@ export function createCircularDiffGeometry(result: SequenceDiffResult, input: Ci
       const diffKind = kinds.get(`${molecule}:${feature.id}`) ?? null;
       const statusColor = diffKind === 'added' ? colors.featureAdded : diffKind === 'removed' ? colors.featureRemoved : diffKind === 'modified' ? colors.featureModified : null;
       feature.segments.forEach((segment, segmentIndex) => {
-        const arc = createArc(center, radius, segment.start0, segment.end0Exclusive, length, originAngle);
-        const terminalSegment = feature.strand === 1 ? feature.segments.length - 1 : 0;
-        const arrowAt: FeatureArcGeometry['arrowAt'] = segmentIndex === terminalSegment ? (feature.strand === 1 ? 'end' : 'start') : 'none';
+        const terminal = getSegmentTerminal(feature, segmentIndex, length);
+        const arrowAt: FeatureArcGeometry['arrowAt'] =
+          terminal === 'clockwise-arrow' ? 'end' :
+          terminal === 'counterclockwise-arrow' ? 'start' : 'none';
+
+        let arcStart0 = segment.start0;
+        let arcEnd0 = segment.end0Exclusive;
+        let arrow: { tip: Point2D; left: Point2D; right: Point2D } | null = null;
+
+        if (arrowAt !== 'none' && length > 0) {
+          const segSpan = segment.end0Exclusive - segment.start0;
+          const arrowLengthBp = Math.min(segSpan * 0.45, (length / Math.max(1, Math.PI * 2 * radius)) * featureTrackWidth * 1.35);
+          if (arrowAt === 'end') {
+            arcEnd0 = Math.max(segment.start0, segment.end0Exclusive - arrowLengthBp);
+            const tipAngle = coordinateAngle(segment.end0Exclusive, length, originAngle);
+            const baseAngle = coordinateAngle(arcEnd0, length, originAngle);
+            arrow = createArrow(center, radius, tipAngle, baseAngle, featureTrackWidth);
+          } else {
+            arcStart0 = Math.min(segment.end0Exclusive, segment.start0 + arrowLengthBp);
+            const tipAngle = coordinateAngle(segment.start0, length, originAngle);
+            const baseAngle = coordinateAngle(arcStart0, length, originAngle);
+            arrow = createArrow(center, radius, tipAngle, baseAngle, featureTrackWidth);
+          }
+        }
+
+        const arc = createArc(center, radius, arcStart0, arcEnd0, length, originAngle);
+
         featureArcs.push({
           ...arc,
           id: `feature-arc:${molecule}:${feature.id}:${segmentIndex}`,
@@ -339,7 +383,7 @@ export function createCircularDiffGeometry(result: SequenceDiffResult, input: Ci
           opacity: diffKind && diffKind !== 'unchanged' ? 1 : molecule === 'reference' ? 0.88 : 0.62,
           strand: feature.strand,
           arrowAt,
-          arrow: arrowAt === 'none' ? null : createArrow(center, radius, arrowAt === 'end' ? arc.endAngle : arc.startAngle, feature.strand, featureTrackWidth),
+          arrow,
           diffKind,
           label: feature.name,
         });
@@ -351,6 +395,7 @@ export function createCircularDiffGeometry(result: SequenceDiffResult, input: Ci
         coordinate: featureMidpoint(feature, length),
         radius,
         priority: diffKind && diffKind !== 'unchanged' ? 3 : 1,
+        moleculeLength: length,
       });
     }
   };
@@ -374,7 +419,7 @@ export function createCircularDiffGeometry(result: SequenceDiffResult, input: Ci
       queryBases: difference.queryBases,
     };
   });
-  const placedLabels = placeLabels(labelCandidates, center, result.reference.length, originAngle, options, colors);
+  const placedLabels = placeLabels(labelCandidates, center, originAngle, options, colors);
   const originInner = pointAt(center, backboneRadius - 13, originAngle);
   const originOuter = pointAt(center, backboneRadius + 13, originAngle);
   return {

@@ -1,6 +1,7 @@
 import type { Feature, SequenceInterval } from '../../domain/feature';
 import type { RestrictionSite } from '../../scientific/restriction-analysis';
 import { resolveCircularDragRange } from './pointer-coordinate';
+import { getSegmentTerminal, type TerminalType } from './feature-endpoints';
 
 export interface Point2D { x: number; y: number }
 
@@ -25,6 +26,37 @@ export function circularArcPath(interval: SequenceInterval, sequenceLength: numb
   const start = circularPoint(interval.start0, sequenceLength, radius, center);
   const end = circularPoint(interval.end0Exclusive, sequenceLength, radius, center);
   return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${span > sequenceLength / 2 ? 1 : 0} 1 ${end.x} ${end.y}`;
+}
+
+export interface DirectionalCircularArcGeometry {
+  bodyInterval: SequenceInterval;
+  terminal: TerminalType;
+  arrowPoints: [Point2D, Point2D, Point2D] | null;
+}
+
+export function createDirectionalCircularArcGeometry(
+  feature: Feature,
+  segmentIndex: number,
+  sequenceLength: number,
+  radius: number,
+  ribbonWidth: number,
+): DirectionalCircularArcGeometry {
+  const segment = feature.segments[segmentIndex];
+  const terminal = getSegmentTerminal(feature, segmentIndex, sequenceLength);
+  if (terminal === 'none') return { bodyInterval: segment, terminal, arrowPoints: null };
+  const segmentLength = segment.end0Exclusive - segment.start0;
+  const tenPixelsInBases = sequenceLength / Math.max(1, Math.PI * 2 * radius) * 10;
+  const arrowLengthBp = Math.max(0.5, Math.min(segmentLength * 0.45, tenPixelsInBases));
+  const clockwise = terminal === 'clockwise-arrow';
+  const tipCoordinate0 = clockwise ? segment.end0Exclusive : segment.start0;
+  const baseCoordinate0 = clockwise ? tipCoordinate0 - arrowLengthBp : tipCoordinate0 + arrowLengthBp;
+  const bodyInterval = clockwise
+    ? { start0: segment.start0, end0Exclusive: baseCoordinate0 }
+    : { start0: baseCoordinate0, end0Exclusive: segment.end0Exclusive };
+  const tip = circularPoint(tipCoordinate0, sequenceLength, radius);
+  const outerBase = circularPoint(baseCoordinate0, sequenceLength, radius + ribbonWidth / 2);
+  const innerBase = circularPoint(baseCoordinate0, sequenceLength, radius - ribbonWidth / 2);
+  return { bodyInterval, terminal, arrowPoints: [tip, outerBase, innerBase] };
 }
 
 export function featureMidpoint0(feature: Feature, sequenceLength: number): number {

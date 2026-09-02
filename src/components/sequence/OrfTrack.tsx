@@ -49,23 +49,59 @@ export function OrfTrack({ orfs, lineStart0 }: { orfs: PlacedOrf[], lineStart0: 
                  if (seg.end0Exclusive === placed.lineEndExclusive + lineStart0) isEnd = true;
               }
 
-              // We can render a simple div with borders
+              const isRightArrow = isForward && isEnd;
+              const isLeftArrow = !isForward && isStart;
+
+              const arrowCutPx = width <= 1.5 ? 4 : 6;
+              let clipPath = 'none';
+              if (isRightArrow) {
+                clipPath = `polygon(0% 0%, calc(100% - ${arrowCutPx}px) 0%, 100% 50%, calc(100% - ${arrowCutPx}px) 100%, 0% 100%)`;
+              } else if (isLeftArrow) {
+                clipPath = `polygon(${arrowCutPx}px 0%, 100% 0%, 100% 100%, ${arrowCutPx}px 100%, 0% 50%)`;
+              }
+
+              const frameLabel = placed.orf.frame > 0 ? `+${placed.orf.frame}` : `${placed.orf.frame}`;
+              const orfStart0 = placed.orf.segments[0]?.start0 ?? 0;
+              const orfEnd0 = placed.orf.segments.at(-1)?.end0Exclusive ?? 0;
+
               return (
                 <div
                   key={`${placed.orf.id}-${idx}`}
-                  className="absolute h-[10px] text-[8px] font-mono leading-[10px] text-white overflow-hidden"
+                  className="absolute h-[10px] select-none cursor-pointer"
                   style={{
                     left: `${startX}ch`,
                     width: `${width}ch`,
-                    backgroundColor: color,
-                    border: `1px solid ${borderColor}`,
-                    borderLeftWidth: (isForward ? isStart : isEnd) ? '1px' : '0px',
-                    borderRightWidth: (isForward ? isEnd : isStart) ? '1px' : '0px',
-                    borderRadius: isForward 
-                       ? `${isStart ? '3px' : '0'} ${isEnd ? '4px' : '0'} ${isEnd ? '4px' : '0'} ${isStart ? '3px' : '0'}`
-                       : `${isEnd ? '4px' : '0'} ${isStart ? '3px' : '0'} ${isStart ? '3px' : '0'} ${isEnd ? '4px' : '0'}`,
                   }}
-                />
+                  title={`ORF Frame ${frameLabel} (${isForward ? 'forward' : 'reverse'}) · ${orfStart0 + 1}–${orfEnd0} (${placed.orf.lengthBp} bp, ${placed.orf.protein.length} aa)`}
+                >
+                  {/* Outer border shell */}
+                  <div
+                    className="absolute inset-0 transition-opacity hover:opacity-100 opacity-90"
+                    style={{
+                      backgroundColor: borderColor,
+                      clipPath,
+                      borderRadius: clipPath === 'none' ? '2px' : undefined,
+                    }}
+                  >
+                    {/* Inner fill */}
+                    <div
+                      className="absolute inset-[1px] flex items-center overflow-hidden whitespace-nowrap"
+                      style={{
+                        backgroundColor: color,
+                        clipPath,
+                        borderRadius: clipPath === 'none' ? '1px' : undefined,
+                        paddingLeft: isLeftArrow ? `${arrowCutPx + 2}px` : '2px',
+                        paddingRight: isRightArrow ? `${arrowCutPx + 2}px` : '2px',
+                      }}
+                    >
+                      {width >= 4 && (
+                        <span className="text-[7px] font-mono font-semibold text-white/95 leading-none">
+                          {frameLabel}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>

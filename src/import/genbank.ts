@@ -64,7 +64,7 @@ export function importGenBank(data: string, defaultName = 'GenBank Sequence'): S
     try {
       alphabet = inferAlphabet(seqString);
     } catch (e) {
-      throw new Error(`GenBank record ${idx} has invalid sequence geometry or characters: ${e}`);
+      throw new Error(`GenBank record ${idx} has invalid sequence geometry or characters: ${e}`, { cause: e });
     }
     
     if (alphabet === 'UNKNOWN') {
@@ -73,7 +73,7 @@ export function importGenBank(data: string, defaultName = 'GenBank Sequence'): S
     }
 
     const docFeatures: Feature[] = (parsed.features || []).map((f) => {
-      let segments: SequenceInterval[] = [];
+      const segments: SequenceInterval[] = [];
       
       if (f.locations && f.locations.length > 0) {
         f.locations.forEach(loc => {
@@ -95,7 +95,7 @@ export function importGenBank(data: string, defaultName = 'GenBank Sequence'): S
         }
       }
 
-      let validSegments: SequenceInterval[] = [];
+      const validSegments: SequenceInterval[] = [];
       for (const seg of segments) {
         if (seg.start0 >= 0 && seg.end0Exclusive <= seqLength && seg.start0 < seg.end0Exclusive) {
           validSegments.push(seg);

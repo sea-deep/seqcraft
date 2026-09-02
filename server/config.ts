@@ -5,14 +5,18 @@ const optionalTrimmed = z.preprocess(
   z.string().trim().optional(),
 );
 
+const defaultRailwayUrl = typeof process !== 'undefined' && process.env?.RAILWAY_PUBLIC_DOMAIN
+  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+  : undefined;
+
 const environmentSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65_535).default(8787),
-  APP_ORIGIN: z.string().url().default('http://localhost:5173'),
+  APP_ORIGIN: z.string().url().default(defaultRailwayUrl || 'http://localhost:5173'),
   MONGODB_URI: optionalTrimmed,
   MONGODB_DB: z.string().trim().min(1).max(64).default('seqcraft'),
   BETTER_AUTH_SECRET: optionalTrimmed,
-  BETTER_AUTH_URL: z.string().url().default('http://localhost:8787'),
+  BETTER_AUTH_URL: z.string().url().default(defaultRailwayUrl || 'http://localhost:8787'),
   GOOGLE_CLIENT_ID: optionalTrimmed,
   GOOGLE_CLIENT_SECRET: optionalTrimmed,
 }).superRefine((value, context) => {

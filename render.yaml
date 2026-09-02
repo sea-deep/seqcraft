@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: seqcraft
+    env: static
+    buildCommand: npm run build:client
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: Origin-Agent-Cluster
+        value: "?1"
+      - path: /*
+        name: Permissions-Policy
+        value: tools=(self)

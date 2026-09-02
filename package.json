@@ -8,6 +8,7 @@
     "dev:api": "tsx watch server/index.ts",
     "dev:all": "concurrently -k -n web,api -c cyan,green \"npm:dev\" \"npm:dev:api\"",
     "build": "tsc -b && tsc -p tsconfig.server.build.json && vite build",
+    "build:client": "tsc -b && vite build",
     "typecheck:api": "tsc -p tsconfig.server.json",
     "test": "vitest run",
     "lint": "eslint .",

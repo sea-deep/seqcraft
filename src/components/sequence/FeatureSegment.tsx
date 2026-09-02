@@ -1,8 +1,13 @@
-import { type Feature } from '../../domain/feature';
+import type { Feature, SequenceInterval } from '../../domain/feature';
 import { baseX, segmentWidth, TRACK_HEIGHT } from './sequence-geometry';
+import { getSegmentTerminal } from '../map/feature-endpoints';
+import { getFeatureColor } from '../../domain/feature-colors';
 
 interface FeatureSegmentProps {
   feature: Feature;
+  segment: SequenceInterval;
+  segmentIndex: number;
+  sequenceLength: number;
   startIdx: number; // 0 to 59
   endIdxExclusive: number; // 1 to 60
   trackIndex: number;
@@ -12,82 +17,98 @@ interface FeatureSegmentProps {
   lineStartIndex: number;
 }
 
-export function FeatureSegment({ feature, isSelected, onClick, startIdx, endIdxExclusive, trackIndex, showLabel, lineStartIndex }: FeatureSegmentProps) {
+export function FeatureSegment({ 
+  feature, 
+  segment,
+  segmentIndex,
+  sequenceLength,
+  isSelected, 
+  onClick, 
+  startIdx, 
+  endIdxExclusive, 
+  trackIndex, 
+  showLabel, 
+  lineStartIndex 
+}: FeatureSegmentProps) {
   const leftCh = baseX(startIdx);
   const widthCh = segmentWidth(startIdx, endIdxExclusive);
-  const topPx = trackIndex * (TRACK_HEIGHT + 4);
+  const topPx = trackIndex * 16; // 16px track lane allocation
 
   const actualStart = lineStartIndex + startIdx;
   const actualEnd = lineStartIndex + endIdxExclusive;
 
-  // Find overall boundaries of the feature
-  const minStart = Math.min(...feature.segments.map(s => s.start0));
-  const maxEnd = Math.max(...feature.segments.map(s => s.end0Exclusive));
+  // Use biological endpoint resolver
+  const terminal = getSegmentTerminal(feature, segmentIndex, sequenceLength);
+  const isRightArrow = terminal === 'clockwise-arrow' && actualEnd === segment.end0Exclusive;
+  const isLeftArrow = terminal === 'counterclockwise-arrow' && actualStart === segment.start0;
 
-  const isBiologicalStart = actualStart === minStart;
-  const isBiologicalEnd = actualEnd === maxEnd;
+  const color = getFeatureColor(feature.type);
+  const bgColor = `color-mix(in srgb, ${color} 24%, transparent)`;
+  const selectedBgColor = `color-mix(in srgb, ${color} 45%, transparent)`;
 
-  const isLeftArrow = feature.strand === -1 && isBiologicalStart;
-  const isRightArrow = feature.strand === 1 && isBiologicalEnd;
-
-  // Colors based on feature type
-  let colorVar = 'var(--text-muted)';
-  let bgVar = 'var(--panel-muted)';
-  
-  if (feature.type === 'CDS' || feature.type === 'gene') {
-    colorVar = '#4f46e5'; // indigo-600
-    bgVar = 'rgba(79, 70, 229, 0.15)';
-  } else if (feature.type === 'promoter') {
-    colorVar = '#d97706'; // amber-600
-    bgVar = 'rgba(217, 119, 6, 0.15)';
-  } else if (feature.type === 'origin') {
-    colorVar = '#0d9488'; // teal-600
-    bgVar = 'rgba(13, 148, 136, 0.15)';
-  } else {
-    colorVar = '#7c3aed'; // violet-600
-    bgVar = 'rgba(124, 58, 237, 0.15)';
-  }
-
-  // To draw arrows, we can use SVG or CSS clip-path.
-  // CSS clip-path is easiest for arrowheads without extra elements.
-  // A standard rectangle is: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)
-  // A right arrow is: polygon(0% 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 0% 100%)
-  // A left arrow is: polygon(6px 0%, 100% 0%, 100% 100%, 6px 100%, 0% 50%)
+  // Arrowhead polygon
+  // For standard widths, 8px gives an ideal arrow tip at 14px height.
+  // For small widths (<= 1.5ch), scale down arrow depth so it doesn't distort.
+  const arrowCutPx = widthCh <= 1.5 ? 5 : 8;
 
   let clipPath = 'none';
-  if (isRightArrow && widthCh > 2) {
-    clipPath = 'polygon(0% 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 0% 100%)';
-  } else if (isLeftArrow && widthCh > 2) {
-    clipPath = 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)';
+  if (isRightArrow) {
+    clipPath = `polygon(0% 0%, calc(100% - ${arrowCutPx}px) 0%, 100% 50%, calc(100% - ${arrowCutPx}px) 100%, 0% 100%)`;
+  } else if (isLeftArrow) {
+    clipPath = `polygon(${arrowCutPx}px 0%, 100% 0%, 100% 100%, ${arrowCutPx}px 100%, 0% 50%)`;
   }
 
-  // Label width logic
-  // Only show label if the segment is wide enough, e.g., > 3 chars
+  // Label display logic
   const enoughWidth = widthCh >= 4;
   const displayLabel = showLabel && enoughWidth;
 
   return (
     <div
-      className={`absolute flex items-center overflow-hidden whitespace-nowrap cursor-pointer z-10 transition-colors ${isSelected ? "opacity-100 outline outline-1 outline-white/80 z-20" : "opacity-80 hover:opacity-100"}`}
+      className="absolute cursor-pointer transition-transform select-none group"
       onClick={onClick}
       style={{
         left: `${leftCh}ch`,
         width: `${widthCh}ch`,
         top: topPx,
-        height: '14px', // 12-14px body thickness
-        backgroundColor: bgVar,
-        clipPath: clipPath,
+        height: `${TRACK_HEIGHT}px`,
+        zIndex: isSelected ? 30 : 10,
+        filter: isSelected ? 'drop-shadow(0 0 1.5px var(--selection-border))' : undefined,
       }}
-      title={`${feature.name} (${feature.type})`}
+      title={`${feature.name} (${feature.type}) · ${feature.strand === 1 ? 'forward' : 'reverse'} strand · ${segment.start0 + 1}–${segment.end0Exclusive}`}
     >
-      {displayLabel && (
-        <span 
-          className="px-2 text-[11px] font-medium leading-none font-ui" 
-          style={{ color: colorVar, marginLeft: isLeftArrow ? '4px' : '0' }}
+      {/* Outer border shell following the exact polygon contour */}
+      <div
+        className="absolute inset-0 transition-colors"
+        style={{
+          backgroundColor: isSelected ? 'var(--selection-border)' : color,
+          opacity: isSelected ? 1 : 0.85,
+          clipPath,
+          borderRadius: clipPath === 'none' ? '2px' : undefined,
+        }}
+      >
+        {/* Inner fill layer creating the crisp 1px border along the arrow */}
+        <div
+          className="absolute inset-[1px] flex items-center overflow-hidden whitespace-nowrap"
+          style={{
+            backgroundColor: isSelected ? selectedBgColor : bgColor,
+            clipPath,
+            borderRadius: clipPath === 'none' ? '1.5px' : undefined,
+          }}
         >
-          {feature.name}
-        </span>
-      )}
+          {displayLabel && (
+            <span 
+              className="truncate text-[10px] font-semibold leading-none font-ui" 
+              style={{ 
+                color: isSelected ? 'var(--text-primary)' : color, 
+                paddingLeft: isLeftArrow ? `${arrowCutPx + 3}px` : '4px',
+                paddingRight: isRightArrow ? `${arrowCutPx + 3}px` : '4px',
+              }}
+            >
+              {feature.name}
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

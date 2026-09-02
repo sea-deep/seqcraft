@@ -27,8 +27,8 @@ const server = createServer(createApp({
   auth,
   staticDir: config.isProduction ? path.resolve(process.cwd(), 'dist') : undefined,
 }));
-server.listen(config.PORT, () => {
-  console.log(`SeqCraft API listening on ${config.BETTER_AUTH_URL} (${config.authEnabled ? 'connected' : 'guest'} mode)`);
+server.listen(config.PORT, '0.0.0.0', () => {
+  console.log(`SeqCraft API listening on 0.0.0.0:${config.PORT} (${config.authEnabled ? 'connected' : 'guest'} mode)`);
 });
 
 async function shutdown(signal: string) {

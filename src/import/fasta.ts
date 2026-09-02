@@ -11,7 +11,7 @@ export function importFasta(data: string, defaultName = 'FASTA Sequence'): Seque
     
     // Explicitly infer ignoring Seq's default DNA guess if it guessed DNA without Ts
     // Wait, if it had explicit FASTA type, it might be set, but readFASTA doesn't usually know.
-    let alphabet: Alphabet = inferAlphabet(seqString);
+    const alphabet: Alphabet = inferAlphabet(seqString);
 
     return {
       id: generateId(),

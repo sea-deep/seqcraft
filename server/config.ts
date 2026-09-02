@@ -48,7 +48,12 @@ const environmentSchema = z.object({
 export type ServerConfig = ReturnType<typeof loadConfig>;
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env) {
-  const env = environmentSchema.parse(environment);
+  const resolvedMongoUri = environment.MONGODB_URI || environment.MONGO_URL || environment.MONGODB_URL;
+  const mergedEnvironment = {
+    ...environment,
+    ...(resolvedMongoUri ? { MONGODB_URI: resolvedMongoUri } : {}),
+  };
+  const env = environmentSchema.parse(mergedEnvironment);
   const authEnabled = Boolean(env.MONGODB_URI && env.BETTER_AUTH_SECRET);
   const googleEnabled = authEnabled && Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 

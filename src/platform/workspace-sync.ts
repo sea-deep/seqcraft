@@ -44,10 +44,15 @@ export function toProjectMetadataInput(
 }
 
 export async function syncWorkspaceMetadata(input: ProjectMetadataInput, signal?: AbortSignal) {
+  const token = typeof window !== 'undefined' ? window.localStorage.getItem('better-auth_token') : null;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
   const response = await fetch(getApiUrl('/api/projects/default-workspace'), {
     method: 'PUT',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(input),
     signal,
   });
@@ -64,6 +69,17 @@ export function useWorkspaceCloudSync() {
     let syncTimer: ReturnType<typeof setTimeout> | undefined;
 
     void (async () => {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const urlToken = params.get('token');
+        if (urlToken) {
+          window.localStorage.setItem('better-auth_token', urlToken);
+          params.delete('token');
+          const newSearch = params.toString() ? `?${params.toString()}` : '';
+          window.history.replaceState({}, '', `${window.location.pathname}${newSearch}`);
+        }
+      }
+
       const platform = await loadPlatformConfig(controller.signal);
       if (!platform.auth.enabled || controller.signal.aborted) {
         setStatus('guest');

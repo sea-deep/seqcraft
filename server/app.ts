@@ -68,7 +68,42 @@ export function createApp({ config, projects, auth, resolveUserId, staticDir }: 
   app.use(rateLimit({ windowMs: 15 * 60_000, limit: 300, standardHeaders: 'draft-8', legacyHeaders: false }));
 
   if (auth) {
-    app.all('/api/auth/{*path}', rateLimit({ windowMs: 10 * 60_000, limit: 60 }), toNodeHandler(auth));
+    const authHandler = toNodeHandler(auth);
+    app.all('/api/auth/{*path}', rateLimit({ windowMs: 10 * 60_000, limit: 60 }), (req, res, next) => {
+      const originalSetHeader = res.setHeader.bind(res);
+      const appendToken = (loc: string): string => {
+        try {
+          const cookieHeader = res.getHeader('set-cookie');
+          let sessionToken: string | undefined;
+          const cookies = Array.isArray(cookieHeader) ? cookieHeader : (cookieHeader ? [String(cookieHeader)] : []);
+          for (const c of cookies) {
+            const match = c.match(/(?:better-auth\.|__Secure-better-auth\.)session_token=([^;]+)/);
+            if (match) {
+              sessionToken = match[1];
+              break;
+            }
+          }
+          if (sessionToken && (loc.includes('onrender.com') || loc.startsWith('/'))) {
+            const baseOrigin = loc.startsWith('/') ? config.APP_ORIGIN : undefined;
+            const parsed = new URL(loc, baseOrigin);
+            parsed.searchParams.set('token', sessionToken);
+            return loc.startsWith('/') ? `${parsed.pathname}${parsed.search}` : parsed.toString();
+          }
+        } catch {
+          // Keep original location on error
+        }
+        return loc;
+      };
+
+      res.setHeader = function (name: string, value: any) {
+        if (name.toLowerCase() === 'location' && typeof value === 'string') {
+          value = appendToken(value);
+        }
+        return originalSetHeader(name, value);
+      };
+
+      void authHandler(req, res).catch(next);
+    });
   }
 
   app.use(express.json({ limit: '32kb', strict: true }));

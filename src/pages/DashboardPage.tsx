@@ -123,6 +123,9 @@ export function DashboardPage() {
               <span className="text-[12px] font-medium text-[var(--text-secondary)]">{cloud.accountName}</span>
               <button
                 onClick={async () => {
+                  if (typeof window !== 'undefined') {
+                    window.localStorage.removeItem('better-auth_token');
+                  }
                   await authClient.signOut();
                   window.location.reload();
                 }}

@@ -13,7 +13,21 @@ export function getApiUrl(endpoint: string): string {
 }
 
 export const authClient = createAuthClient({ 
-  baseURL: API_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : '') 
+  baseURL: API_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : ''),
+  fetchOptions: {
+    auth: {
+      type: 'Bearer',
+      token: () => (typeof window !== 'undefined' ? (window.localStorage.getItem('better-auth_token') || '') : ''),
+    },
+    onResponse(context) {
+      if (typeof window !== 'undefined') {
+        const token = context.response.headers.get('set-auth-token');
+        if (token) {
+          window.localStorage.setItem('better-auth_token', token);
+        }
+      }
+    },
+  },
 });
 
 export type PlatformConfig = {

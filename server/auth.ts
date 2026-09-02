@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { mongodbAdapter } from 'better-auth/adapters/mongodb';
+import { bearer } from 'better-auth/plugins';
 import type { Db, MongoClient } from 'mongodb';
 import type { ServerConfig } from './config.js';
 
@@ -23,7 +24,10 @@ export function createSeqCraftAuth(config: ServerConfig, db: Db, client: MongoCl
     basePath: '/api/auth',
     secret: config.BETTER_AUTH_SECRET,
     trustedOrigins: Array.from(new Set(trustedOrigins)),
-    database: mongodbAdapter(db, { client }),
+    database: mongodbAdapter(db, { client, transaction: false }),
+    plugins: [
+      bearer(),
+    ],
     emailAndPassword: { enabled: true },
     socialProviders: config.googleEnabled && config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET
       ? {

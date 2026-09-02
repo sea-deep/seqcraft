@@ -32,7 +32,7 @@ export function MarketingPage() {
               <div className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--accent)] mb-6">
                 <span className="size-1.5 bg-[var(--accent)]" /> Agent-native molecular biology
               </div>
-              <h1 className="text-[clamp(2.8rem,6vw,5.4rem)] font-semibold tracking-[-0.055em] leading-[0.96] text-balance">
+              <h1 className="text-[clamp(2.25rem,4.5vw,3.75rem)] font-semibold tracking-[-0.04em] leading-[1.05] text-balance">
                 Design DNA with an agent that understands the map.
               </h1>
               <p className="mt-7 text-[17px] leading-7 text-[var(--text-secondary)] max-w-2xl">

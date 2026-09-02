@@ -10,14 +10,9 @@ import { useWorkspaceStore } from '../../state/workspace-store';
 import { getMemorySequence } from '../../utils/document-utils';
 import { assignFeatureLanes } from './map-layout';
 import { circularArcPath, circularPoint, clusterCircularRestrictionSites, createDirectionalCircularArcGeometry, localPointToCircularCoordinate, placeCircularFeatureLabels, resolveScreenCircularDragRange } from './circular-map-2d-geometry';
+import { getFeatureColor } from '../../domain/feature-colors';
 
-const FEATURE_COLORS: Record<string, string> = {
-  CDS: 'var(--bio-cds)', promoter: 'var(--bio-promoter)', origin: 'var(--bio-origin)',
-  gene: 'var(--bio-cds)', terminator: 'var(--warning)', 'resistance marker': 'var(--danger)',
-  tag: 'var(--bio-primer)', misc_feature: 'var(--bio-misc)', source: 'var(--text-muted)',
-};
-
-function featureColor(feature: Feature): string { return FEATURE_COLORS[feature.type] ?? 'var(--bio-misc)'; }
+function featureColor(feature: Feature): string { return getFeatureColor(feature.type); }
 
 export function CircularMap2D({ document }: { document: SequenceDocument }) {
   const svgRef = useRef<SVGSVGElement>(null);

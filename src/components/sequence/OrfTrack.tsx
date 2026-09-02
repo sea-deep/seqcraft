@@ -28,17 +28,19 @@ export function OrfTrack({ orfs, lineStart0 }: { orfs: PlacedOrf[], lineStart0: 
   if (activeFrames.length === 0) return null;
 
   return (
-    <div className="relative mt-1" style={{ height: activeFrames.length * 14 }}>
+    <div className="relative mt-1" style={{ height: activeFrames.length * 16 }}>
       {activeFrames.map((frame, trackIdx) => {
         const trackOrfs = tracksByFrame.get(frame)!;
         return (
-          <div key={frame} className="absolute left-0 right-0" style={{ top: trackIdx * 14, height: 12 }}>
+          <div key={frame} className="absolute left-0 right-0" style={{ top: trackIdx * 16, height: 14 }}>
             {trackOrfs.map((placed, idx) => {
               const startX = baseX(placed.lineStart);
               const width = segmentWidth(placed.lineStart, placed.lineEndExclusive);
               const isForward = placed.orf.strand === 1;
-              const color = isForward ? 'rgba(239, 68, 68, 0.4)' : 'rgba(59, 130, 246, 0.4)'; // Red for forward, Blue for reverse
-              const borderColor = isForward ? 'rgb(239, 68, 68)' : 'rgb(59, 130, 246)';
+              const borderColor = isForward ? 'var(--bio-cds)' : 'var(--bio-primer)';
+              const color = isForward 
+                ? 'color-mix(in srgb, var(--bio-cds) 24%, transparent)' 
+                : 'color-mix(in srgb, var(--bio-primer) 24%, transparent)';
               
               // Determine if this segment contains the start or end of the ORF
               // to draw an arrow or rounded corner
@@ -67,7 +69,7 @@ export function OrfTrack({ orfs, lineStart0 }: { orfs: PlacedOrf[], lineStart0: 
               return (
                 <div
                   key={`${placed.orf.id}-${idx}`}
-                  className="absolute h-[10px] select-none cursor-pointer"
+                  className="absolute h-[13px] select-none cursor-pointer group"
                   style={{
                     left: `${startX}ch`,
                     width: `${width}ch`,
@@ -76,7 +78,7 @@ export function OrfTrack({ orfs, lineStart0 }: { orfs: PlacedOrf[], lineStart0: 
                 >
                   {/* Outer border shell */}
                   <div
-                    className="absolute inset-0 transition-opacity hover:opacity-100 opacity-90"
+                    className="absolute inset-0 transition-opacity group-hover:opacity-100 opacity-85"
                     style={{
                       backgroundColor: borderColor,
                       clipPath,
@@ -90,13 +92,16 @@ export function OrfTrack({ orfs, lineStart0 }: { orfs: PlacedOrf[], lineStart0: 
                         backgroundColor: color,
                         clipPath,
                         borderRadius: clipPath === 'none' ? '1px' : undefined,
-                        paddingLeft: isLeftArrow ? `${arrowCutPx + 2}px` : '2px',
-                        paddingRight: isRightArrow ? `${arrowCutPx + 2}px` : '2px',
+                        paddingLeft: isLeftArrow ? `${arrowCutPx + 3}px` : '3px',
+                        paddingRight: isRightArrow ? `${arrowCutPx + 3}px` : '3px',
                       }}
                     >
-                      {width >= 4 && (
-                        <span className="text-[7px] font-mono font-semibold text-white/95 leading-none">
-                          {frameLabel}
+                      {width >= 6 && (
+                        <span 
+                          className="text-[10px] font-mono font-semibold leading-none tracking-tight"
+                          style={{ color: borderColor }}
+                        >
+                          Frame {frameLabel}
                         </span>
                       )}
                     </div>

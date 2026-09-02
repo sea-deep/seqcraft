@@ -61,14 +61,17 @@ export function EditorStatusBar({ drawerOpen, setDrawerOpen }: EditorStatusBarPr
       <div className="flex items-center gap-4 h-full">
         <div className="flex items-center gap-1.5" title="WebMCP Tools Connected">
           <span>WebMCP</span>
-          <span className={`w-1.5 h-1.5 rounded-full ${isWebMCPHealthy ? 'bg-green-500' : 'bg-[var(--border)]'}`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${isWebMCPHealthy ? 'bg-[var(--success)]' : 'bg-[var(--border)]'}`} aria-hidden="true" />
+          <span className="sr-only">{isWebMCPHealthy ? 'Connected' : 'Disconnected'}</span>
         </div>
         
         <div className="w-px h-3 bg-[var(--border)]" />
         
         <button 
-          className={`flex items-center gap-1.5 h-full px-2 hover:bg-[var(--panel)] hover:text-[var(--text)] transition-colors cursor-pointer ${drawerOpen ? 'bg-[var(--panel)] text-[var(--text)]' : ''}`}
+          className={`flex items-center gap-1.5 h-full px-2 hover:bg-[var(--panel)] hover:text-[var(--text)] transition-colors cursor-pointer outline-none focus-visible:bg-[var(--panel)] focus-visible:ring-1 focus-visible:ring-[var(--accent)] ${drawerOpen ? 'bg-[var(--panel)] text-[var(--text)]' : ''}`}
           onClick={() => setDrawerOpen(p => !p)}
+          aria-expanded={drawerOpen}
+          aria-label={`Agent Activity Drawer (${eventCount} events)`}
         >
           <span>Agent {eventCount}</span>
         </button>

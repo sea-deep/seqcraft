@@ -30,8 +30,31 @@ export function createApp({ config, projects, auth, resolveUserId, staticDir }: 
     response.setHeader('Permissions-Policy', 'tools=(self)');
     next();
   });
-  app.use(helmet({ crossOriginResourcePolicy: { policy: 'same-origin' } }));
-  app.use(cors({ origin: config.APP_ORIGIN, credentials: true, methods: ['GET', 'PUT', 'DELETE', 'POST'] }));
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  
+  const isAllowedOrigin = (origin: string | undefined): boolean => {
+    if (!origin) return true;
+    if (origin === config.APP_ORIGIN) return true;
+    if (origin === 'https://seqcraft.onrender.com') return true;
+    if (origin.endsWith('.onrender.com') || origin.endsWith('.railway.app') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return true;
+    }
+    const extra = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
+    return extra.includes(origin);
+  };
+
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'PUT', 'DELETE', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Origin', 'Accept', 'X-Requested-With'],
+  }));
   app.use(rateLimit({ windowMs: 15 * 60_000, limit: 300, standardHeaders: 'draft-8', legacyHeaders: false }));
 
   if (auth) {

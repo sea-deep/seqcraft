@@ -82,9 +82,10 @@ export function ProjectSidebar() {
                     </span>
                   </button>
                   <button 
-                    className="p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[var(--bg)] hover:text-[var(--danger)] text-[var(--text-muted)] shrink-0" 
+                    className="p-1.5 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--danger)] transition-all hover:bg-[var(--bg)] hover:text-[var(--danger)] text-[var(--text-muted)] shrink-0 cursor-pointer" 
                     onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete document "${document.name}"?`)) useWorkspaceStore.getState().removeDocument(document.id); }}
-                    title="Delete document"
+                    title={`Delete ${document.name}`}
+                    aria-label={`Delete document ${document.name}`}
                   >
                     <Trash2 size={14} />
                   </button>

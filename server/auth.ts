@@ -8,12 +8,18 @@ export function createSeqCraftAuth(config: ServerConfig, db: Db, client: MongoCl
     throw new Error('Better Auth requires MongoDB and BETTER_AUTH_SECRET.');
   }
 
+  const trustedOrigins = [
+    config.APP_ORIGIN,
+    'https://seqcraft.onrender.com',
+    ...(process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean),
+  ].filter(Boolean);
+
   return betterAuth({
     appName: 'SeqCraft',
     baseURL: config.BETTER_AUTH_URL,
     basePath: '/api/auth',
     secret: config.BETTER_AUTH_SECRET,
-    trustedOrigins: [config.APP_ORIGIN],
+    trustedOrigins: Array.from(new Set(trustedOrigins)),
     database: mongodbAdapter(db, { client }),
     emailAndPassword: { enabled: true },
     socialProviders: config.googleEnabled && config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET

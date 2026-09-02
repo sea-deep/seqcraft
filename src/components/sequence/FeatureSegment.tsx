@@ -72,7 +72,6 @@ export function FeatureSegment({
         top: topPx,
         height: `${TRACK_HEIGHT}px`,
         zIndex: isSelected ? 30 : 10,
-        filter: isSelected ? 'drop-shadow(0 0 1.5px var(--selection-border))' : undefined,
       }}
       title={`${feature.name} (${feature.type}) · ${feature.strand === 1 ? 'forward' : 'reverse'} strand · ${segment.start0 + 1}–${segment.end0Exclusive}`}
     >
@@ -97,7 +96,7 @@ export function FeatureSegment({
         >
           {displayLabel && (
             <span 
-              className="truncate text-[10px] font-semibold leading-none font-ui" 
+              className="truncate text-[11px] font-semibold leading-none font-ui" 
               style={{ 
                 color: isSelected ? 'var(--text-primary)' : color, 
                 paddingLeft: isLeftArrow ? `${arrowCutPx + 3}px` : '4px',

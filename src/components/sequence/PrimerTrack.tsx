@@ -48,7 +48,6 @@ export function PrimerTrack({
               width: `${widthCh}ch`, 
               top: placed.lane * 16,
               zIndex: selected ? 30 : 15,
-              filter: selected ? 'drop-shadow(0 0 1.5px var(--selection-border))' : undefined,
             }}
           >
             {/* Outer border shell */}
@@ -71,7 +70,7 @@ export function PrimerTrack({
                   paddingRight: isRightArrow ? `${arrowCutPx + 3}px` : '4px',
                 }}
               >
-                <span className={`truncate text-[10px] font-semibold font-ui leading-none ${selected ? 'text-white' : 'text-[var(--bio-primer)]'}`}>
+                <span className={`truncate text-[11px] font-semibold font-ui leading-none ${selected ? 'text-white' : 'text-[var(--bio-primer)]'}`}>
                   {placed.primer.name}
                 </span>
               </div>

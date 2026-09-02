@@ -36,13 +36,15 @@ export function DocumentTabs() {
             <span className={isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}>{doc.topology === 'circular' ? (isActive ? <CircleDot size={11} /> : <Circle size={10} />) : <Minus size={12} />}</span>
             <span className="truncate">{doc.name}</span>
             <button 
-              className={`p-0.5 rounded-sm hover:bg-[var(--border)] ${isActive ? 'text-[var(--text-muted)] hover:text-[var(--text)]' : 'opacity-0 group-hover:opacity-100 hover:opacity-100'}`}
+              className={`size-5 rounded flex items-center justify-center transition-all hover:bg-[var(--border)] focus:opacity-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent)] shrink-0 cursor-pointer ${isActive ? 'text-[var(--text-muted)] hover:text-[var(--text)]' : 'opacity-0 group-hover:opacity-100 hover:opacity-100'}`}
               onClick={(e) => {
                 e.stopPropagation();
                 closeDocumentTab(id);
               }}
+              title={`Close ${doc.name}`}
+              aria-label={`Close tab for ${doc.name}`}
             >
-              <X size={12} />
+              <X size={13} />
             </button>
           </div>
         );

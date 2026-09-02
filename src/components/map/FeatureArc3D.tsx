@@ -1,5 +1,5 @@
 import type { Feature } from '../../domain/feature';
-import { getFeatureColor } from '../../domain/feature-colors';
+import { getFeatureHexColor } from '../../domain/feature-colors';
 import { FeatureRibbonSegment3D } from './FeatureRibbonSegment3D';
 import { PlasmidFeatureLabel } from './PlasmidFeatureLabel';
 import { getFeatureMidpointAngle } from './feature-midpoint';
@@ -17,7 +17,7 @@ interface FeatureArc3DProps {
 }
 
 export function FeatureArc3D({ feature, sequenceLength, lane, isHovered, isSelected, onHoverChange, onClick }: FeatureArc3DProps) {
-  const color = getFeatureColor(feature.type);
+  const color = getFeatureHexColor(feature.type);
   
   const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();

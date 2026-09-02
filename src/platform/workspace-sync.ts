@@ -3,7 +3,7 @@ import type { SequenceDocument } from '../domain/document';
 import type { WorkspaceView } from '../state/workspace-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { useThemeStore } from '../state/theme-store';
-import { authClient, loadPlatformConfig } from './client';
+import { authClient, getApiUrl, loadPlatformConfig } from './client';
 
 export type CloudSyncStatus = 'checking' | 'guest' | 'syncing' | 'synced' | 'error';
 
@@ -44,7 +44,7 @@ export function toProjectMetadataInput(
 }
 
 export async function syncWorkspaceMetadata(input: ProjectMetadataInput, signal?: AbortSignal) {
-  const response = await fetch('/api/projects/default-workspace', {
+  const response = await fetch(getApiUrl('/api/projects/default-workspace'), {
     method: 'PUT',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },

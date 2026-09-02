@@ -275,7 +275,7 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
                 stroke={selectedPrimerId === primer.id ? 'var(--selection-border)' : 'none'} 
                 strokeWidth={selectedPrimerId === primer.id ? 1.5 : 0}
               />
-              <text x={(x1 + x2) / 2} y={y + 11} textAnchor="middle" fill="#fff" fontSize="10" pointerEvents="none">
+              <text x={(x1 + x2) / 2} y={y + 11} textAnchor="middle" fill="#fff" fontSize="11" fontWeight="500" pointerEvents="none">
                 {primer.name}
               </text>
             </g>

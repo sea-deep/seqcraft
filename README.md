@@ -6,6 +6,8 @@ SeqCraft is a browser-native DNA engineering workbench with deterministic sequen
 [![Test Suites](https://img.shields.io/badge/test%20suites-63%20passed-brightgreen.svg)](test)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](tsconfig.json)
 [![WebMCP](https://img.shields.io/badge/WebMCP-24%20tools-teal.svg)](src/webmcp/register-seqcraft-tools.ts)
+[![Frontend](https://img.shields.io/badge/live%20app-Render-0F766E.svg)](https://seqcraft.onrender.com)
+[![Backend](https://img.shields.io/badge/api-Railway-darkblue.svg)](https://seqcraft.up.railway.app/api/health)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ---
@@ -253,6 +255,11 @@ Status:             awaiting human approval
 ---
 
 ## Quick Start
+
+### Hosted Deployments
+
+* **Frontend Application**: [https://seqcraft.onrender.com](https://seqcraft.onrender.com)
+* **Backend API**: [https://seqcraft.up.railway.app](https://seqcraft.up.railway.app) (Health check: [`/api/health`](https://seqcraft.up.railway.app/api/health))
 
 ### Prerequisites
 

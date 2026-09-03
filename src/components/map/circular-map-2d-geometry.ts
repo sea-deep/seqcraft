@@ -40,6 +40,7 @@ export function createDirectionalCircularArcGeometry(
   sequenceLength: number,
   radius: number,
   ribbonWidth: number,
+  center = 360,
 ): DirectionalCircularArcGeometry {
   const segment = feature.segments[segmentIndex];
   const terminal = getSegmentTerminal(feature, segmentIndex, sequenceLength);
@@ -53,9 +54,9 @@ export function createDirectionalCircularArcGeometry(
   const bodyInterval = clockwise
     ? { start0: segment.start0, end0Exclusive: baseCoordinate0 }
     : { start0: baseCoordinate0, end0Exclusive: segment.end0Exclusive };
-  const tip = circularPoint(tipCoordinate0, sequenceLength, radius);
-  const outerBase = circularPoint(baseCoordinate0, sequenceLength, radius + ribbonWidth / 2);
-  const innerBase = circularPoint(baseCoordinate0, sequenceLength, radius - ribbonWidth / 2);
+  const tip = circularPoint(tipCoordinate0, sequenceLength, radius, center);
+  const outerBase = circularPoint(baseCoordinate0, sequenceLength, radius + ribbonWidth / 2, center);
+  const innerBase = circularPoint(baseCoordinate0, sequenceLength, radius - ribbonWidth / 2, center);
   return { bodyInterval, terminal, arrowPoints: [tip, outerBase, innerBase] };
 }
 

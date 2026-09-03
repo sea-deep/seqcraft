@@ -14,7 +14,6 @@ describe('GenomicHero Component', () => {
     );
 
     expect(screen.getByText(/Design DNA without losing sight of a single base/i)).toBeInTheDocument();
-    expect(screen.getByText(/Molecular Biology Workbench/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Launch SeqCraft/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Open pUC19 demo/i })).toBeInTheDocument();
 

@@ -78,12 +78,12 @@ const RESTRICTION_MARKERS = [
 ];
 
 const TICKS = [
-  { bp: 0, label: '0/2686' },
-  { bp: 500, label: '500' },
-  { bp: 1000, label: '1,000' },
-  { bp: 1500, label: '1,500' },
-  { bp: 2000, label: '2,000' },
-  { bp: 2500, label: '2,500' },
+  { bp: 0, label: '0/2686', showLabel: true },
+  { bp: 500, label: '500', showLabel: true },
+  { bp: 1000, label: '1,000', showLabel: true },
+  { bp: 1500, label: '1,500', showLabel: true },
+  { bp: 2000, label: '2,000', showLabel: true },
+  { bp: 2500, label: '2,500', showLabel: false },
 ];
 
 interface HeroPlasmidMapProps {
@@ -147,7 +147,7 @@ export function HeroPlasmidMap({
         />
 
         {/* Coordinate tick marks and labels */}
-        {TICKS.map(({ bp, label }) => {
+        {TICKS.map(({ bp, label, showLabel }) => {
           const ptInner = circularPoint(bp, totalBp, backboneRadius - 2, center);
           const ptOuter = circularPoint(bp, totalBp, backboneRadius + 7, center);
           const ptLabel = circularPoint(bp, totalBp, backboneRadius + 22, center);
@@ -161,15 +161,17 @@ export function HeroPlasmidMap({
                 stroke="var(--border-strong)"
                 strokeWidth="1.25"
               />
-              <text
-                x={ptLabel.x}
-                y={ptLabel.y}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="fill-[var(--text-muted)] font-mono text-[10px]"
-              >
-                {label}
-              </text>
+              {showLabel && (
+                <text
+                  x={ptLabel.x}
+                  y={ptLabel.y}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="fill-[var(--text-muted)] font-mono text-[10px]"
+                >
+                  {label}
+                </text>
+              )}
             </g>
           );
         })}
@@ -223,7 +225,8 @@ export function HeroPlasmidMap({
             0,
             totalBp,
             ribbonRadius,
-            ribbonWidth
+            ribbonWidth,
+            center
           );
 
           return (
@@ -285,10 +288,18 @@ export function HeroPlasmidMap({
           const isRightSide = Math.cos(angle) >= 0;
 
           const anchor = circularPoint(midBp, totalBp, ribbonRadius, center);
-          const elbowRadius = backboneRadius + (isSelected ? 38 : 32);
+          const baseOffset =
+            locus.id === 'locus-mcs'
+              ? 22
+              : locus.id === 'locus-lacz'
+              ? 48
+              : locus.id === 'locus-ampr'
+              ? 34
+              : 30;
+          const elbowRadius = backboneRadius + baseOffset + (isSelected ? 6 : 0);
           const elbow = circularPoint(midBp, totalBp, elbowRadius, center);
           const labelX = elbow.x + (isRightSide ? 14 : -14);
-          const labelY = elbow.y;
+          const labelY = elbow.y + (locus.id === 'locus-mcs' ? -6 : locus.id === 'locus-lacz' ? -14 : 0);
 
           return (
             <g

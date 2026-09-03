@@ -9,23 +9,17 @@ export function GenomicHero() {
 
   return (
     <section className="relative overflow-hidden border-b border-[var(--border)] bg-[var(--bg)] text-[var(--text)] selection:bg-[var(--accent)] selection:text-[var(--accent-foreground)]">
-      <div className="max-w-7xl mx-auto px-6 py-16 lg:py-24">
-        <div className="grid lg:grid-cols-[1fr_1.15fr] gap-12 lg:gap-16 items-center">
+      <div className="max-w-7xl mx-auto px-6 py-12 lg:py-16">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left Column: Focused Editorial Typography & Actions */}
-          <div className="max-w-xl">
-            {/* 1 Small Eyebrow */}
-            <div className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--accent)] mb-5 font-semibold">
-              <span className="size-1.5 rounded-full bg-[var(--accent)]" />
-              Molecular Biology Workbench
-            </div>
-
+          <div className="min-w-0">
             {/* 1 Strong Headline */}
-            <h1 className="text-[clamp(2.5rem,4.5vw,3.75rem)] font-bold tracking-[-0.04em] leading-[1.06] text-balance text-[var(--text)]">
+            <h1 className="text-[clamp(2.5rem,4.2vw,3.75rem)] font-bold tracking-[-0.04em] leading-[1.08] text-balance text-[var(--text)]">
               Design DNA without losing sight of a single base.
             </h1>
 
             {/* 1 Short Supporting Paragraph (~5 second read) */}
-            <p className="mt-6 text-[17px] leading-7 text-[var(--text-secondary)] text-balance">
+            <p className="mt-5 text-[16px] sm:text-[17px] leading-7 text-[var(--text-secondary)] text-balance max-w-lg">
               Inspect circular plasmids, simulate restriction cuts and PCR, and verify edits down to
               individual nucleotides—all in your browser, with raw sequences kept entirely local.
             </p>
@@ -47,13 +41,13 @@ export function GenomicHero() {
             </div>
 
             {/* Quiet, factual note */}
-            <div className="mt-8 font-mono text-[11px] text-[var(--text-muted)]">
+            <div className="mt-7 font-mono text-[11px] text-[var(--text-muted)]">
               Local OPFS storage · Standard 1-based biological coordinates · 24 WebMCP tools
             </div>
           </div>
 
           {/* Right Column: Dominant Product Visualization (Large Plasmid + Synchronized Sequence) */}
-          <div className="w-full flex flex-col items-center">
+          <div className="w-full min-w-0 flex flex-col items-center">
             {/* Large Circular Plasmid Map */}
             <HeroPlasmidMap
               selectedLocusId={selectedLocus.id}

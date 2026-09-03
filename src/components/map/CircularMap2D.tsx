@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react';
-import { LocateFixed, Maximize2, Minus, Plus, Scissors } from 'lucide-react';
+import { LocateFixed, Minus, Plus, Scissors } from 'lucide-react';
 import type { Feature } from '../../domain/feature';
 import type { SequenceDocument } from '../../domain/document';
 import type { RestrictionCategory } from '../../domain/restriction';
@@ -16,10 +16,9 @@ import {
   clusterCircularRestrictionSites,
   createDirectionalCircularArcGeometry,
   localPointToCircularCoordinate,
-  resolveScreenCircularDragRange,
-  circularCoordinateToAngle,
-  featureMidpoint0
+  resolveScreenCircularDragRange
 } from './circular-map-2d-geometry';
+import { computeCircularLabelLayout, resolveFeatureDisplayName } from './circular-label-layout';
 import { getFeatureColor } from '../../domain/feature-colors';
 import { getFeatureTypeMetadata, type FeatureCategory } from '../../domain/feature-ontology';
 
@@ -78,7 +77,13 @@ function wrapSvgCenterTitle(name: string, maxLines = 2, maxCharsPerLine = 22): s
 type CutterFilter = 'all' | 'unique' | 'double';
 type EnzymeCategoryFilter = 'all' | RestrictionCategory;
 
-export function CircularMap2D({ document }: { document: SequenceDocument }) {
+export function CircularMap2D({
+  document,
+  headerRight
+}: {
+  document: SequenceDocument;
+  headerRight?: React.ReactNode;
+}) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<{ coordinate0: number; lastAngle: number; accumulated: number } | null>(null);
   const [hoverCoordinate0, setHoverCoordinate0] = useState<number | null>(null);
@@ -89,6 +94,7 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
   const [cutterFilter, setCutterFilter] = useState<CutterFilter>('unique');
   const [categoryFilter, setCategoryFilter] = useState<EnzymeCategoryFilter>('all');
   const [featureCatFilter, setFeatureCatFilter] = useState<'all' | FeatureCategory>('all');
+  const [activeClusterId, setActiveClusterId] = useState<string | null>(null);
 
   const sequence = document.storageMode === 'memory' ? getMemorySequence(document).raw : '';
 
@@ -158,7 +164,15 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
   const selectRestrictionSite = useWorkspaceStore(state => state.selectRestrictionSite);
   const selectPrimer = useWorkspaceStore(state => state.selectPrimer);
 
-  const backboneRadius = 205;
+  const backboneRadius = 175;
+
+  const circularLabels = useMemo(() => {
+    return computeCircularLabelLayout(filteredFeatures, document.length, {
+      backboneRadius,
+      selectedFeatureId,
+      center: 360
+    });
+  }, [filteredFeatures, document.length, backboneRadius, selectedFeatureId]);
 
   const renderedPrimerBindings = showPrimers
     ? primerBindings
@@ -312,11 +326,13 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
   const viewY = 360 - 360 / zoom - pan.y;
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[var(--bg-editor)] scientific-grid">
-      {/* Top Left Navigation & Scientific Layers Toolbar */}
-      <div className="absolute left-4 top-4 z-20 flex flex-wrap items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--panel)]/95 backdrop-blur-sm p-1 shadow-md text-xs max-w-[calc(100%-190px)]">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-[var(--bg-editor)]">
+      {/* Top Navigation & Scientific Layers Header */}
+      <div className="flex h-10 w-full shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--panel)]/95 px-3 backdrop-blur-sm z-20 gap-2">
+        {/* Left: Scientific Controls */}
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
         {/* Zoom Controls */}
-        <div className="flex items-center rounded border border-[var(--border)] bg-[var(--bg)] p-0.5">
+        <div className="flex items-center rounded border border-[var(--border)] bg-[var(--bg)] p-0.5 shrink-0">
           <button
             aria-label="Zoom out"
             title="Zoom out"
@@ -341,20 +357,12 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
           >
             <Plus size={12} />
           </button>
-          <button
-            aria-label="Reset zoom"
-            title="Reset zoom"
-            onClick={resetView}
-            className="grid h-6 w-6 place-items-center rounded text-[var(--text-muted)] hover:text-[var(--text)] cursor-pointer"
-          >
-            <Maximize2 size={11} />
-          </button>
         </div>
 
-        <span className="h-4 w-px bg-[var(--border)]" />
+        <span className="h-4 w-px bg-[var(--border)] shrink-0" />
 
         {/* Restriction Site Layers & Filters */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             aria-label="Toggle restriction sites"
             aria-pressed={showRestrictionSites}
@@ -376,7 +384,7 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
               <select
                 value={cutterFilter}
                 onChange={e => setCutterFilter(e.target.value as CutterFilter)}
-                className="h-6 rounded border border-[var(--border)] bg-[var(--bg)] px-1.5 text-[10px] text-[var(--text)] font-medium outline-none focus:border-[var(--accent)]"
+                className="h-6 rounded border border-[var(--border)] bg-[var(--bg)] px-1.5 text-[10px] text-[var(--text)] font-medium outline-none focus:border-[var(--accent)] shrink-0"
                 title="Filter by cut frequency"
               >
                 <option value="unique">Unique (1-cut)</option>
@@ -388,7 +396,7 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
               <select
                 value={categoryFilter}
                 onChange={e => setCategoryFilter(e.target.value as EnzymeCategoryFilter)}
-                className="h-6 rounded border border-[var(--border)] bg-[var(--bg)] px-1.5 text-[10px] text-[var(--text)] font-medium outline-none focus:border-[var(--accent)]"
+                className="h-6 rounded border border-[var(--border)] bg-[var(--bg)] px-1.5 text-[10px] text-[var(--text)] font-medium outline-none focus:border-[var(--accent)] shrink-0"
                 title="Filter by commercial enzyme class"
               >
                 <option value="all">All Classes</option>
@@ -401,16 +409,16 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
           )}
         </div>
 
-        <span className="h-4 w-px bg-[var(--border)]" />
+        <span className="h-4 w-px bg-[var(--border)] shrink-0" />
 
         {/* Feature Category Filter */}
         <select
           value={featureCatFilter}
           onChange={e => setFeatureCatFilter(e.target.value as any)}
-          className="h-6 rounded border border-[var(--border)] bg-[var(--bg)] px-1.5 text-[10px] text-[var(--text)] font-medium outline-none focus:border-[var(--accent)]"
+          className="h-6 rounded border border-[var(--border)] bg-[var(--bg)] px-1.5 text-[10px] text-[var(--text)] font-medium outline-none focus:border-[var(--accent)] shrink-0 max-w-[130px]"
           title="Filter annotations by biological category"
         >
-          <option value="all">All Features ({document.features.length})</option>
+          <option value="all">Features ({document.features.length})</option>
           <option value="coding">Coding & Genes</option>
           <option value="regulatory">Promoters / Signals</option>
           <option value="synthetic">Markers / Tags / Recombination</option>
@@ -425,7 +433,7 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
             aria-pressed={showPrimers}
             title="Show or hide primer bindings"
             onClick={() => setShowPrimers(v => !v)}
-            className={`flex h-6 items-center gap-1 rounded px-2 text-[11px] font-medium transition-colors cursor-pointer ${
+            className={`flex h-6 items-center gap-1 rounded px-2 text-[11px] font-medium transition-colors cursor-pointer shrink-0 ${
               showPrimers
                 ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
                 : 'text-[var(--text-muted)] hover:bg-[var(--panel-muted)] hover:text-[var(--text)]'
@@ -436,6 +444,12 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
         )}
       </div>
 
+      {/* Right: View Mode Toggle */}
+      {headerRight && <div className="shrink-0">{headerRight}</div>}
+    </div>
+
+    {/* Unobstructed Canvas Area */}
+    <div className="relative flex-1 h-full w-full overflow-hidden scientific-grid">
       <svg
         ref={svgRef}
         viewBox={`${viewX} ${viewY} ${viewW} ${viewH}`}
@@ -760,51 +774,232 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
             );
           })}
 
-          {/* Feature Labels with localized radial leader lines */}
-          {visibleFeatures.map(({ feature, lane }) => {
-            const radius = backboneRadius - 22 - lane * 18;
-            const midpoint0 = featureMidpoint0(feature, document.length);
-            const angle = circularCoordinateToAngle(midpoint0, document.length);
-            const cosA = Math.cos(angle);
-            const sinA = Math.sin(angle);
-            const outerLabelRadius = backboneRadius + 36 + (lane % 2) * 16;
-            const innerPoint = circularPoint(midpoint0, document.length, radius + 7);
-            const textPoint = circularPoint(midpoint0, document.length, outerLabelRadius);
-            const textAnchor = cosA > 0.15 ? 'start' : cosA < -0.15 ? 'end' : 'middle';
-            const dominantBaseline = sinA > 0.4 ? 'hanging' : sinA < -0.4 ? 'auto' : 'middle';
-            const selected = selectedFeatureId === feature.id;
+          {/* Collision-Aware Feature Labels with outward multi-lane layout & cluster badges */}
+          {circularLabels.map(label => {
+            if (label.kind === 'single') {
+              const selected = selectedFeatureId === label.feature.id;
+              return (
+                <g key={`radial-label-${label.id}`}>
+                  {/* Leader Line to Feature Ribbon */}
+                  <path
+                    d={`M ${label.innerPoint.x} ${label.innerPoint.y} L ${label.anchorPoint.x} ${label.anchorPoint.y} L ${label.textPoint.x} ${label.textPoint.y}`}
+                    stroke={selected ? 'var(--accent)' : 'var(--border-strong)'}
+                    strokeWidth={selected ? 1.2 : 0.8}
+                    strokeDasharray="2 2"
+                    fill="none"
+                    opacity={selected ? 1 : 0.65}
+                    pointerEvents="none"
+                  />
+                  <circle cx={label.innerPoint.x} cy={label.innerPoint.y} r="2.5" fill={label.color} pointerEvents="none" />
 
+                  {/* Interactive Label Pill & Text */}
+                  <g
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Select feature ${label.displayName}`}
+                    className="cursor-pointer group"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      selectDocumentFeature(document.id, label.feature.id);
+                    }}
+                    onMouseEnter={() => setHoveredFeature(label.feature)}
+                    onMouseLeave={() => setHoveredFeature(null)}
+                  >
+                    <title>{label.feature.name} ({label.feature.type}, {label.feature.segments[0].start0 + 1}..{label.feature.segments[label.feature.segments.length - 1].end0Exclusive} bp)</title>
+                    <rect
+                      x={label.bbox.x - 2}
+                      y={label.bbox.y - 1}
+                      width={label.bbox.width + 4}
+                      height={label.bbox.height + 2}
+                      rx="3"
+                      fill="var(--panel)"
+                      fillOpacity={selected ? 0.95 : 0.85}
+                      stroke={selected ? 'var(--accent)' : 'var(--border)'}
+                      strokeWidth={selected ? 1.2 : 0.6}
+                      className="transition-colors group-hover:stroke-[var(--accent)]"
+                    />
+                    <text
+                      x={
+                        label.textAnchor === 'middle'
+                          ? label.bbox.x + label.bbox.width / 2
+                          : label.textAnchor === 'end'
+                          ? label.bbox.x + label.bbox.width - 4
+                          : label.bbox.x + 4
+                      }
+                      y={label.bbox.y + label.bbox.height / 2}
+                      textAnchor={label.textAnchor}
+                      dominantBaseline="central"
+                      className={`font-ui text-[11px] transition-colors select-none ${
+                        selected
+                          ? 'fill-[var(--accent)] font-bold'
+                          : 'fill-[var(--text)] font-medium group-hover:fill-[var(--accent)]'
+                      }`}
+                    >
+                      {label.displayName.length > 20 ? `${label.displayName.slice(0, 18)}…` : label.displayName}
+                    </text>
+                  </g>
+                </g>
+              );
+            }
+
+            // Cluster Label (e.g. "Binding sites (7)" / "Features (3)")
+            const isClusterActive = activeClusterId === label.id;
             return (
-              <g key={`radial-label-${feature.id}`} pointerEvents="none">
-                <line
-                  x1={innerPoint.x}
-                  y1={innerPoint.y}
-                  x2={textPoint.x}
-                  y2={textPoint.y}
-                  stroke="var(--border-strong)"
-                  strokeWidth="0.8"
+              <g key={`cluster-badge-${label.id}`}>
+                {/* Leader Line to centroid */}
+                <path
+                  d={`M ${label.innerPoint.x} ${label.innerPoint.y} L ${label.anchorPoint.x} ${label.anchorPoint.y} L ${label.textPoint.x} ${label.textPoint.y}`}
+                  stroke={isClusterActive || label.isSelected ? 'var(--accent)' : 'var(--border-strong)'}
+                  strokeWidth={0.8}
                   strokeDasharray="2 2"
-                  opacity={selected ? 1 : 0.6}
+                  fill="none"
+                  opacity={0.65}
+                  pointerEvents="none"
                 />
-                <circle cx={innerPoint.x} cy={innerPoint.y} r="2" fill={featureColor(feature)} />
-                <text
-                  x={textPoint.x}
-                  y={textPoint.y}
-                  textAnchor={textAnchor}
-                  dominantBaseline={dominantBaseline}
-                  className={`font-ui text-[11px] transition-colors ${
-                    selected ? 'fill-[var(--accent)] font-bold' : 'fill-[var(--text)] font-medium'
-                  }`}
+                <circle cx={label.innerPoint.x} cy={label.innerPoint.y} r="2" fill="var(--bio-misc)" pointerEvents="none" />
+
+                {/* Badge Pill */}
+                <g
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Expand ${label.displayName}`}
+                  className="cursor-pointer group"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveClusterId(isClusterActive ? null : label.id);
+                  }}
+                  onMouseEnter={() => setActiveClusterId(label.id)}
                 >
-                  <title>{feature.name}</title>
-                  {feature.name.length > 22 ? `${feature.name.slice(0, 20)}…` : feature.name}
-                </text>
+                  <title>{label.features.map(f => `${f.name} (${f.type})`).join('\n')}</title>
+                  <rect
+                    x={label.bbox.x}
+                    y={label.bbox.y}
+                    width={label.bbox.width}
+                    height={label.bbox.height}
+                    rx="4"
+                    fill="var(--panel)"
+                    stroke={isClusterActive || label.isSelected ? 'var(--accent)' : 'var(--border-strong)'}
+                    strokeWidth={isClusterActive ? 1.5 : 1}
+                    className="transition-colors shadow-sm group-hover:stroke-[var(--accent)]"
+                  />
+                  <text
+                    x={label.bbox.x + label.bbox.width / 2}
+                    y={label.bbox.y + label.bbox.height / 2}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    className={`font-ui text-[10px] font-semibold select-none transition-colors ${
+                      isClusterActive ? 'fill-[var(--accent)]' : 'fill-[var(--text-muted)] group-hover:fill-[var(--text)]'
+                    }`}
+                  >
+                    {label.displayName}
+                  </text>
+                </g>
               </g>
             );
           })}
 
+          {/* Interactive Cluster Popover Card on Hover/Click */}
+          {(() => {
+            const activeCluster = circularLabels.find(l => l.kind === 'cluster' && l.id === activeClusterId);
+            if (!activeCluster || activeCluster.kind !== 'cluster') return null;
+
+            const popoverWidth = 205;
+            const rowHeight = 22;
+            const maxShown = Math.min(8, activeCluster.features.length);
+            const popoverHeight = maxShown * rowHeight + 36;
+
+            let popX = activeCluster.bbox.x > 360 ? activeCluster.bbox.x - popoverWidth - 6 : activeCluster.bbox.x + activeCluster.bbox.width + 6;
+            popX = Math.max(16, Math.min(720 - popoverWidth - 16, popX));
+            let popY = activeCluster.bbox.y - popoverHeight / 2;
+            popY = Math.max(16, Math.min(720 - popoverHeight - 16, popY));
+
+            return (
+              <g
+                className="cluster-popover cursor-default"
+                onMouseLeave={() => setActiveClusterId(null)}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <rect
+                  x={popX}
+                  y={popY}
+                  width={popoverWidth}
+                  height={popoverHeight}
+                  rx="6"
+                  fill="var(--panel)"
+                  stroke="var(--accent)"
+                  strokeWidth="1.2"
+                  className="shadow-2xl"
+                />
+                <text
+                  x={popX + 10}
+                  y={popY + 16}
+                  className="fill-[var(--text-muted)] font-ui text-[10px] font-bold uppercase tracking-wider select-none"
+                >
+                  {activeCluster.displayName}
+                </text>
+                <text
+                  x={popX + popoverWidth - 14}
+                  y={popY + 16}
+                  textAnchor="middle"
+                  className="fill-[var(--text-muted)] hover:fill-[var(--text)] font-bold text-[12px] cursor-pointer select-none"
+                  onClick={() => setActiveClusterId(null)}
+                >
+                  ×
+                </text>
+                <line
+                  x1={popX + 8}
+                  y1={popY + 23}
+                  x2={popX + popoverWidth - 8}
+                  y2={popY + 23}
+                  stroke="var(--border)"
+                  strokeWidth="0.8"
+                />
+                {activeCluster.features.slice(0, 8).map((feat, idx) => {
+                  const rowY = popY + 36 + idx * rowHeight;
+                  const isSel = selectedFeatureId === feat.id;
+                  const s0 = feat.segments[0]?.start0 ?? 0;
+                  const e0 = feat.segments[feat.segments.length - 1]?.end0Exclusive ?? 0;
+                  const featName = resolveFeatureDisplayName(feat);
+
+                  return (
+                    <g
+                      key={feat.id}
+                      className="cursor-pointer group"
+                      onClick={() => {
+                        selectDocumentFeature(document.id, feat.id);
+                        setHoveredFeature(feat);
+                      }}
+                      onMouseEnter={() => setHoveredFeature(feat)}
+                    >
+                      <circle cx={popX + 14} cy={rowY} r="3" fill={featureColor(feat)} />
+                      <text
+                        x={popX + 24}
+                        y={rowY}
+                        dominantBaseline="central"
+                        className={`font-ui text-[10px] select-none ${
+                          isSel ? 'fill-[var(--accent)] font-bold' : 'fill-[var(--text)] font-medium group-hover:fill-[var(--accent)]'
+                        }`}
+                      >
+                        {featName.length > 16 ? `${featName.slice(0, 15)}…` : featName}
+                      </text>
+                      <text
+                        x={popX + popoverWidth - 10}
+                        y={rowY}
+                        textAnchor="end"
+                        dominantBaseline="central"
+                        className="fill-[var(--text-muted)] font-mono text-[8.5px] select-none"
+                      >
+                        {s0 + 1}..{e0}
+                      </text>
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          })()}
+
           {/* Center Informational Badge with Feature Inspector Details */}
-          <circle cx="360" cy="360" r={120} fill="var(--panel)" stroke="var(--border)" className="shadow-inner" />
+          <circle cx="360" cy="360" r={105} fill="var(--panel)" stroke="var(--border)" className="shadow-inner" />
           
           {/* Plasmid Name (wrapped to safe chord width inside r=120 badge) */}
           {(() => {
@@ -895,6 +1090,7 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
           Showing first {visibleFeatures.length} of {placedFeatures.length} annotations
         </div>
       )}
+      </div>
     </div>
   );
 }

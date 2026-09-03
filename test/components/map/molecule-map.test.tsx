@@ -12,7 +12,12 @@ vi.mock('../../../src/components/map/PlasmidMap3D', () => ({
 }));
 
 vi.mock('../../../src/components/map/CircularMap2D', () => ({
-  CircularMap2D: ({ document }: { document: SequenceDocument }) => <div data-testid="circular-map-2d">{document.name}</div>,
+  CircularMap2D: ({ document, headerRight }: { document: SequenceDocument; headerRight?: React.ReactNode }) => (
+    <>
+      {headerRight}
+      <div data-testid="circular-map-2d">{document.name}</div>
+    </>
+  ),
 }));
 
 function documentWithTopology(topology: SequenceDocument['topology']): SequenceDocument {

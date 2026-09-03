@@ -213,9 +213,10 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
   }, [document.length]);
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[var(--bg-editor)] scientific-grid">
-      {/* Top Left Scientific Layers Toolbar */}
-      <div className="absolute left-4 top-4 z-20 flex flex-wrap items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--panel)]/95 backdrop-blur-sm p-1 shadow-md text-xs max-w-[calc(100%-2rem)]">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-[var(--bg-editor)]">
+      {/* Top Scientific Layers Toolbar */}
+      <div className="flex h-10 w-full shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--panel)]/95 px-3 backdrop-blur-sm z-20 gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
         {/* Restriction Site Layers & Filters */}
         <div className="flex items-center gap-1">
           <button
@@ -296,7 +297,10 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
           </button>
         )}
       </div>
+    </div>
 
+    {/* Unobstructed Canvas Area */}
+    <div className="relative flex-1 h-full w-full overflow-hidden scientific-grid">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
@@ -558,6 +562,7 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
             </span>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

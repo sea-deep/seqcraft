@@ -1,9 +1,9 @@
 # SeqCraft Agent Notes
 
 ## Non-negotiable contracts
-- FEATURES.md controls scope.
-- DESIGN.md controls UI/UX.
-- IMPLEMENTATION.md controls architecture.
+- docs/FEATURES.md controls scope.
+- docs/DESIGN.md controls UI/UX.
+- docs/IMPLEMENTATION.md controls architecture.
 - Internal coordinates are 0-based half-open.
 - Persistent agent changes are staged for human approval.
 

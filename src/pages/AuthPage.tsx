@@ -74,6 +74,8 @@ export function AuthPage() {
       });
       if (result?.error) {
         setError(result.error.message ?? 'Google sign-in failed.');
+      } else if (result?.data?.url) {
+        window.location.href = result.data.url;
       }
     } catch {
       setError('Unable to start Google sign-in. Please try again.');

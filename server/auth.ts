@@ -69,8 +69,25 @@ export function createSeqCraftAuth(
       database: { joins: true },
       useSecureCookies: isHttps,
       defaultCookieAttributes: isHttps
-        ? { httpOnly: true, secure: true, sameSite: 'none' }
+        ? { httpOnly: true, secure: true, sameSite: 'none', partitioned: true }
         : { httpOnly: true, secure: false, sameSite: 'lax' },
+      cookies: {
+        state: {
+          attributes: isHttps
+            ? { httpOnly: true, secure: true, sameSite: 'none', partitioned: true }
+            : { httpOnly: true, secure: false, sameSite: 'lax' },
+        },
+        oauth_state: {
+          attributes: isHttps
+            ? { httpOnly: true, secure: true, sameSite: 'none', partitioned: true }
+            : { httpOnly: true, secure: false, sameSite: 'lax' },
+        },
+        session_token: {
+          attributes: isHttps
+            ? { httpOnly: true, secure: true, sameSite: 'none', partitioned: true }
+            : { httpOnly: true, secure: false, sameSite: 'lax' },
+        },
+      },
     },
   });
 }

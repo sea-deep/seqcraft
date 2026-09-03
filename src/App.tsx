@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, type ComponentType } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { SeqCraftLogo } from './components/ui/SeqCraftLogo';
 import { initializeDocumentPersistence, hydrateWorkspaceFromStorage } from './storage/document-persistence';
+import { consumeAuthRedirectToken } from './platform/client';
 
 function lazyWithRetry<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>
@@ -41,6 +42,7 @@ const DocsPage = lazyWithRetry(() => import('./pages/DocsPage').then(module => (
 
 export default function App() {
   useEffect(() => {
+    consumeAuthRedirectToken();
     const stop = initializeDocumentPersistence();
     void hydrateWorkspaceFromStorage();
     return stop;

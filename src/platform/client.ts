@@ -103,6 +103,7 @@ export function consumeAuthRedirectToken(): string | null {
 export const authClient = createAuthClient({
   baseURL: API_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : ''),
   fetchOptions: {
+    credentials: 'include',
     auth: {
       type: 'Bearer',
       token: () => loadToken() ?? undefined,
@@ -121,11 +122,11 @@ export const authClient = createAuthClient({
 });
 
 // ---------------------------------------------------------------------------
-// fetchSession — the ONLY reliable way to validate a cross-origin session.
+// fetchSession — validates the session cross-origin.
 //
-// authClient.getSession() uses cookies internally which are silently blocked
-// by browsers across origins (even with SameSite=None). Instead we call
-// GET /api/auth/get-session with an explicit Authorization: Bearer header.
+// Sends the Bearer token if present, and also passes credentials: 'include'
+// so that cross-site cookies can serve as a fallback. If a session token
+// is returned in the payload, it is persisted to storage immediately.
 // ---------------------------------------------------------------------------
 export type SessionUser = {
   id: string;
@@ -136,17 +137,24 @@ export type SessionUser = {
 
 export async function fetchSession(signal?: AbortSignal): Promise<SessionUser | null> {
   const token = loadToken();
-  if (!token) return null;
   try {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     const response = await fetch(getApiUrl('/api/auth/get-session'), {
-      headers: { Authorization: `Bearer ${token}` },
+      headers,
+      credentials: 'include',
       signal,
     });
     if (!response.ok) {
-      if (response.status === 401) clearToken();
+      if (response.status === 401 && token) clearToken();
       return null;
     }
-    const data = await response.json() as { user?: SessionUser } | null;
+    const data = await response.json() as { user?: SessionUser; session?: { token?: string } } | null;
+    if (data?.session?.token) {
+      saveToken(data.session.token);
+    }
     return data?.user ?? null;
   } catch {
     return null;

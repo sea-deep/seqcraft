@@ -5,14 +5,29 @@ const optionalTrimmed = z.preprocess(
   z.string().trim().optional(),
 );
 
-const defaultRailwayUrl = typeof process !== 'undefined' && process.env?.RAILWAY_PUBLIC_DOMAIN
-  ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+const rawRailwayDomain = typeof process !== 'undefined'
+  ? (process.env?.RAILWAY_PUBLIC_DOMAIN || process.env?.RAILWAY_STATIC_URL)
   : undefined;
 
+const isRailwayEnvironment = typeof process !== 'undefined' && Boolean(
+  process.env?.RAILWAY_ENVIRONMENT ||
+  process.env?.RAILWAY_SERVICE_ID ||
+  process.env?.RAILWAY_PROJECT_ID ||
+  rawRailwayDomain
+);
+
+const defaultRailwayUrl = rawRailwayDomain
+  ? (rawRailwayDomain.startsWith('http') ? rawRailwayDomain : `https://${rawRailwayDomain}`)
+  : (isRailwayEnvironment ? 'https://seqcraft.up.railway.app' : undefined);
+
+const defaultAppOrigin = isRailwayEnvironment
+  ? 'https://seqcraft.onrender.com'
+  : (defaultRailwayUrl || 'http://localhost:5173');
+
 const environmentSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  NODE_ENV: z.enum(['development', 'test', 'production']).default(isRailwayEnvironment ? 'production' : 'development'),
   PORT: z.coerce.number().int().min(1).max(65_535).default(8787),
-  APP_ORIGIN: z.string().url().default(defaultRailwayUrl || 'http://localhost:5173'),
+  APP_ORIGIN: z.string().url().default(defaultAppOrigin),
   MONGODB_URI: optionalTrimmed,
   MONGODB_DB: z.string().trim().min(1).max(64).default('seqcraft'),
   BETTER_AUTH_SECRET: optionalTrimmed,

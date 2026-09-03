@@ -2,7 +2,8 @@ import { getMemorySequence } from '../../utils/document-utils';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { ImportDialog } from '../ui/ImportDialog';
 import { ExportDialog } from '../ui/ExportDialog';
-import { PanelLeft, PanelRight, Download, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { PanelLeft, PanelRight, Download, ArrowLeft, ShieldCheck, Bot } from 'lucide-react';
+import { useActivityStore } from '../../state/activity-store';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -49,6 +50,9 @@ export function AppCommandBar() {
   const setSidebarOpen = useWorkspaceStore(s => s.setSidebarOpen);
   const inspectorOpen = useWorkspaceStore(s => s.inspectorOpen);
   const setInspectorOpen = useWorkspaceStore(s => s.setInspectorOpen);
+  const inspectorTab = useWorkspaceStore(s => s.inspectorTab);
+  const setInspectorTab = useWorkspaceStore(s => s.setInspectorTab);
+  const pendingTransaction = useActivityStore(s => s.pendingTransaction);
   const themePreference = useThemeStore(s => s.preference);
   const setThemePreference = useThemeStore(s => s.setPreference);
   const [importOpen, setImportOpen] = useState(false);
@@ -307,6 +311,23 @@ export function AppCommandBar() {
           aria-pressed={inspectorOpen}
         >
           <PanelRight size={16} />
+        </button>
+        <button
+          className={`px-2 py-1 rounded flex items-center gap-1.5 transition-colors cursor-pointer outline-none text-[12px] font-medium ${
+            inspectorOpen && inspectorTab === 'agent_run'
+              ? 'bg-[var(--panel-muted)] text-[var(--text)] font-semibold'
+              : 'text-[var(--text-muted)] hover:bg-[var(--panel-muted)] hover:text-[var(--text)]'
+          }`}
+          onClick={() => {
+            setInspectorTab('agent_run');
+            setInspectorOpen(true);
+          }}
+          title="Open Agent Run timeline"
+          aria-label="Open Agent Run"
+        >
+          <Bot size={15} />
+          <span className="hidden md:inline">Agent Run</span>
+          {pendingTransaction && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
         </button>
         {activeDocument && (
           <>

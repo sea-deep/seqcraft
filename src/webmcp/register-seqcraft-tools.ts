@@ -19,6 +19,10 @@ import { compileOpentronsPCRProtocol, compileOpentronsDigestProtocol } from '../
 import { findCrisprTargets } from '../scientific/crispr';
 import { TYPE_IIS_ENZYMES, assembleGoldenGate, domesticateSequence } from '../scientific/golden-gate';
 import { screenBiosecurity } from '../scientific/biosecurity';
+import { computeSequenceSha256 } from '../utils/sequence-hash';
+import { evaluateTransactionInvariants } from '../scientific/transaction-invariants';
+import { editSequence, type SequenceEditAction } from '../scientific/sequence-editing';
+import type { SequenceTransaction } from '../domain/sequence-transaction';
 
 const createError = (code: string, message: string, details?: any) => ({
   ok: false,
@@ -57,18 +61,43 @@ export const getWebMCPContext = () => {
   return null;
 };
 
-const logActivity = (toolName: string, inputSummary: string, result: any, resultSummary: string) => {
-  useActivityStore.getState().addEvent({
-    toolName,
-    inputSummary,
-    status: result.ok ? 'success' : 'error',
-    resultSummary: result.ok ? resultSummary : `Error: ${result.error.message}`
-  });
-  return result;
-};
+function getToolCategory(toolName: string): 'read' | 'navigation' | 'mutation' | 'export' {
+  if (
+    toolName.includes('edit_sequence') ||
+    toolName.includes('rotate_origin') ||
+    toolName.includes('propose_annotation') ||
+    toolName.includes('prepare_restriction_clone')
+  ) {
+    return 'mutation';
+  }
+  if (toolName.includes('focus_region') || toolName.includes('show_')) {
+    return 'navigation';
+  }
+  if (toolName.includes('opentrons')) {
+    return 'export';
+  }
+  return 'read';
+}
+
+function sanitizeArgs(input: any): Record<string, unknown> {
+  if (!input || typeof input !== 'object') return {};
+  const cleaned: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(input)) {
+    if (typeof v === 'string' && v.length > 80 && (k.toLowerCase().includes('sequence') || k.toLowerCase().includes('raw'))) {
+      cleaned[k] = `${v.slice(0, 40)}… (${v.length} bp)`;
+    } else {
+      cleaned[k] = v;
+    }
+  }
+  return cleaned;
+}
 
 const wrapToolExecute = (toolName: string, inputSummaryFn: (input: any) => string, handler: (input: any) => any) => {
   return async (input: any) => {
+    const callId = `call_${generateId()}`;
+    const startedAt = Date.now();
+    const category = getToolCategory(toolName);
+
     let parsedInput = input;
     if (typeof input === 'string') {
       try {
@@ -83,13 +112,61 @@ const wrapToolExecute = (toolName: string, inputSummaryFn: (input: any) => strin
     } catch {
       summary = 'Invalid input parameters';
     }
+
+    const docBefore = getActiveDocument();
+    const docId = docBefore?.id;
+    const revisionBefore = docBefore?.version;
+    const hashBefore = docBefore?.sequence ? await computeSequenceSha256(docBefore.sequence.raw) : undefined;
+
     let result;
     try {
       result = await handler(parsedInput);
     } catch (err: any) {
       result = createError("INTERNAL_ERROR", err.message || String(err));
     }
-    return logActivity(toolName, summary, result, result.ok ? (result.result.summary || 'Success') : '');
+
+    const durationMs = Date.now() - startedAt;
+    const docAfter = getActiveDocument();
+    const revisionAfter = docAfter?.version;
+    const isMutated = revisionAfter !== undefined && revisionBefore !== undefined && revisionAfter !== revisionBefore;
+    const hashAfter = isMutated && docAfter?.sequence ? await computeSequenceSha256(docAfter.sequence.raw) : undefined;
+
+    let status: 'success' | 'error' | 'awaiting_approval' | 'rejected' = result.ok ? 'success' : 'error';
+    if (result.ok && result.result?.status === 'awaiting_approval') {
+      status = 'awaiting_approval';
+    }
+
+    const resultSummary = result.ok
+      ? (result.result?.summary || 'Success')
+      : `Error: ${result.error?.message || 'Operation failed'}`;
+
+    const tx: SequenceTransaction | undefined = result.result?.transaction;
+
+    useActivityStore.getState().addEvent({
+      callId,
+      toolName,
+      category,
+      startedAt,
+      durationMs,
+      status,
+      inputSummary: summary,
+      resultSummary,
+      arguments: sanitizeArgs(parsedInput),
+      structuredResult: result.ok ? result.result : undefined,
+      documentId: docId,
+      documentRevisionBefore: revisionBefore,
+      sequenceHashBefore: hashBefore,
+      documentRevisionAfter: isMutated ? revisionAfter : undefined,
+      sequenceHashAfter: hashAfter,
+      transaction: tx,
+      error: result.isError ? result.error : undefined
+    });
+
+    if (tx) {
+      useActivityStore.getState().setPendingTransaction(tx);
+    }
+
+    return result;
   };
 };
 
@@ -1107,12 +1184,9 @@ export const seqcraftScreenBiosecurityTool = {
   )
 };
 
-// Re-enable only after a visible sequence-edit proposal can be approved/rejected.
-const agentSequenceEditApprovalAvailable = (): boolean => false;
-
 export const seqcraftEditSequenceTool = {
   name: 'seqcraft_edit_sequence',
-  description: 'In-place molecular modification of active sequence. Requires human approval.',
+  description: 'In-place molecular modification of active sequence. Stages a verified pre-commit transaction requiring human approval.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -1145,23 +1219,102 @@ export const seqcraftEditSequenceTool = {
   annotations: { readOnlyHint: false, untrustedContentHint: true },
   execute: wrapToolExecute(
     'seqcraft_edit_sequence',
-    (i) => `Edit sequence bases (${i.actionType || 'mutation'})`,
+    (i) => `Propose sequence edit (${i.actionType || 'mutation'})`,
     async (input: any) => {
       const doc = getActiveDocument();
       if (!doc) return createError('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');
-      if (!agentSequenceEditApprovalAvailable()) {
-        return createError(
-          'HUMAN_APPROVAL_REQUIRED',
-          'Agent-authored sequence edits are disabled until SeqCraft can stage them for explicit human approval.',
-          { requestedAction: input?.actionType }
-        );
+      if (doc.storageMode !== 'memory' || !doc.sequence) {
+        return createError('NOT_SUPPORTED', 'In-place edits currently require memory storage mode.');
       }
-      if (doc.storageMode !== 'memory') return createError('NOT_SUPPORTED', 'In-place edits currently require memory storage mode.');
 
-      return createError('NOT_IMPLEMENTED', 'Editing disabled.');
+      let action: SequenceEditAction;
+      const rawSeq = doc.sequence.raw;
+      let start0 = 0;
+      let end0Exclusive = 0;
+
+      if (input.actionType === 'replace') {
+        if (!input.range1) return createError('INVALID_INPUT', 'range1 required for replace action');
+        start0 = input.range1.start1 - 1;
+        end0Exclusive = input.range1.end1;
+        action = {
+          type: 'replace',
+          start0,
+          end0Exclusive,
+          replacement: (input.sequence || '').trim().toUpperCase()
+        };
+      } else if (input.actionType === 'insert') {
+        const index0 = (input.position1 || 1) - 1;
+        start0 = index0;
+        end0Exclusive = index0;
+        action = {
+          type: 'insert',
+          index0,
+          sequence: (input.sequence || '').trim().toUpperCase()
+        };
+      } else if (input.actionType === 'delete') {
+        if (!input.range1) return createError('INVALID_INPUT', 'range1 required for delete action');
+        start0 = input.range1.start1 - 1;
+        end0Exclusive = input.range1.end1;
+        action = {
+          type: 'delete',
+          start0,
+          end0Exclusive
+        };
+      } else if (input.actionType === 'reverse_complement') {
+        if (!input.range1) return createError('INVALID_INPUT', 'range1 required for reverse_complement action');
+        start0 = input.range1.start1 - 1;
+        end0Exclusive = input.range1.end1;
+        action = {
+          type: 'reverse_complement',
+          start0,
+          end0Exclusive
+        };
+      } else {
+        return createError('INVALID_ACTION_TYPE', `Unknown action type: ${input.actionType}`);
+      }
+
+      // Compute simulated edit and invariants without committing to workspace
+      const editResult = editSequence(rawSeq, doc.features, action, doc.topology);
+      const invariantReport = evaluateTransactionInvariants(doc, action, editResult, 'BsaI');
+      const baseSequenceHash = await computeSequenceSha256(rawSeq);
+      const expectedSequenceHash = await computeSequenceSha256(editResult.newSequence);
+      const txId = `tx_${generateId()}`;
+
+      const fragStart = Math.max(0, start0 - 15);
+      const fragEnd = Math.min(rawSeq.length, end0Exclusive + 15);
+      const beforeFragment = rawSeq.slice(fragStart, fragEnd);
+      const afterFragment = editResult.newSequence.slice(
+        fragStart,
+        Math.min(editResult.newLength, fragEnd + (editResult.newLength - rawSeq.length))
+      );
+
+      const transaction: SequenceTransaction = {
+        id: txId,
+        documentId: doc.id,
+        baseRevision: doc.version,
+        baseSequenceHash,
+        operation: action,
+        affectedRange: { start0, end0Exclusive },
+        beforeFragment,
+        afterFragment,
+        invariantReport,
+        expectedSequenceHash,
+        status: 'pending',
+        createdAt: Date.now()
+      };
+
+      return createSuccess({
+        status: 'awaiting_approval',
+        transactionId: txId,
+        summary: `Proposed sequence transaction staged at position ${invariantReport.position1}. Requires human approval.`,
+        transaction,
+        invariantReport
+      });
     }
   )
 };
+
+const agentSequenceEditApprovalAvailable = (): boolean => false;
 
 export const seqcraftRotateOriginTool = {
   name: 'seqcraft_rotate_origin',

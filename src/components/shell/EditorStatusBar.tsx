@@ -3,6 +3,7 @@ import { useWorkspaceStore } from '../../state/workspace-store';
 import { useActivityStore } from '../../state/activity-store';
 import { analyzeRestrictionSites } from '../../scientific/restriction-analysis';
 import { BUILTIN_ENZYMES } from '../../data/restriction-enzymes';
+import { useWebMCPToolCount } from '../../webmcp/use-webmcp-status';
 
 interface EditorStatusBarProps {
   drawerOpen: boolean;
@@ -28,7 +29,7 @@ export function EditorStatusBar({ drawerOpen, setDrawerOpen }: EditorStatusBarPr
       const sites = analyzeRestrictionSites(getMemorySequence(activeDoc).raw, activeDoc.topology, BUILTIN_ENZYMES);
       const site = sites.find(s => s.id === selectedRestrictionSiteId);
       if (site) {
-        leftStatus = `${site.enzymeName} · cut ${site.forwardCut0 + 1} / ${site.reverseCut0 + 1}`;
+        leftStatus = `${site.enzymeName} · cut ${site.forwardCut0} / ${site.reverseCut0}`;
       }
     } else if (selectedFeatureId) {
       const feat = activeDoc.features.find(f => f.id === selectedFeatureId);
@@ -49,8 +50,11 @@ export function EditorStatusBar({ drawerOpen, setDrawerOpen }: EditorStatusBarPr
     }
   }
 
-  // WebMCP Status (always healthy for now since WebMCPBridge is always mounted locally)
+  // WebMCP Status
   const isWebMCPHealthy = true;
+  const toolCount = useWebMCPToolCount();
+  const setInspectorTab = useWorkspaceStore(s => s.setInspectorTab);
+  const setInspectorOpen = useWorkspaceStore(s => s.setInspectorOpen);
 
   return (
     <footer className="h-[28px] flex-none border-t border-[var(--border)] bg-[var(--panel-muted)] flex items-center justify-between px-3 text-[11px] font-ui text-[var(--text-muted)] select-none">
@@ -59,11 +63,18 @@ export function EditorStatusBar({ drawerOpen, setDrawerOpen }: EditorStatusBarPr
       </div>
       
       <div className="flex items-center gap-4 h-full">
-        <div className="flex items-center gap-1.5" title="WebMCP Tools Connected">
-          <span>WebMCP</span>
+        <button
+          type="button"
+          onClick={() => {
+            setInspectorTab('agent_run');
+            setInspectorOpen(true);
+          }}
+          className="flex items-center gap-1.5 h-full px-2 hover:bg-[var(--panel)] hover:text-[var(--text)] transition-colors cursor-pointer outline-none"
+          title="Open Agent Run (WebMCP capabilities)"
+        >
+          <span>WebMCP · {toolCount}</span>
           <span className={`w-1.5 h-1.5 rounded-full ${isWebMCPHealthy ? 'bg-[var(--success)]' : 'bg-[var(--border)]'}`} aria-hidden="true" />
-          <span className="sr-only">{isWebMCPHealthy ? 'Connected' : 'Disconnected'}</span>
-        </div>
+        </button>
         
         <div className="w-px h-3 bg-[var(--border)]" />
         

@@ -446,9 +446,10 @@ describe('WebMCP Tool Registration and Execution', () => {
       sequence: 'CACCACCACCACCACCAC' // 18 bp His-6
     });
 
-    expect(res.ok).toBe(false);
-    expect(res.isError).toBe(true);
-    expect(res.error.code).toBe('HUMAN_APPROVAL_REQUIRED');
+    expect(res.ok).toBe(true);
+    expect(res.isError).toBe(false);
+    expect(res.result.status).toBe('awaiting_approval');
+    expect(res.result.transactionId).toBeDefined();
 
     // Confirm store remains unchanged without human approval
     const updated = useWorkspaceStore.getState().documents.find(d => d.id === doc.id)!;

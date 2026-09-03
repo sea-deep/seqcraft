@@ -156,9 +156,9 @@ describe('Audit Findings Regression Suite', () => {
     useWorkspaceStore.getState().setActiveDocument(doc.id);
 
     const editRes = await seqcraftEditSequenceTool.execute({ actionType: 'insert', position1: 1, sequence: 'A' });
-    expect(editRes.isError).toBe(true);
-    expect(editRes.ok).toBe(false);
-    expect(editRes.error.code).toBe('HUMAN_APPROVAL_REQUIRED');
+    expect(editRes.ok).toBe(true);
+    expect(editRes.result.status).toBe('awaiting_approval');
+    expect(editRes.result.transactionId).toBeDefined();
 
     const rotateRes = await seqcraftRotateOriginTool.execute({ newOrigin1: 10 });
     expect(rotateRes.isError).toBe(true);

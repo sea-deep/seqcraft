@@ -31,6 +31,7 @@ interface WorkspaceState {
   selection: { documentId: string; start0: number; end0Exclusive: number } | null;
   sidebarOpen: boolean;
   inspectorOpen: boolean;
+  inspectorTab: 'details' | 'agent_run';
   stagedProposals: StagedProposal[];
   historyEntries: WorkspaceHistoryEntry[];
   isHydrated: boolean;
@@ -44,6 +45,7 @@ interface WorkspaceState {
   setActiveView: (view: WorkspaceView) => void;
   setSidebarOpen: (open: boolean) => void;
   setInspectorOpen: (open: boolean) => void;
+  setInspectorTab: (tab: 'details' | 'agent_run') => void;
   removeDocument: (id: string) => void;
   removeDocuments: (ids: string[]) => void;
   setSelection: (documentId: string, start0: number, end0Exclusive: number) => void;
@@ -73,12 +75,13 @@ function historyEntry(documentId: string, action: WorkspaceHistoryEntry['action'
 export const useWorkspaceStore = create<WorkspaceState>((set) => ({
   documents: [], activeDocumentId: null, openDocumentIds: [], activeView: 'sequence', selection: null,
   selectedFeatureId: null, selectedPrimerId: null, selectedRestrictionSiteId: null,
-  sidebarOpen: true, inspectorOpen: true, stagedProposals: [], historyEntries: [],
+  sidebarOpen: true, inspectorOpen: true, inspectorTab: 'details', stagedProposals: [], historyEntries: [],
   isHydrated: false,
 
   setIsHydrated: isHydrated => set({ isHydrated }),
   setSidebarOpen: sidebarOpen => set({ sidebarOpen }),
   setInspectorOpen: inspectorOpen => set({ inspectorOpen }),
+  setInspectorTab: inspectorTab => set({ inspectorTab, inspectorOpen: true }),
   setActiveView: activeView => set({ activeView }),
 
   addDocument: doc => set(state => {

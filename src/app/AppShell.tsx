@@ -5,7 +5,7 @@ import {
   useDefaultLayout,
 } from "react-resizable-panels";
 import { useWorkspaceStore } from "../state/workspace-store";
-import { Info, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useEffect, useMemo, useState } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 
@@ -21,17 +21,29 @@ import { ProjectSidebar } from '../components/shell/ProjectSidebar';
 import { EditorStatusBar } from '../components/shell/EditorStatusBar';
 import { AnnotationApprovalModal } from '../components/features/AnnotationApprovalModal';
 import { SequenceEditApprovalModal } from '../components/features/SequenceEditApprovalModal';
+import { AgentRunPanel } from '../components/agent-run/AgentRunPanel';
 
 export function AppShell() {
   const sidebarOpen = useWorkspaceStore(s => s.sidebarOpen);
   const setSidebarOpen = useWorkspaceStore(s => s.setSidebarOpen);
   const inspectorOpen = useWorkspaceStore(s => s.inspectorOpen);
   const setInspectorOpen = useWorkspaceStore(s => s.setInspectorOpen);
+  const inspectorTab = useWorkspaceStore(s => s.inspectorTab);
+  const setInspectorTab = useWorkspaceStore(s => s.setInspectorTab);
+  const pendingTransaction = useActivityStore(s => s.pendingTransaction);
+  const eventCount = useActivityStore(s => s.events.length);
   const setActiveView = useWorkspaceStore(s => s.setActiveView);
   const activeDocumentId = useWorkspaceStore(s => s.activeDocumentId);
   const closeDocumentTab = useWorkspaceStore(s => s.closeDocumentTab);
   const themePreference = useThemeStore(s => s.preference);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (pendingTransaction) {
+      setInspectorTab('agent_run');
+      setInspectorOpen(true);
+    }
+  }, [pendingTransaction, setInspectorOpen, setInspectorTab]);
   const panelIds = useMemo(() => [
     ...(sidebarOpen ? ['sidebar'] : []),
     'center',
@@ -126,14 +138,39 @@ export function AppShell() {
           {inspectorOpen && (
             <>
               <PanelResizeHandle className="w-px bg-[var(--border)] hover:bg-[var(--accent)] transition-colors cursor-col-resize" />
-              <Panel id="inspector" defaultSize={260} minSize={220} maxSize={380} className="bg-[var(--panel)] flex flex-col">
-                <div className="h-[36px] border-b border-[var(--border)] flex items-center justify-between px-3 shrink-0 bg-[var(--panel-muted)]">
-                  <div className="flex items-center text-[var(--text)] text-[12px] font-semibold">
-                    <Info className="w-3.5 h-3.5 mr-1.5 text-[var(--text-muted)]" />
-                    Inspector
+              <Panel id="inspector" defaultSize={300} minSize={240} maxSize={420} className="bg-[var(--panel)] flex flex-col">
+                <div className="h-[36px] border-b border-[var(--border)] flex items-center justify-between px-2 shrink-0 bg-[var(--panel-muted)]">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setInspectorTab('details')}
+                      className={`px-2.5 py-1 text-[11px] font-medium rounded transition-colors cursor-pointer ${
+                        inspectorTab === 'details'
+                          ? 'bg-[var(--panel)] text-[var(--text)] font-semibold shadow-xs'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                      }`}
+                    >
+                      Details
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInspectorTab('agent_run')}
+                      className={`px-2.5 py-1 text-[11px] font-medium rounded transition-colors cursor-pointer flex items-center gap-1.5 ${
+                        inspectorTab === 'agent_run'
+                          ? 'bg-[var(--panel)] text-[var(--text)] font-semibold shadow-xs'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                      }`}
+                    >
+                      <span>Agent Run</span>
+                      {pendingTransaction ? (
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      ) : eventCount > 0 ? (
+                        <span className="text-[10px] font-mono text-[var(--text-muted)]">({eventCount})</span>
+                      ) : null}
+                    </button>
                   </div>
                   <button 
-                    className="p-1 hover:bg-[var(--panel)] rounded text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+                    className="p-1 hover:bg-[var(--panel)] rounded text-[var(--text-muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
                     onClick={() => setInspectorOpen(false)}
                     aria-label="Close inspector"
                   >
@@ -141,7 +178,7 @@ export function AppShell() {
                   </button>
                 </div>
                 <div className="flex-1 min-h-0 relative">
-                  <Inspector />
+                  {inspectorTab === 'details' ? <Inspector /> : <AgentRunPanel />}
                 </div>
               </Panel>
             </>

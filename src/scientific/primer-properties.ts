@@ -11,7 +11,7 @@ export function analyzePrimerProperties(primerSequence: string): PrimerPropertie
   const seq = new Seq('DNA').read(primerSequence.toUpperCase());
   return {
     length: primerSequence.length,
-    gcPercent: seq.gcContent(),
+    gcPercent: Math.round(seq.gcContent() * 1000) / 10,
     meltingTemperature: primerSequence.length >= 14 && primerSequence.length <= 20 ? seq.meltingTemperature() : seq.meltingTemperatureNN(),
     molecularWeight: seq.molecularWeight(),
   };

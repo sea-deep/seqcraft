@@ -12,6 +12,7 @@ import { prepareRestrictionClone } from '../../application/cloning';
 import { evaluateTransactionInvariants } from '../../scientific/transaction-invariants';
 import type { SequenceTransaction } from '../../domain/sequence-transaction';
 import type { SequenceEditAction } from '../../scientific/sequence-editing';
+import type { RestrictionEnzyme } from '../../domain/restriction';
 
 // In-memory cache of computed candidate proposals for revision-safe staging
 const candidateCache = new Map<string, {
@@ -258,14 +259,27 @@ export const seqcraftSimulateDigestTool: SeqCraftToolDefinition = {
       restrictionSites: sites,
       selectedEnzymeIds: resolved.map(e => e.id)
     });
-    const fragments = result.fragments.map((f, i) => ({
-      fragmentIndex: i + 1,
-      lengthBp: f.lengthBp,
-      start1: (f.segments[0]?.start0 ?? 0) + 1,
-      end1: f.segments[0]?.end0Exclusive ?? f.lengthBp,
-      leftEnd: f.leftEnd,
-      rightEnd: f.rightEnd
-    }));
+    const fragments = result.fragments.map((f, i) => {
+      const spansOrigin = f.segments.length > 1;
+      const start1 = (f.segments[0]?.start0 ?? 0) + 1;
+      const end1 = spansOrigin
+        ? f.segments[f.segments.length - 1].end0Exclusive
+        : (f.segments[0]?.end0Exclusive ?? f.lengthBp);
+
+      return {
+        fragmentIndex: i + 1,
+        lengthBp: f.lengthBp,
+        start1,
+        end1,
+        spansOrigin,
+        segments: f.segments.map(s => ({
+          start1: s.start0 + 1,
+          end1: s.end0Exclusive
+        })),
+        leftEnd: f.leftEnd,
+        rightEnd: f.rightEnd
+      };
+    });
 
     return createSuccess({
       documentName: doc.name,
@@ -316,18 +330,28 @@ export const seqcraftSimulateGoldenGateTool: SeqCraftToolDefinition = {
       docs.push(d);
     }
 
-    if (docs.length < 2) {
-      return createError('INSUFFICIENT_FRAGMENTS', 'Golden Gate assembly requires at least 2 input documents.');
+    const resolvedEnzyme = TYPE_IIS_ENZYMES.find(
+      e => e.name.toLowerCase() === enzyme.toLowerCase() || e.id.toLowerCase() === enzyme.toLowerCase()
+    );
+    if (!resolvedEnzyme) {
+      return createError('UNKNOWN_ENZYME', `Unknown or unsupported Type IIS enzyme '${enzyme}'.`);
     }
 
-    const res = assembleGoldenGate(docs, enzyme);
+    const parts = docs.map(d => ({
+      id: d.id,
+      name: d.name,
+      sequence: getMemorySequence(d).raw,
+      features: d.features
+    }));
+
+    const res = assembleGoldenGate(parts, resolvedEnzyme);
     if (!res.success) {
       return createError('ASSEMBLY_FAILED', res.errorMessage || 'Golden Gate assembly could not find compatible overhangs or failed validation.');
     }
 
     return createSuccess({
       success: true,
-      enzyme,
+      enzyme: resolvedEnzyme.name,
       assembledLengthBp: res.recombinantSequence?.length || 0,
       junctions: res.junctions || []
     });
@@ -394,13 +418,68 @@ export const seqcraftDomesticateSequenceTool: SeqCraftToolDefinition = {
     }
 
     const result = domesticateSequence(rawSeq, typeIISEnzyme);
+    const reEnzyme: RestrictionEnzyme = {
+      id: typeIISEnzyme.id,
+      name: typeIISEnzyme.name,
+      recognitionSequence: typeIISEnzyme.recognitionSequence,
+      forwardCutOffset: typeIISEnzyme.topCutOffset,
+      reverseCutOffset: typeIISEnzyme.bottomCutOffset,
+      overhangLength: typeIISEnzyme.overhangLength,
+      overhangPolarity: typeIISEnzyme.overhangPolarity
+    };
+    const totalSitesBefore = analyzeRestrictionSites(rawSeq, doc.topology, [reEnzyme]).length;
+
     const formattedCandidates = result.mutations.map((cand, idx) => {
       const candidateId = `dom_${doc.id.slice(0, 4)}_${idx + 1}`;
       const start1 = cand.position1;
       const end1 = cand.position1;
+      const pos0 = cand.position1 - 1;
       const beforeSeq = cand.originalBase;
       const afterSeq = cand.mutatedBase;
-      const summary = `Silent mutation at ${start1} (${beforeSeq}→${afterSeq}) to abolish ${input.enzymeId} site`;
+
+      // Compute actual site count after this specific candidate mutation
+      const candidateSeq = rawSeq.slice(0, pos0) + afterSeq + rawSeq.slice(pos0 + 1);
+      const totalSitesAfter = analyzeRestrictionSites(candidateSeq, doc.topology, [reEnzyme]).length;
+
+      // Derive overlapping features and protein consequences
+      const affectedFeatures = doc.features.filter(f =>
+        f.segments.some(s => s.start0 <= pos0 && s.end0Exclusive > pos0)
+      );
+      const affectedFeatureIds = affectedFeatures.map(f => f.id);
+
+      const proteinEffects: Array<{
+        featureId: string;
+        featureName: string;
+        aminoAcidBefore: string;
+        aminoAcidAfter: string;
+        codonBefore: string;
+        codonAfter: string;
+        isSynonymous: boolean;
+        description: string;
+      }> = [];
+
+      for (const f of affectedFeatures) {
+        const isCoding = f.type === 'CDS' || f.type === 'gene' || f.type === 'reporter' || f.type === 'resistance marker';
+        if (isCoding && cand.originalCodon && cand.originalCodon !== 'N/A') {
+          const desc = cand.isSynonymous
+            ? `Synonymous codon mutation (${cand.originalCodon} → ${cand.mutatedCodon}, ${cand.aminoAcid}) in ${f.name}`
+            : `Missense mutation (${cand.originalCodon} → ${cand.mutatedCodon}, ${cand.aminoAcid}) in ${f.name}`;
+          proteinEffects.push({
+            featureId: f.id,
+            featureName: f.name,
+            aminoAcidBefore: cand.aminoAcid,
+            aminoAcidAfter: cand.aminoAcid,
+            codonBefore: cand.originalCodon,
+            codonAfter: cand.mutatedCodon,
+            isSynonymous: cand.isSynonymous,
+            description: desc
+          });
+        }
+      }
+
+      const summary = totalSitesAfter === 0
+        ? `Silent mutation at ${start1} (${beforeSeq}→${afterSeq}) to abolish ${typeIISEnzyme.name} site (0 sites remaining)`
+        : `Silent mutation at ${start1} (${beforeSeq}→${afterSeq}) in ${typeIISEnzyme.name} site (${totalSitesBefore}→${totalSitesAfter} sites; ${totalSitesAfter} remaining)`;
 
       // Save to candidateCache
       candidateCache.set(candidateId, {
@@ -429,12 +508,12 @@ export const seqcraftDomesticateSequenceTool: SeqCraftToolDefinition = {
         mutatedCodon: cand.mutatedCodon,
         aminoAcid: cand.aminoAcid,
         isSynonymous: cand.isSynonymous,
-        affectedFeatureIds: [],
-        proteinEffects: [],
+        affectedFeatureIds,
+        proteinEffects,
         restrictionEffect: {
           enzyme: typeIISEnzyme.name,
-          sitesBefore: 1,
-          sitesAfter: 0
+          sitesBefore: totalSitesBefore,
+          sitesAfter: totalSitesAfter
         },
         nucleotideChanges: [
           {
@@ -459,6 +538,12 @@ export const seqcraftDomesticateSequenceTool: SeqCraftToolDefinition = {
         : `No internal ${typeIISEnzyme.name} recognition sites found.`
     });
   }
+};
+
+export const seqcraftPlanDomesticationTool: SeqCraftToolDefinition = {
+  ...seqcraftDomesticateSequenceTool,
+  name: 'seqcraft_plan_domestication',
+  title: 'Plan Domestication'
 };
 
 export const seqcraftStageDomesticationCandidateTool: SeqCraftToolDefinition = {
@@ -541,6 +626,12 @@ export const seqcraftStageDomesticationCandidateTool: SeqCraftToolDefinition = {
       instruction: 'The candidate has been staged for human review. Call seqcraft_get_transaction_status to confirm when approved.'
     });
   }
+};
+
+export const seqcraftStageSequenceTransactionTool: SeqCraftToolDefinition = {
+  ...seqcraftStageDomesticationCandidateTool,
+  name: 'seqcraft_stage_sequence_transaction',
+  title: 'Stage Sequence Transaction'
 };
 
 export const seqcraftPrepareRestrictionCloneTool: SeqCraftToolDefinition = {
@@ -629,6 +720,8 @@ export const cloningTools: SeqCraftToolDefinition[] = [
   seqcraftSimulateDigestTool,
   seqcraftSimulateGoldenGateTool,
   seqcraftDomesticateSequenceTool,
+  seqcraftPlanDomesticationTool,
   seqcraftStageDomesticationCandidateTool,
+  seqcraftStageSequenceTransactionTool,
   seqcraftPrepareRestrictionCloneTool
 ];

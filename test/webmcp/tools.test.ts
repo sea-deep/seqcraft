@@ -527,9 +527,9 @@ describe('WebMCP Tool Registration and Execution', () => {
     expect(redoneDoc.sequence!.raw.startsWith('NNNNNNNNNN')).toBe(true);
   });
 
-  it('registers all 50 WebMCP tools', async () => {
+  it('registers all WebMCP tools', async () => {
     await registerSeqCraftTools(mockMcp, new AbortController().signal);
-    expect(registeredTools.size).toBe(50);
+    expect(registeredTools.size).toBe(ALL_SEQCRAFT_TOOLS.length);
   });
 
   // ─── Mandate 13: New tool test cases ─────────────────────────────────

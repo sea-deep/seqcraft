@@ -2,6 +2,7 @@ import { getMemorySequence } from '../utils/document-utils';
 import type { SequenceDocument } from '../domain/document';
 import type { Feature } from '../domain/feature';
 import { getFeatureTypeMetadata } from '../domain/feature-ontology';
+import { analyzePrimerBindings } from '../scientific/primer-binding';
 
 function formatLocation(feature: Feature, docLen: number): string {
   const isComplement = feature.strand === -1;
@@ -52,9 +53,15 @@ export function serializeToGenBank(document: SequenceDocument): string {
   lines.push(`SOURCE      synthetic DNA construct`);
   lines.push(`  ORGANISM  synthetic DNA construct`);
   lines.push(`FEATURES             Location/Qualifiers`);
-  lines.push(`     source          1..${len}`);
-  lines.push(`                     /organism="synthetic DNA construct"`);
-  lines.push(`                     /mol_type="other DNA"`);
+  const hasExistingSource = document.features.some(f => {
+    const meta = getFeatureTypeMetadata(f.type);
+    return f.type === 'source' || meta.genbankKey === 'source';
+  });
+  if (!hasExistingSource) {
+    lines.push(`     source          1..${len}`);
+    lines.push(`                     /organism="synthetic DNA construct"`);
+    lines.push(`                     /mol_type="other DNA"`);
+  }
 
   for (const feat of document.features) {
     const meta = getFeatureTypeMetadata(feat.type);
@@ -65,8 +72,43 @@ export function serializeToGenBank(document: SequenceDocument): string {
     lines.push(`                     /label="${feat.name.replace(/"/g, "'")}"`);
     if (feat.qualifiers) {
       for (const [k, v] of Object.entries(feat.qualifiers)) {
-        if (k !== 'label') {
-          lines.push(`                     /${k}="${String(v).replace(/"/g, "'")}"`);
+        if (k === 'label' || k === 'original_type') continue;
+        const valArr = Array.isArray(v) ? v : [v];
+        for (const val of valArr) {
+          if (typeof val === 'number' || (typeof val === 'string' && /^\d+$/.test(val.trim()))) {
+            lines.push(`                     /${k}=${val}`);
+          } else {
+            lines.push(`                     /${k}="${String(val).replace(/"/g, "'")}"`);
+          }
+        }
+      }
+    }
+  }
+
+  if (document.primers && document.primers.length > 0) {
+    const featType = 'primer_bind'.padEnd(16, ' ');
+    for (const primer of document.primers) {
+      const bindings = analyzePrimerBindings(rawSeq, document.topology, primer);
+      if (bindings.length > 0) {
+        for (const b of bindings) {
+          const loc = b.orientation === 'reverse'
+            ? `complement(${b.start0 + 1}..${b.end0Exclusive})`
+            : `${b.start0 + 1}..${b.end0Exclusive}`;
+          lines.push(`     ${featType}${loc}`);
+          lines.push(`                     /label="${primer.name.replace(/"/g, "'")}"`);
+          lines.push(`                     /primer_name="${primer.name.replace(/"/g, "'")}"`);
+          lines.push(`                     /sequence="${primer.sequence}"`);
+          if (primer.description) {
+            lines.push(`                     /note="${primer.description.replace(/"/g, "'")}"`);
+          }
+        }
+      } else {
+        lines.push(`     ${featType}1..${primer.sequence.length}`);
+        lines.push(`                     /label="${primer.name.replace(/"/g, "'")}"`);
+        lines.push(`                     /primer_name="${primer.name.replace(/"/g, "'")}"`);
+        lines.push(`                     /sequence="${primer.sequence}"`);
+        if (primer.description) {
+          lines.push(`                     /note="${primer.description.replace(/"/g, "'")}"`);
         }
       }
     }

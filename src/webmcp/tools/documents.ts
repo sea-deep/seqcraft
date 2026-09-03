@@ -5,6 +5,7 @@ import { ScientificSequence } from '../../scientific/nucleotide';
 import { computeSequenceSha256 } from '../../utils/sequence-hash';
 import { getMemorySequence } from '../../utils/document-utils';
 import type { SequenceDocument } from '../../domain/document';
+import { useWorkspaceStore } from '../../state/workspace-store';
 
 export const seqcraftListDocumentsTool: SeqCraftToolDefinition = {
   name: 'seqcraft_list_documents',
@@ -283,7 +284,7 @@ export const seqcraftUpdateDocumentMetadataTool: SeqCraftToolDefinition = {
       ctx.workspace.setDocumentTopology(doc.id, input.topology);
     }
 
-    const updatedDoc = ctx.workspace.documents.find(d => d.id === doc.id);
+    const updatedDoc = useWorkspaceStore.getState().documents.find(d => d.id === doc.id);
 
     return createSuccess({
       status: 'applied',

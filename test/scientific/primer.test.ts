@@ -26,7 +26,7 @@ describe('primer scientific properties', () => {
   it('calculates length, GC%, and Tm', () => {
     const props = analyzePrimerProperties('ATGCATGCATGC');
     expect(props.length).toBe(12);
-    expect(props.gcPercent).toBe(0.5); // 6 G/C out of 12
+    expect(props.gcPercent).toBe(50); // 6 G/C out of 12 (50%)
     expect(props.meltingTemperature).toBeGreaterThan(0);
     expect(props.molecularWeight).toBeGreaterThan(0);
   });
@@ -208,7 +208,7 @@ describe('pUC19 diagnostic', () => {
     expect(b.threePrimeBase0).toBe(120);
     
     const props = analyzePrimerProperties(fwdPrimer.sequence);
-    expect(props.gcPercent).toBeCloseTo(0.727, 2);
+    expect(props.gcPercent).toBeCloseTo(72.7, 1);
   });
 
   it('reverse primer binds uniquely', () => {

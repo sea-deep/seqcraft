@@ -4,6 +4,7 @@ import { importDocument } from '../../import/normalize-document';
 import { serializeToGenBank, serializeToFasta, serializeToSeqCraft, EXPORT_FORMATS, type ExportFormat } from '../../export/export-document';
 import { computeSequenceSha256 } from '../../utils/sequence-hash';
 import { getMemorySequence } from '../../utils/document-utils';
+import { useWorkspaceStore } from '../../state/workspace-store';
 
 export const seqcraftImportSequenceTextTool: SeqCraftToolDefinition = {
   name: 'seqcraft_import_sequence_text',
@@ -29,12 +30,13 @@ export const seqcraftImportSequenceTextTool: SeqCraftToolDefinition = {
   execute: async (input: { content: string; name?: string }, rawCtx) => {
     const ctx = resolveToolContext(rawCtx);
     ctx.signal?.throwIfAborted();
-    if (!input.content || !input.content.trim()) {
+    const content = input.content || (input as any).text;
+    if (!content || !content.trim()) {
       return createError('EMPTY_CONTENT', 'Import content cannot be empty.');
     }
 
     try {
-      const docs = importDocument(input.content, input.name);
+      const docs = importDocument(content, input.name);
       if (docs.length === 0) {
         return createError('IMPORT_FAILED', 'Could not parse any sequence documents from provided content.');
       }
@@ -59,10 +61,11 @@ export const seqcraftImportSequenceTextTool: SeqCraftToolDefinition = {
         })
       );
 
+      const committedState = useWorkspaceStore.getState();
       return createSuccess({
         status: 'applied',
         importedCount: docs.length,
-        activeDocumentId: ctx.workspace.activeDocumentId,
+        activeDocumentId: committedState.activeDocumentId,
         documents: imported
       });
     } catch (err: any) {
@@ -137,8 +140,15 @@ export const seqcraftExportDocumentTool: SeqCraftToolDefinition = {
   }
 };
 
+export const seqcraftExportSequenceTool: SeqCraftToolDefinition = {
+  ...seqcraftExportDocumentTool,
+  name: 'seqcraft_export_sequence',
+  title: 'Export Sequence'
+};
+
 export const ioTools: SeqCraftToolDefinition[] = [
   seqcraftImportSequenceTextTool,
-  seqcraftExportDocumentTool
+  seqcraftExportDocumentTool,
+  seqcraftExportSequenceTool
 ];
 

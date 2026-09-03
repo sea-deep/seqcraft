@@ -219,8 +219,8 @@ describe('pUC19 diagnostic', () => {
 describe('primer pair Tm/GC summary', () => {
   it('combines properties properly', () => {
     const props = analyzePrimerPairProperties('ATGCATGCATGCATGC', 'ATGCATGCATGCATGC');
-    expect(props.forwardGcPercent).toBe(0.5);
-    expect(props.reverseGcPercent).toBe(0.5);
+    expect(props.forwardGcPercent).toBe(50);
+    expect(props.reverseGcPercent).toBe(50);
     expect(props.tmDifference).toBe(0);
     expect(props.forwardTm).toBeGreaterThan(0);
   });

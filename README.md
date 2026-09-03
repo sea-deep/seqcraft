@@ -2,10 +2,10 @@
 
 SeqCraft is a browser-native DNA engineering workbench with deterministic sequence analysis and a structured WebMCP interface that lets browser agents inspect, analyze, navigate, and propose changes to the same molecular model a human is working on.
 
-[![Tests](https://img.shields.io/badge/tests-389%20passed-brightgreen.svg)](test)
-[![Test Suites](https://img.shields.io/badge/test%20suites-64%20passed-brightgreen.svg)](test)
+[![Tests](https://img.shields.io/badge/tests-401%20passed-brightgreen.svg)](test)
+[![Test Suites](https://img.shields.io/badge/test%20suites-65%20passed-brightgreen.svg)](test)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](tsconfig.json)
-[![WebMCP](https://img.shields.io/badge/WebMCP-50%20tools-teal.svg)](src/webmcp/registry.ts)
+[![WebMCP](https://img.shields.io/badge/WebMCP-55%20tools-teal.svg)](src/webmcp/registry.ts)
 [![Frontend](https://img.shields.io/badge/live%20app-Render-0F766E.svg)](https://seqcraft.onrender.com)
 [![Backend](https://img.shields.io/badge/api-Railway-darkblue.svg)](https://seqcraft.up.railway.app/api/health)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)

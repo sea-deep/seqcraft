@@ -108,26 +108,34 @@ export const seqcraftGenerateOpentronsProtocolTool: SeqCraftToolDefinition = {
       const ampLen = input.ampliconLengthBp || pcrParams.ampliconLengthBp || doc?.length || 1000;
       const vol = input.reactionVolumeUl || pcrParams.reactionVolumeUl || 50;
 
-      const res = compileOpentronsPCRProtocol({
-        templateDocName: docName,
-        forwardPrimerName: fwd,
-        reversePrimerName: rev,
-        ampliconLengthBp: ampLen,
-        annealingTempC: annTemp,
-        numReactions,
-        reactionVolumeUl: vol,
-        robotModel
-      });
+      if (vol > 200 || vol <= 0) {
+        return createError('INVALID_VOLUME', `Reaction volume ${vol} µL is invalid (must be between 1 and 200 µL for standard 96-well plates).`, 'Adjust reactionVolumeUl to 200 µL or less.');
+      }
 
-      return createSuccess({
-        filename: res.filename,
-        summary: res.summary,
-        robotModel,
-        reagentPlateMap: res.reagentPlateMap,
-        tubeRackMap: res.tubeRackMap,
-        billOfMaterials: res.billOfMaterials,
-        pythonCode: res.pythonCode
-      });
+      try {
+        const res = compileOpentronsPCRProtocol({
+          templateDocName: docName,
+          forwardPrimerName: fwd,
+          reversePrimerName: rev,
+          ampliconLengthBp: ampLen,
+          annealingTempC: annTemp,
+          numReactions,
+          reactionVolumeUl: vol,
+          robotModel
+        });
+
+        return createSuccess({
+          filename: res.filename,
+          summary: res.summary,
+          robotModel,
+          reagentPlateMap: res.reagentPlateMap,
+          tubeRackMap: res.tubeRackMap,
+          billOfMaterials: res.billOfMaterials,
+          pythonCode: res.pythonCode
+        });
+      } catch (err: any) {
+        return createError('INVALID_VOLUME', err?.message || 'Failed to compile Opentrons PCR protocol.');
+      }
     }
 
     if (mode === 'digest') {
@@ -140,25 +148,33 @@ export const seqcraftGenerateOpentronsProtocolTool: SeqCraftToolDefinition = {
       const incTime = input.incubationTimeMin || digestParams.incubationTimeMin || 60;
       const vol = input.reactionVolumeUl || digestParams.reactionVolumeUl || 50;
 
-      const res = compileOpentronsDigestProtocol({
-        dnaDocName: docName,
-        enzymeNames: enzymes,
-        numReactions,
-        reactionVolumeUl: vol,
-        incubationTempC: incTemp,
-        incubationTimeMin: incTime,
-        robotModel
-      });
+      if (vol > 200 || vol <= 0) {
+        return createError('INVALID_VOLUME', `Reaction volume ${vol} µL is invalid (must be between 1 and 200 µL for standard 96-well plates).`, 'Adjust reactionVolumeUl to 200 µL or less.');
+      }
 
-      return createSuccess({
-        filename: res.filename,
-        summary: res.summary,
-        robotModel,
-        reagentPlateMap: res.reagentPlateMap,
-        tubeRackMap: res.tubeRackMap,
-        billOfMaterials: res.billOfMaterials,
-        pythonCode: res.pythonCode
-      });
+      try {
+        const res = compileOpentronsDigestProtocol({
+          dnaDocName: docName,
+          enzymeNames: enzymes,
+          numReactions,
+          reactionVolumeUl: vol,
+          incubationTempC: incTemp,
+          incubationTimeMin: incTime,
+          robotModel
+        });
+
+        return createSuccess({
+          filename: res.filename,
+          summary: res.summary,
+          robotModel,
+          reagentPlateMap: res.reagentPlateMap,
+          tubeRackMap: res.tubeRackMap,
+          billOfMaterials: res.billOfMaterials,
+          pythonCode: res.pythonCode
+        });
+      } catch (err: any) {
+        return createError('INVALID_VOLUME', err?.message || 'Failed to compile Opentrons digest protocol.');
+      }
     }
 
     return createError('INVALID_MODE', `Unknown protocol mode '${mode}'. Must be 'pcr' or 'digest'.`);

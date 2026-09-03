@@ -134,8 +134,8 @@ export function CrisprDialog({ document, open, onOpenChange, selection }: Crispr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-6 bg-[var(--panel)] border-[var(--border)] text-[var(--text)]">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="sm:max-w-4xl max-w-4xl w-[calc(100vw-2rem)] max-h-[85vh] flex flex-col p-0 overflow-hidden bg-[var(--panel)] border-[var(--border)] text-[var(--text)]">
+        <DialogHeader className="flex-shrink-0 p-5 pb-3">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]">
               <Crosshair size={20} />
@@ -154,65 +154,68 @@ export function CrisprDialog({ document, open, onOpenChange, selection }: Crispr
           </div>
         </DialogHeader>
 
-        {/* Control Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 py-3 border-y border-[var(--border)] bg-[var(--panel-muted)] px-3 rounded-lg text-xs">
-          {/* Nuclease Picker */}
-          <div className="flex items-center gap-2">
-            <span className="text-[var(--text-muted)] font-medium">Nuclease:</span>
-            <select
-              value={nucleaseId}
-              onChange={e => setNucleaseId(e.target.value as CasNucleaseId)}
-              className="h-8 rounded border border-[var(--border)] bg-[var(--bg)] px-2.5 text-xs text-[var(--text)] font-medium outline-none focus:border-[var(--accent)]"
-            >
-              {CAS_NUCLEASES.map(n => (
-                <option key={n.id} value={n.id}>
-                  {n.name} (PAM: {n.pamMotif})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-3">
+        {/* Control & Spec Container */}
+        <div className="px-5 pb-3 space-y-2.5 flex-shrink-0">
+          {/* Control Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 py-2 px-3 border border-[var(--border)] bg-[var(--panel-muted)] rounded-lg text-xs">
+            {/* Nuclease Picker */}
             <div className="flex items-center gap-2">
-              <span className="text-[var(--text-muted)]">Min Quality:</span>
-              <input
-                type="range"
-                min={0}
-                max={90}
-                step={10}
-                value={minQualityScore}
-                onChange={e => setMinQualityScore(Number(e.target.value))}
-                className="w-20 accent-[var(--accent)]"
-              />
-              <span className="font-mono text-[var(--text)] font-semibold w-8">{minQualityScore}%</span>
+              <span className="text-[var(--text-muted)] font-medium">Nuclease:</span>
+              <select
+                value={nucleaseId}
+                onChange={e => setNucleaseId(e.target.value as CasNucleaseId)}
+                className="h-8 rounded border border-[var(--border)] bg-[var(--bg)] px-2.5 text-xs text-[var(--text)] font-medium outline-none focus:border-[var(--accent)]"
+              >
+                {CAS_NUCLEASES.map(n => (
+                  <option key={n.id} value={n.id}>
+                    {n.name} (PAM: {n.pamMotif})
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {selection && (
-              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-[var(--text-muted)]">Min Quality:</span>
                 <input
-                  type="checkbox"
-                  checked={onlySelection}
-                  onChange={e => setOnlySelection(e.target.checked)}
-                  className="accent-[var(--accent)]"
+                  type="range"
+                  min={0}
+                  max={90}
+                  step={10}
+                  value={minQualityScore}
+                  onChange={e => setMinQualityScore(Number(e.target.value))}
+                  className="w-20 accent-[var(--accent)]"
                 />
-                <span className="text-[var(--text)]">Target selection ({selection.end0Exclusive - selection.start0} bp)</span>
-              </label>
-            )}
-          </div>
-        </div>
+                <span className="font-mono text-[var(--text)] font-semibold w-8">{minQualityScore}%</span>
+              </div>
 
-        {/* Nuclease Spec Banner */}
-        <div className="text-[11px] text-[var(--text-secondary)] px-3 py-1.5 rounded bg-[var(--bg)] border border-[var(--border)] flex items-center justify-between">
-          <span>
-            <strong>PAM:</strong> {selectedNuclease.pamMotif} ({selectedNuclease.pamOrientation}) ·{' '}
-            <strong>Spacer:</strong> {selectedNuclease.spacerLengthBp} nt ·{' '}
-            <strong>Cleavage:</strong> {selectedNuclease.cleavageType}
-          </span>
-          <span className="text-[var(--text-muted)]">{selectedNuclease.description}</span>
+              {selection && (
+                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={onlySelection}
+                    onChange={e => setOnlySelection(e.target.checked)}
+                    className="accent-[var(--accent)]"
+                  />
+                  <span className="text-[var(--text)]">Target selection ({selection.end0Exclusive - selection.start0} bp)</span>
+                </label>
+              )}
+            </div>
+          </div>
+
+          {/* Nuclease Spec Banner */}
+          <div className="text-[11px] text-[var(--text-secondary)] px-3 py-1.5 rounded bg-[var(--bg)] border border-[var(--border)] flex items-center justify-between">
+            <span>
+              <strong>PAM:</strong> {selectedNuclease.pamMotif} ({selectedNuclease.pamOrientation}) ·{' '}
+              <strong>Spacer:</strong> {selectedNuclease.spacerLengthBp} nt ·{' '}
+              <strong>Cleavage:</strong> {selectedNuclease.cleavageType}
+            </span>
+            <span className="text-[var(--text-muted)]">{selectedNuclease.description}</span>
+          </div>
         </div>
 
         {/* Target List */}
-        <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-0">
+        <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-2.5 min-h-0">
           {targets.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-[var(--text-muted)] space-y-2">
               <Dna size={32} className="opacity-40" />
@@ -281,14 +284,14 @@ export function CrisprDialog({ document, open, onOpenChange, selection }: Crispr
                       <button
                         onClick={() => handleAnnotateTarget(target)}
                         disabled={isAdded}
-                        className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-semibold border transition-colors cursor-pointer whitespace-nowrap ${
+                        className={`shrink-0 min-w-max flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold border transition-colors cursor-pointer whitespace-nowrap ${
                           isAdded
                             ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500 cursor-default'
                             : 'border-[var(--accent)]/40 bg-[var(--accent-soft)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] text-[var(--accent)]'
                         }`}
                       >
                         {isAdded ? <Check size={13} /> : <BookmarkPlus size={13} />}
-                        {isAdded ? 'Annotated' : 'Add to Map'}
+                        <span>{isAdded ? 'Annotated' : 'Add to Map'}</span>
                       </button>
                     </div>
                   </div>

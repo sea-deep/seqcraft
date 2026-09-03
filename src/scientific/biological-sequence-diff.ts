@@ -6,7 +6,12 @@ import type {
   SequenceDiffOptions,
   SequenceDiffResult,
 } from '../domain/sequence-diff';
-import { canonicalIntervalToOriginalSegments, canonicalizeBiologicalSequence, canonicalizeCircularQueryAgainstReference } from './canonical-sequence';
+import {
+  canonicalIntervalToOriginalSegments,
+  canonicalizeBiologicalSequence,
+  canonicalizeCircularQueryAgainstReference,
+  normalizeSequence
+} from './canonical-sequence';
 import { diffFeatures } from './feature-diff';
 import { reportProteinConsequences } from './protein-consequences';
 
@@ -313,11 +318,31 @@ export function diffBiologicalSequences(
   queryInput: BiologicalSequenceInput,
   options: SequenceDiffOptions = {},
 ): SequenceDiffResult {
+  const normRef = normalizeSequence(referenceInput.sequence);
+  const normQry = normalizeSequence(queryInput.sequence);
+  const rawIdentical = normRef.length > 0 && normRef === normQry;
+
   const allowReverseComplement = options.allowReverseComplement ?? (referenceInput.topology === 'circular' && queryInput.topology === 'circular');
-  const reference = canonicalizeBiologicalSequence(referenceInput, allowReverseComplement);
-  const query = referenceInput.topology === 'circular' && queryInput.topology === 'circular'
-    ? canonicalizeCircularQueryAgainstReference(queryInput, reference, allowReverseComplement)
-    : canonicalizeBiologicalSequence(queryInput, allowReverseComplement);
+  
+  let reference: CanonicalSequence;
+  let query: CanonicalSequence;
+
+  if (rawIdentical) {
+    // When underlying raw sequences are identical, maintain exact alignment without artificial cyclic offset
+    reference = canonicalizeBiologicalSequence(referenceInput, false);
+    query = {
+      ...canonicalizeBiologicalSequence(queryInput, false),
+      sequence: reference.sequence,
+      rotation0: reference.rotation0,
+      orientation: reference.orientation,
+    };
+  } else {
+    reference = canonicalizeBiologicalSequence(referenceInput, allowReverseComplement);
+    query = (queryInput.topology === 'circular')
+      ? canonicalizeCircularQueryAgainstReference(queryInput, reference, allowReverseComplement)
+      : canonicalizeBiologicalSequence(queryInput, allowReverseComplement);
+  }
+
   const alignment = align(reference.sequence, query.sequence, options.maxEditDistance ?? 4_096);
   const { differences, matches } = collectDifferences(alignment.alignedReference, alignment.alignedQuery, reference, query);
   const allFeatureDifferences = diffFeatures(reference.features, query.features, true, { sequenceLength: reference.length, topology: reference.topology });

@@ -6,6 +6,7 @@ import { detectKnownFeatures } from '../../scientific/known-feature-detection';
 import { FEATURE_TYPES, type Feature, type FeatureType, type SequenceInterval } from '../../domain/feature';
 import { normalizeFeatureType, getFeatureTypeMetadata } from '../../domain/feature-ontology';
 import { getMemorySequence } from '../../utils/document-utils';
+import { useWorkspaceStore } from '../../state/workspace-store';
 
 function selectionToFeatureSegments(start0: number, end0Exclusive: number, docLen: number): SequenceInterval[] {
   if (end0Exclusive >= start0) return [{ start0, end0Exclusive }];
@@ -258,7 +259,7 @@ export const seqcraftMutateFeatureTool: SeqCraftToolDefinition = {
       };
 
       ctx.workspace.addFeature(doc.id, newFeat);
-      const updatedDoc = ctx.workspace.documents.find(d => d.id === doc.id);
+      const updatedDoc = useWorkspaceStore.getState().documents.find(d => d.id === doc.id);
 
       return createSuccess({
         status: 'applied',
@@ -305,7 +306,7 @@ export const seqcraftMutateFeatureTool: SeqCraftToolDefinition = {
       };
 
       ctx.workspace.updateFeature(doc.id, updatedFeat);
-      const updatedDoc = ctx.workspace.documents.find(d => d.id === doc.id);
+      const updatedDoc = useWorkspaceStore.getState().documents.find(d => d.id === doc.id);
 
       return createSuccess({
         status: 'applied',
@@ -334,7 +335,7 @@ export const seqcraftMutateFeatureTool: SeqCraftToolDefinition = {
       }
 
       ctx.workspace.deleteFeature(doc.id, targetId);
-      const updatedDoc = ctx.workspace.documents.find(d => d.id === doc.id);
+      const updatedDoc = useWorkspaceStore.getState().documents.find(d => d.id === doc.id);
 
       return createSuccess({
         status: 'applied',
@@ -377,7 +378,7 @@ export const seqcraftMutateFeatureTool: SeqCraftToolDefinition = {
         });
       }
 
-      const updatedDoc = ctx.workspace.documents.find(d => d.id === doc.id);
+      const updatedDoc = useWorkspaceStore.getState().documents.find(d => d.id === doc.id);
 
       return createSuccess({
         status: 'applied',
@@ -437,7 +438,9 @@ export const seqcraftDetectKnownFeaturesTool: SeqCraftToolDefinition = {
     return createSuccess({
       documentId: doc.id,
       matchesCount: formatted.length,
-      matches: formatted
+      detectedCount: formatted.length,
+      matches: formatted,
+      features: formatted
     });
   }
 };

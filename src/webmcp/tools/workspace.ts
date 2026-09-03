@@ -127,6 +127,9 @@ export const seqcraftSelectRangeTool: SeqCraftToolDefinition = {
     const end0Exclusive = input.end1;
 
     ctx.workspace.setSelection(doc.id, start0, end0Exclusive);
+    if (ctx.workspace.activeDocumentId !== doc.id) {
+      ctx.workspace.setActiveDocument(doc.id);
+    }
 
     const length = input.end1 >= input.start1 ? input.end1 - input.start1 + 1 : doc.length - input.start1 + 1 + input.end1;
 
@@ -290,10 +293,17 @@ export const seqcraftFocusRegionTool: SeqCraftToolDefinition = {
   }
 };
 
+export const seqcraftSelectSequenceRangeTool: SeqCraftToolDefinition = {
+  ...seqcraftSelectRangeTool,
+  name: 'seqcraft_select_sequence_range',
+  title: 'Select Sequence Range'
+};
+
 export const workspaceTools: SeqCraftToolDefinition[] = [
   seqcraftSetActiveDocumentTool,
   seqcraftSetActiveViewTool,
   seqcraftSelectRangeTool,
+  seqcraftSelectSequenceRangeTool,
   seqcraftSelectFeatureTool,
   seqcraftClearSelectionTool,
   seqcraftFocusRegionTool

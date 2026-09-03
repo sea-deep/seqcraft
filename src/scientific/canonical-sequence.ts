@@ -7,7 +7,7 @@ import type {
 } from '../domain/sequence-diff';
 import { reverseComplementIupac } from './restriction-analysis';
 
-function normalizeSequence(sequence: string): string {
+export function normalizeSequence(sequence: string): string {
   return sequence.replaceAll(/\s/g, '').toUpperCase().replaceAll('U', 'T');
 }
 
@@ -256,7 +256,7 @@ export function canonicalizeCircularQueryAgainstReference(
   reference: CanonicalSequence,
   allowReverseComplement = true,
 ): CanonicalSequence {
-  if (input.topology !== 'circular' || reference.topology !== 'circular') return canonicalizeBiologicalSequence(input, allowReverseComplement);
+  if (input.topology !== 'circular') return canonicalizeBiologicalSequence(input, allowReverseComplement);
   const normalized = normalizeSequence(input.sequence);
   if (normalized.length === 0) return canonicalizeBiologicalSequence(input, allowReverseComplement);
   const orientations: DiffOrientation[] = allowReverseComplement ? ['forward', 'reverse-complement'] : ['forward'];

@@ -6,6 +6,7 @@ import { analyzePrimerBindings } from '../../scientific/primer-binding';
 import { simulatePCR, analyzePrimerPairProperties } from '../../scientific/pcr';
 import type { Primer } from '../../domain/primer';
 import { getMemorySequence } from '../../utils/document-utils';
+import { useWorkspaceStore } from '../../state/workspace-store';
 
 export const seqcraftListPrimersTool: SeqCraftToolDefinition = {
   name: 'seqcraft_list_primers',
@@ -142,7 +143,7 @@ export const seqcraftMutatePrimerTool: SeqCraftToolDefinition = {
       };
 
       ctx.workspace.addPrimer(doc.id, newPrimer);
-      const updatedDoc = ctx.workspace.documents.find(d => d.id === doc.id);
+      const updatedDoc = useWorkspaceStore.getState().documents.find(d => d.id === doc.id);
 
       let bindingContext: any = null;
       if (input.action === 'add_from_sequence') {
@@ -203,7 +204,7 @@ export const seqcraftMutatePrimerTool: SeqCraftToolDefinition = {
       };
 
       ctx.workspace.updatePrimer(doc.id, updatedPrimer);
-      const updatedDoc = ctx.workspace.documents.find(d => d.id === doc.id);
+      const updatedDoc = useWorkspaceStore.getState().documents.find(d => d.id === doc.id);
 
       return createSuccess({
         status: 'applied',
@@ -233,7 +234,7 @@ export const seqcraftMutatePrimerTool: SeqCraftToolDefinition = {
       }
 
       ctx.workspace.deletePrimer(doc.id, targetId);
-      const updatedDoc = ctx.workspace.documents.find(d => d.id === doc.id);
+      const updatedDoc = useWorkspaceStore.getState().documents.find(d => d.id === doc.id);
 
       return createSuccess({
         status: 'applied',
@@ -387,14 +388,29 @@ export const seqcraftSimulatePcrTool: SeqCraftToolDefinition = {
     });
     const pairProps = analyzePrimerPairProperties(fwdSeq, revSeq);
 
-    const formattedAmplicons = pcrResult.products.map((amp, idx) => ({
-      productIndex: idx + 1,
-      lengthBp: amp.lengthBp,
-      start1: (amp.segments[0]?.start0 ?? 0) + 1,
-      end1: amp.segments[0]?.end0Exclusive ?? amp.lengthBp,
-      gcContent: Math.round(((amp.sequence.match(/[GCgc]/g) || []).length / amp.lengthBp) * 1000) / 10,
-      spansOrigin: amp.wrapsOrigin
-    }));
+    const formattedAmplicons = pcrResult.products.map((amp, idx) => {
+      const spansOrigin = amp.wrapsOrigin || amp.segments.length > 1;
+      const start1 = (amp.segments[0]?.start0 ?? 0) + 1;
+      const end1 = spansOrigin
+        ? amp.segments[amp.segments.length - 1].end0Exclusive
+        : (amp.segments[0]?.end0Exclusive ?? amp.lengthBp);
+      const gcFraction = (amp.sequence.match(/[GCgc]/g) || []).length / amp.lengthBp;
+      const gcPct = Math.round(gcFraction * 1000) / 10;
+
+      return {
+        productIndex: idx + 1,
+        lengthBp: amp.lengthBp,
+        start1,
+        end1,
+        spansOrigin,
+        segments: amp.segments.map(s => ({
+          start1: s.start0 + 1,
+          end1: s.end0Exclusive
+        })),
+        gcContent: gcPct,
+        gcPercent: gcPct
+      };
+    });
 
     return createSuccess({
       templateDocument: doc.name,

@@ -50,14 +50,37 @@ export interface GoldenGateAssemblyResult {
   errorMessage?: string;
 }
 
+export function resolveTypeIISEnzyme(enzyme: TypeIISEnzyme | string): TypeIISEnzyme | undefined {
+  if (typeof enzyme === 'object' && enzyme && 'recognitionSequence' in enzyme) {
+    return enzyme;
+  }
+  if (typeof enzyme === 'string') {
+    const q = enzyme.trim().toLowerCase();
+    return TYPE_IIS_ENZYMES.find(e => e.name.toLowerCase() === q || e.id.toLowerCase() === q);
+  }
+  return undefined;
+}
+
 /**
- * Extract body and overhangs from a part flanked by inward-facing Type IIS sites.
+ * Perform in silico Type IIS digestion on a single Golden Gate part.
+ * Searches for flanking forward recognition site on 5' and reverse-complement on 3'.
  */
 export function digestPartWithTypeIIS(
-  part: GoldenGatePart,
-  enzyme: TypeIISEnzyme
+  part: GoldenGatePart | any,
+  enzymeInput: TypeIISEnzyme | string
 ): { success: boolean; digested?: DigestedPart; error?: string } {
-  const seq = part.sequence.toUpperCase();
+  const enzyme = resolveTypeIISEnzyme(enzymeInput);
+  if (!enzyme) {
+    return {
+      success: false,
+      error: `Unknown or unsupported Type IIS enzyme: "${enzymeInput}".`
+    };
+  }
+
+  const rawSeq = typeof part.sequence === 'string'
+    ? part.sequence
+    : (part.sequence?.raw ?? '');
+  const seq = (rawSeq || '').toUpperCase();
   const fwdSite = enzyme.recognitionSequence;
   const revSite = reverseComplementIupac(enzyme.recognitionSequence);
 
@@ -142,10 +165,23 @@ export function digestPartWithTypeIIS(
  * Simulate Golden Gate assembly from an ordered set of parts.
  */
 export function assembleGoldenGate(
-  parts: GoldenGatePart[],
-  enzyme: TypeIISEnzyme,
+  parts: (GoldenGatePart | any)[],
+  enzymeInput: TypeIISEnzyme | string,
   topology: "circular" | "linear" = "circular"
 ): GoldenGateAssemblyResult {
+  const enzyme = resolveTypeIISEnzyme(enzymeInput);
+  if (!enzyme) {
+    return {
+      success: false,
+      recombinantSequence: "",
+      topology,
+      junctions: [],
+      assembledFeatures: [],
+      orderedPartNames: [],
+      errorMessage: `Unknown or unsupported Type IIS enzyme: "${enzymeInput}".`
+    };
+  }
+
   if (parts.length < 2) {
     return {
       success: false,
@@ -158,8 +194,20 @@ export function assembleGoldenGate(
     };
   }
 
+  const normalizedParts: GoldenGatePart[] = parts.map((p, idx) => {
+    const rawSeq = typeof p.sequence === 'string'
+      ? p.sequence
+      : (p.sequence?.raw ?? '');
+    return {
+      id: p.id || `part_${idx + 1}`,
+      name: p.name || `Part ${idx + 1}`,
+      sequence: rawSeq,
+      features: p.features || []
+    };
+  });
+
   const digestedParts: DigestedPart[] = [];
-  for (const p of parts) {
+  for (const p of normalizedParts) {
     const res = digestPartWithTypeIIS(p, enzyme);
     if (!res.success || !res.digested) {
       return {
@@ -168,8 +216,8 @@ export function assembleGoldenGate(
         topology,
         junctions: [],
         assembledFeatures: [],
-        orderedPartNames: [],
-        errorMessage: res.error || `Failed to digest part "${p.name}".`
+        orderedPartNames: normalizedParts.map(part => part.name),
+        errorMessage: res.error || `Digestion failed for part "${p.name}".`
       };
     }
     digestedParts.push(res.digested);

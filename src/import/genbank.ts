@@ -1,5 +1,6 @@
 import genbankToJson from '@seqcraft/genbank-parser';
 import type { SequenceDocument } from '../domain/document';
+import type { Primer } from '../domain/primer';
 import type { Feature, SequenceInterval } from '../domain/feature';
 import { ScientificSequence } from '../scientific/nucleotide';
 import { generateId } from '../utils/id';
@@ -91,8 +92,49 @@ export function importGenBank(data: string, defaultName = 'GenBank Sequence'): S
       }
 
       const rawType = f.type || 'misc_feature';
-      const normalizedType = normalizeFeatureType(rawType);
-      const qualifiers = f.notes || {};
+      let normalizedType = normalizeFeatureType(rawType);
+      const qualifiers: Record<string, any> = {};
+
+      if (f.notes) {
+        for (const [k, v] of Object.entries(f.notes)) {
+          const firstVal = Array.isArray(v) && v.length > 0 ? v[0] : (v as unknown);
+          if (typeof firstVal === 'string' && /^\d+$/.test(firstVal.trim())) {
+            qualifiers[k] = parseInt(firstVal.trim(), 10);
+          } else {
+            qualifiers[k] = v;
+          }
+        }
+      }
+
+      if (normalizedType === 'CDS' || normalizedType === 'gene') {
+        const text = [
+          f.name || '',
+          ...Object.values(qualifiers).flat()
+        ].join(' ').toLowerCase();
+
+        if (
+          text.includes('beta-lactamase') ||
+          text.includes('ampicillin') ||
+          text.includes('tetracycline') ||
+          text.includes('kanamycin') ||
+          text.includes('neomycin') ||
+          text.includes('chloramphenicol') ||
+          text.includes('puromycin') ||
+          text.includes('resistance protein') ||
+          text.includes('resistance gene')
+        ) {
+          normalizedType = 'resistance marker';
+        } else if (
+          text.includes('fluorescent') ||
+          text.includes('gfp') ||
+          text.includes('egfp') ||
+          text.includes('mcherry') ||
+          text.includes('rfp') ||
+          text.includes('luciferase')
+        ) {
+          normalizedType = 'reporter';
+        }
+      }
       
       if (normalizedType === 'misc_feature' && rawType !== 'misc_feature') {
         qualifiers['original_type'] = [rawType];
@@ -109,6 +151,38 @@ export function importGenBank(data: string, defaultName = 'GenBank Sequence'): S
       };
     }).filter(f => f.segments.length > 0);
 
+    const importedPrimers: Primer[] = [];
+    const rawPrimers = (parsed as any).primers || [];
+    for (const p of rawPrimers) {
+      const pNotes = p.notes || {};
+      const pSeq = (Array.isArray(pNotes.sequence) ? pNotes.sequence[0] : pNotes.sequence) || '';
+      const pName = (Array.isArray(pNotes.primer_name) ? pNotes.primer_name[0] : pNotes.primer_name) || p.name;
+      const pDesc = (Array.isArray(pNotes.note) ? pNotes.note[0] : pNotes.note) || undefined;
+      if (pSeq && /^[ACGTRYSWKMBDHVN]+$/i.test(pSeq)) {
+        importedPrimers.push({
+          id: generateId(),
+          name: pName || 'Imported Primer',
+          sequence: pSeq.toUpperCase(),
+          description: typeof pDesc === 'string' ? pDesc : undefined
+        });
+      }
+    }
+    for (const f of docFeatures) {
+      if (f.type === 'primer_bind') {
+        const pSeq = (Array.isArray(f.qualifiers['sequence']) ? f.qualifiers['sequence'][0] : f.qualifiers['sequence']) || '';
+        const pName = (Array.isArray(f.qualifiers['primer_name']) ? f.qualifiers['primer_name'][0] : f.qualifiers['primer_name']) || f.name;
+        const pDesc = (Array.isArray(f.qualifiers['note']) ? f.qualifiers['note'][0] : f.qualifiers['note']) || undefined;
+        if (pSeq && /^[ACGTRYSWKMBDHVN]+$/i.test(pSeq) && !importedPrimers.some(ip => ip.sequence === pSeq.toUpperCase())) {
+          importedPrimers.push({
+            id: generateId(),
+            name: pName || 'Imported Primer',
+            sequence: pSeq.toUpperCase(),
+            description: typeof pDesc === 'string' ? pDesc : undefined
+          });
+        }
+      }
+    }
+
     return {
       id: generateId(),
       name: parsed.name || defaultName,
@@ -118,7 +192,7 @@ export function importGenBank(data: string, defaultName = 'GenBank Sequence'): S
       storageMode: 'memory',
       alphabet,
       features: docFeatures,
-      primers: [],
+      primers: importedPrimers,
       source: 'genbank',
       version: 1
     };

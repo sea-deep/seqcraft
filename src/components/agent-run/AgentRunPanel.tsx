@@ -17,17 +17,27 @@ export function AgentRunPanel() {
   const toolCount = useWebMCPToolCount();
 
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [docHash, setDocHash] = useState<string>('');
+  const targetDoc = pendingTransaction ? documents.find(d => d.id === pendingTransaction.documentId) : null;
+  const [targetDocHash, setTargetDocHash] = useState<string>('');
+  const [activeDocHash, setActiveDocHash] = useState<string>('');
   const [commitError, setCommitError] = useState<string | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
 
   useEffect(() => {
-    if (activeDoc?.sequence) {
-      computeSequenceSha256(activeDoc.sequence.raw).then(setDocHash);
+    if (targetDoc?.sequence) {
+      computeSequenceSha256(targetDoc.sequence.raw).then(setTargetDocHash);
     } else {
-      setDocHash('');
+      setTargetDocHash('');
     }
-  }, [activeDoc?.sequence, activeDoc?.version]);
+  }, [targetDoc?.sequence, targetDoc?.version, targetDoc?.id]);
+
+  useEffect(() => {
+    if (activeDoc?.sequence) {
+      computeSequenceSha256(activeDoc.sequence.raw).then(setActiveDocHash);
+    } else {
+      setActiveDocHash('');
+    }
+  }, [activeDoc?.sequence, activeDoc?.version, activeDoc?.id]);
 
   // If there is a pending transaction, default selection to it
   useEffect(() => {
@@ -43,12 +53,13 @@ export function AgentRunPanel() {
 
   const selectedEvent = events.find(e => e.id === selectedEventId) || events[0] || null;
 
-  // Check if pending transaction is stale
+  // Check if pending transaction is stale against its own target document
   const isStale = Boolean(
-    pendingTransaction && activeDoc && (
+    pendingTransaction && (
+      !targetDoc ||
       pendingTransaction.status === 'stale' ||
-      activeDoc.version !== pendingTransaction.baseRevision ||
-      (docHash && pendingTransaction.baseSequenceHash !== docHash)
+      targetDoc.version !== pendingTransaction.baseRevision ||
+      (targetDocHash && pendingTransaction.baseSequenceHash !== targetDocHash)
     )
   );
 
@@ -113,7 +124,7 @@ export function AgentRunPanel() {
               <span>{activeDoc.length.toLocaleString()} bp</span>
             </div>
             <div className="text-[10px] font-mono text-[var(--text-muted)] truncate">
-              sequence hash {formatShortHash(docHash, 10)}…
+              sequence hash {formatShortHash(activeDocHash, 10)}…
             </div>
           </div>
         ) : (

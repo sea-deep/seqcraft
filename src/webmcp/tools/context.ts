@@ -188,22 +188,31 @@ export const seqcraftGetSelectedContextTool: SeqCraftToolDefinition = {
   effectClass: 'read',
   inputSchema: {
     type: 'object',
-    properties: {},
+    properties: {
+      documentId: {
+        type: 'string',
+        description: 'Document identifier. If omitted, uses the currently selected or active construct.'
+      }
+    },
     additionalProperties: false
   },
   annotations: { readOnlyHint: true, untrustedContentHint: false },
-  execute: async (_input, rawCtx) => {
+  execute: async (input: { documentId?: string } | undefined, rawCtx) => {
     const ctx = resolveToolContext(rawCtx);
     ctx.signal?.throwIfAborted();
     const ws = ctx.workspace;
     const activeDoc = ws.documents.find(d => d.id === ws.activeDocumentId);
+    const selDocId = ws.selection ? ws.selection.documentId : undefined;
+    const targetDoc = input?.documentId
+      ? ws.documents.find(d => d.id === input.documentId)
+      : (selDocId ? ws.documents.find(d => d.id === selDocId) : activeDoc) || activeDoc;
 
-    if (!activeDoc) {
+    if (!targetDoc) {
       return createError('NO_ACTIVE_DOCUMENT', 'No active document in workspace', 'Create or open a document before querying selection context.');
     }
 
-    const rawSeq = activeDoc.sequence ? getMemorySequence(activeDoc).raw : '';
-    const sel = ws.selection && ws.selection.documentId === activeDoc.id ? ws.selection : null;
+    const rawSeq = targetDoc.sequence ? getMemorySequence(targetDoc).raw : '';
+    const sel = ws.selection && ws.selection.documentId === targetDoc.id ? ws.selection : null;
 
     let selectedRange: any = null;
     if (sel) {
@@ -217,7 +226,7 @@ export const seqcraftGetSelectedContextTool: SeqCraftToolDefinition = {
         len = sel.end0Exclusive - sel.start0;
       } else {
         seqSlice = rawSeq.slice(sel.start0) + rawSeq.slice(0, sel.end0Exclusive);
-        len = activeDoc.length - sel.start0 + sel.end0Exclusive;
+        len = targetDoc.length - sel.start0 + sel.end0Exclusive;
       }
 
       selectedRange = {
@@ -230,7 +239,7 @@ export const seqcraftGetSelectedContextTool: SeqCraftToolDefinition = {
 
     const overlappingFeatures: any[] = [];
     if (sel) {
-      for (const feat of activeDoc.features) {
+      for (const feat of targetDoc.features) {
         for (const seg of feat.segments) {
           const segStart1 = seg.start0 + 1;
           const segEnd1 = seg.end0Exclusive;
@@ -255,7 +264,7 @@ export const seqcraftGetSelectedContextTool: SeqCraftToolDefinition = {
 
     let selectedFeatureContext: any = null;
     if (ws.selectedFeatureId) {
-      const feat = activeDoc.features.find(f => f.id === ws.selectedFeatureId);
+      const feat = targetDoc.features.find(f => f.id === ws.selectedFeatureId);
       if (feat) {
         const seg = feat.segments[0];
         selectedFeatureContext = {
@@ -270,8 +279,9 @@ export const seqcraftGetSelectedContextTool: SeqCraftToolDefinition = {
     }
 
     return createSuccess({
-      documentId: activeDoc.id,
-      revision: activeDoc.version,
+      documentId: targetDoc.id,
+      documentName: targetDoc.name,
+      revision: targetDoc.version,
       selection: selectedRange,
       overlappingFeatures,
       selectedFeature: selectedFeatureContext,
@@ -422,10 +432,17 @@ export const seqcraftGetTransactionStatusTool: SeqCraftToolDefinition = {
   }
 };
 
+export const seqcraftGetPendingTransactionTool: SeqCraftToolDefinition = {
+  ...seqcraftGetTransactionStatusTool,
+  name: 'seqcraft_get_pending_transaction',
+  title: 'Get Pending Transaction'
+};
+
 export const contextTools: SeqCraftToolDefinition[] = [
   seqcraftGetCapabilitiesTool,
   seqcraftGetWorkspaceContextTool,
   seqcraftGetSelectedContextTool,
   seqcraftGetDocumentRevisionTool,
-  seqcraftGetTransactionStatusTool
+  seqcraftGetTransactionStatusTool,
+  seqcraftGetPendingTransactionTool
 ];

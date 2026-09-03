@@ -89,13 +89,28 @@ export type FeatureType = (typeof FEATURE_DEFINITIONS)[number]['id'];
 
 const FEATURE_TYPE_MAP = new Map<string, FeatureType>();
 
+// 1. Index canonical IDs first so canonical names always take precedence
 for (const def of FEATURE_DEFINITIONS) {
   FEATURE_TYPE_MAP.set(def.id.toLowerCase(), def.id);
-  FEATURE_TYPE_MAP.set(def.genbankKey.toLowerCase(), def.id);
+}
+
+// 2. Index genbankKeys only if not already claimed by an exact canonical ID
+for (const def of FEATURE_DEFINITIONS) {
+  const gk = def.genbankKey.toLowerCase();
+  if (!FEATURE_TYPE_MAP.has(gk) || def.id.toLowerCase() === gk) {
+    FEATURE_TYPE_MAP.set(gk, def.id);
+  }
+}
+
+// 3. Index aliases
+for (const def of FEATURE_DEFINITIONS) {
   const aliases = (def as { aliases?: readonly string[] }).aliases;
   if (aliases) {
     for (const alias of aliases) {
-      FEATURE_TYPE_MAP.set(alias.toLowerCase(), def.id);
+      const ak = alias.toLowerCase();
+      if (!FEATURE_TYPE_MAP.has(ak)) {
+        FEATURE_TYPE_MAP.set(ak, def.id);
+      }
     }
   }
 }

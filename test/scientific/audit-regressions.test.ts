@@ -145,6 +145,7 @@ describe('Audit Findings Regression Suite', () => {
     const { DEMO_GENBANK } = await import('../../src/data/demo-workspace');
 
     // 1. When no active document: returns NO_ACTIVE_DOCUMENT with isError: true
+    useWorkspaceStore.setState({ documents: [], activeDocumentId: null, openDocumentIds: [], selection: null });
     const noDocRes = await seqcraftEditSequenceTool.execute({ actionType: 'insert', position1: 1, sequence: 'A' });
     expect(noDocRes.isError).toBe(true);
     expect(noDocRes.ok).toBe(false);

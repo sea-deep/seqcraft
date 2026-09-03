@@ -48,7 +48,7 @@ interface ActivityState {
   clearEvents: () => void;
 }
 
-const MAX_EVENTS = 100;
+import { APP_LIMITS } from '../config/app-limits';
 
 export const useActivityStore = create<ActivityState>((set, get) => ({
   events: [],
@@ -71,7 +71,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     };
 
     set(state => {
-      const nextEvents = [newEvent, ...state.events].slice(0, MAX_EVENTS);
+      const nextEvents = [newEvent, ...state.events].slice(0, APP_LIMITS.MAX_ACTIVITY_EVENTS);
       return { events: nextEvents };
     });
 
@@ -88,18 +88,28 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
 
   commitPendingTransaction: async () => {
     const tx = get().pendingTransaction;
+    console.log('[SeqCraft Commit] commitPendingTransaction invoked with tx:', tx?.id, tx?.status);
     if (!tx) return { success: false, error: 'No pending transaction' };
+
+    // Idempotency: if already applied, do not re-apply
+    if (tx.status === 'applied') {
+      console.log('[SeqCraft Commit] Already applied, returning success');
+      return { success: true };
+    }
 
     const workspace = useWorkspaceStore.getState();
     const doc = workspace.documents.find(d => d.id === tx.documentId);
     if (!doc || !doc.sequence) {
+      console.log('[SeqCraft Commit] Document not found or has no sequence');
       return { success: false, error: `Document ${tx.documentId} not found or has no sequence` };
     }
 
-    // Priority 4 — Revision-locked commit
+    // Revision-locked commit — check both revision number AND sequence hash
     const currentHash = await computeSequenceSha256(doc.sequence.raw);
+    console.log('[SeqCraft Commit] doc version:', doc.version, 'tx.baseRevision:', tx.baseRevision, 'hash match:', currentHash === tx.baseSequenceHash);
     if (doc.version !== tx.baseRevision || currentHash !== tx.baseSequenceHash) {
       const errorMsg = 'Sequence changed after this proposal was analysed.\nRe-analysis required.';
+      console.log('[SeqCraft Commit] Marking stale:', errorMsg);
       // Mark transaction as stale
       const updatedTx: SequenceTransaction = { ...tx, status: 'stale' };
       set({ pendingTransaction: updatedTx });
@@ -107,6 +117,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     }
 
     // Apply mutation
+    console.log('[SeqCraft Commit] Applying mutation to doc:', tx.documentId);
     workspace.mutateDocumentSequence(tx.documentId, tx.operation);
     const updatedDoc = useWorkspaceStore.getState().documents.find(d => d.id === tx.documentId);
     const revisionAfter = updatedDoc ? updatedDoc.version : tx.baseRevision + 1;
@@ -117,7 +128,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
       status: 'applied'
     };
 
-    // Find the corresponding event and update it
+    // Find the corresponding event and update it with provenance
     set(state => ({
       pendingTransaction: null,
       events: state.events.map(ev => {
@@ -125,7 +136,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
           return {
             ...ev,
             status: 'success',
-            resultSummary: `Mutation applied (v${tx.baseRevision} → v${revisionAfter})`,
+            resultSummary: `Applied (v${tx.baseRevision}→v${revisionAfter}) hash:${currentHash.slice(0, 8)}→${hashAfter ? hashAfter.slice(0, 8) : '?'}`,
             documentRevisionAfter: revisionAfter,
             sequenceHashAfter: hashAfter,
             transaction: approvedTx,
@@ -169,3 +180,7 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
 
   clearEvents: () => set({ events: [], pendingTransaction: null })
 }));
+
+if (typeof window !== 'undefined') {
+  (window as any).__SEQCRAFT_ACTIVITY_STORE__ = useActivityStore;
+}

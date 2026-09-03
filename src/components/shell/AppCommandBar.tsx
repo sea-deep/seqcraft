@@ -66,7 +66,13 @@ export function AppCommandBar() {
   const [mutatorOpen, setMutatorOpen] = useState(false);
   const [mutatorMode, setMutatorMode] = useState<"insert" | "replace" | "rotate_origin">("insert");
   const mutateDocumentSequence = useWorkspaceStore(s => s.mutateDocumentSequence);
+  const undo = useWorkspaceStore(s => s.undo);
+  const redo = useWorkspaceStore(s => s.redo);
+  const undoStack = useWorkspaceStore(s => s.undoStack);
+  const redoStack = useWorkspaceStore(s => s.redoStack);
   const activeDocument = documents.find(document => document.id === activeDocumentId);
+  const canUndo = Boolean(activeDocument && undoStack[activeDocument.id]?.length);
+  const canRedo = Boolean(activeDocument && redoStack[activeDocument.id]?.length);
   const activeSelection = activeDocument && selection?.documentId === activeDocument.id ? selection : null;
   const selectedSequence = activeDocument?.storageMode === 'memory' && activeSelection
     ? (activeSelection.end0Exclusive >= activeSelection.start0
@@ -160,9 +166,26 @@ export function AppCommandBar() {
             <DropdownMenuTrigger className="px-2 py-1 rounded hover:bg-[var(--panel-muted)] outline-none data-[state=open]:bg-[var(--panel-muted)] cursor-default">Edit</DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               {activeDocument && (
-                <DropdownMenuItem onClick={() => { setMutatorMode('insert'); setMutatorOpen(true); }}>
-                  Insert Bases / Motif...
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem
+                    disabled={!canUndo}
+                    onClick={() => activeDocument && undo(activeDocument.id)}
+                  >
+                    Undo
+                    <DropdownMenuShortcut>Ctrl/Cmd+Z</DropdownMenuShortcut>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!canRedo}
+                    onClick={() => activeDocument && redo(activeDocument.id)}
+                  >
+                    Redo
+                    <DropdownMenuShortcut>Ctrl/Cmd+Y</DropdownMenuShortcut>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => { setMutatorMode('insert'); setMutatorOpen(true); }}>
+                    Insert Bases / Motif...
+                  </DropdownMenuItem>
+                </>
               )}
               {activeSelection ? (
                 <>

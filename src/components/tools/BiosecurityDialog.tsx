@@ -1,19 +1,10 @@
-import { useMemo, useState } from "react";
-import { 
-  ShieldCheck, ShieldAlert, AlertOctagon, Download, Check, Info, Copy 
-} from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "../ui/dialog";
-import { Button } from "../ui/button";
-import type { SequenceDocument } from "../../domain/document";
-import { screenBiosecurity } from "../../scientific/biosecurity";
-import type { BiosecurityScreeningReport } from "../../scientific/biosecurity";
-import { getMemorySequence } from "../../utils/document-utils";
+import { useMemo, useState } from 'react';
+import { ShieldCheck, ShieldAlert, AlertOctagon, Download, Check, Info, Copy } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
+import { Button } from '../ui/button';
+import type { SequenceDocument } from '../../domain/document';
+import { screenBiosecurity, type BiosecurityScreeningResult, type BiosecurityMatch } from '../../scientific/biosecurity';
+import { getMemorySequence } from '../../utils/document-utils';
 
 export interface BiosecurityDialogProps {
   document: SequenceDocument;
@@ -21,14 +12,23 @@ export interface BiosecurityDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function BiosecurityDialog({
-  document,
-  open,
-  onOpenChange
-}: BiosecurityDialogProps) {
+export function BiosecurityDialog({ document, open, onOpenChange }: BiosecurityDialogProps) {
   const [copied, setCopied] = useState(false);
 
-  const report: BiosecurityScreeningReport = useMemo(() => {
+  const report: BiosecurityScreeningResult = useMemo(() => {
+    if (document.storageMode !== 'memory' || !document.sequence) {
+      return {
+        isCompliant: true,
+        status: 'NO_LOCAL_MATCH',
+        overallTier: 'NO_LOCAL_MATCH',
+        matchCount: 0,
+        flaggedHitsCount: 0,
+        matches: [],
+        diagnosticNotice: 'Biosecurity scan is not available for chunked reference documents.',
+        recommendation: 'Load the document in memory to run local biosecurity checks.',
+        summary: 'Load the document in memory to run local biosecurity checks.'
+      };
+    }
     const raw = getMemorySequence(document).raw;
     return screenBiosecurity(raw, document.topology);
   }, [document]);
@@ -40,21 +40,21 @@ export function BiosecurityDialog({
         documentName: document.name,
         sequenceLengthBp: document.length,
         topology: document.topology,
-        screeningStatus: report.status,
+        screeningStatus: report.overallTier,
         hasLocalReferenceMatch: !report.isCompliant,
-        matchCount: report.matchCount,
-        referenceCoverage: "17 curated diagnostic k-mers associated with selected controlled-agent examples",
-        disclaimer: "This local motif pre-screen is not a regulatory compliance determination and does not replace provider or institutional screening.",
+        matchCount: report.flaggedHitsCount,
+        referenceCoverage: 'Curated diagnostic k-mers associated with Select Agents and Controlled Toxins',
+        disclaimer: 'This local motif pre-screen is not a regulatory compliance determination and does not replace provider or institutional screening.',
         matches: report.matches,
-        recommendation: report.recommendation
+        summary: report.summary
       }
     };
 
-    const blob = new Blob([JSON.stringify(diagnostic, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(diagnostic, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const link = window.document.createElement("a");
+    const link = window.document.createElement('a');
     link.href = url;
-    link.download = document.name + "-biosecurity-local-screen.json";
+    link.download = `${document.name}-biosecurity-local-screen.json`;
     window.document.body.appendChild(link);
     link.click();
     window.document.body.removeChild(link);
@@ -62,11 +62,12 @@ export function BiosecurityDialog({
   };
 
   const handleCopyReport = async () => {
-    const text = "SeqCraft Local Biosecurity Motif Pre-Screen\n" +
-      "Document: " + document.name + " (" + document.length + " bp)\n" +
-      "Status: " + report.status + "\n" +
-      "Summary: " + report.summary + "\n" +
-      "Recommendation: " + report.recommendation;
+    const text =
+      `SeqCraft Local Biosecurity Motif Pre-Screen\n` +
+      `Document: ${document.name} (${document.length} bp)\n` +
+      `Status: ${report.overallTier}\n` +
+      `Summary: ${report.summary}\n` +
+      `Notice: ${report.diagnosticNotice}`;
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -74,11 +75,17 @@ export function BiosecurityDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[740px] max-h-[85vh] flex flex-col p-0 overflow-hidden bg-[var(--panel)] border-[var(--border)]">
+      <DialogContent className="sm:max-w-[760px] max-h-[85vh] flex flex-col p-0 overflow-hidden bg-[var(--panel)] border-[var(--border)]">
         <DialogHeader className="px-6 py-4 border-b border-[var(--border)] shrink-0 bg-[var(--bg)]">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-2.5">
-              <div className={"w-8 h-8 rounded-lg flex items-center justify-center " + (report.isCompliant ? "bg-[var(--success)]/15 text-[var(--success)]" : "bg-[var(--danger)]/15 text-[var(--danger)]")}>
+              <div
+                className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                  report.isCompliant
+                    ? 'bg-emerald-500/15 text-emerald-500'
+                    : 'bg-rose-500/15 text-rose-500'
+                }`}
+              >
                 {report.isCompliant ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
               </div>
               <div>
@@ -86,20 +93,15 @@ export function BiosecurityDialog({
                   Local Biosecurity Motif Pre-Screen
                 </DialogTitle>
                 <DialogDescription className="text-xs text-[var(--text-muted)]">
-                  Checks 17 curated diagnostic k-mers locally. It is not a regulatory or synthesis-provider compliance determination.
+                  Checks curated diagnostic k-mers locally against Select Agents & Controlled Toxins.
                 </DialogDescription>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 self-end sm:self-start">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyReport}
-                className="h-8 px-2.5 text-xs gap-1.5"
-              >
-                {copied ? <Check size={14} className="text-[var(--success)]" /> : <Copy size={14} />}
-                {copied ? "Copied" : "Copy Report"}
+              <Button variant="outline" size="sm" onClick={handleCopyReport} className="h-8 px-2.5 text-xs gap-1.5">
+                {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                {copied ? 'Copied' : 'Copy Report'}
               </Button>
               <Button
                 size="sm"
@@ -114,24 +116,42 @@ export function BiosecurityDialog({
 
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {/* Status Banner */}
-          <div className={"p-4 rounded-xl border flex items-start gap-3.5 " + (report.isCompliant ? "bg-[var(--success)]/10 border-[var(--success)]/20 text-[var(--text)]" : "bg-[var(--danger)]/10 border-[var(--danger)]/20 text-[var(--text)]")}>
+          <div
+            className={`p-4 rounded-xl border flex items-start gap-3.5 ${
+              report.isCompliant
+                ? 'bg-emerald-500/10 border-emerald-500/20 text-[var(--text)]'
+                : 'bg-rose-500/10 border-rose-500/20 text-[var(--text)]'
+            }`}
+          >
             <div className="mt-0.5">
               {report.isCompliant ? (
-                <ShieldCheck size={20} className="text-[var(--success)]" />
+                <ShieldCheck size={20} className="text-emerald-500" />
               ) : (
-                <AlertOctagon size={20} className="text-[var(--danger)]" />
+                <AlertOctagon size={20} className="text-rose-500" />
               )}
             </div>
             <div className="space-y-1 text-xs">
               <div className="font-semibold text-sm flex items-center gap-2">
-                <span>{report.status === "NO_LOCAL_MATCH" ? "No Local Reference Matches Found" : report.status === "TIER_1_CRITICAL" ? "Tier 1 Select Agent Warning" : "Controlled Sequence Detected"}</span>
-                <span className={"px-2 py-0.5 rounded text-[10px] font-bold font-mono " + (report.isCompliant ? "bg-[var(--success)]/20 text-[var(--success)]" : "bg-[var(--danger)]/20 text-[var(--danger)]")}>
-                  {report.status}
+                <span>
+                  {report.overallTier === 'NO_LOCAL_MATCH'
+                    ? 'No Local Reference Matches Found'
+                    : report.overallTier === 'TIER_1_CRITICAL'
+                    ? 'Tier 1 Select Agent Warning'
+                    : 'Controlled / Dual-Use Motif Detected'}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
+                    report.isCompliant
+                      ? 'bg-emerald-500/20 text-emerald-500'
+                      : 'bg-rose-500/20 text-rose-500'
+                  }`}
+                >
+                  {report.overallTier}
                 </span>
               </div>
               <p className="text-[var(--text-secondary)]">{report.summary}</p>
               <div className="pt-1 font-medium text-[var(--text)] flex items-center gap-1.5">
-                <Info size={13} className="text-[var(--accent)]" /> {report.recommendation}
+                <Info size={13} className="text-[var(--accent)]" /> {report.diagnosticNotice}
               </div>
             </div>
           </div>
@@ -140,7 +160,7 @@ export function BiosecurityDialog({
           <div className="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--panel-muted)] text-xs space-y-2">
             <span className="font-semibold text-[var(--text)] block">Local diagnostic coverage:</span>
             <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">
-              The browser compares nucleotide sequence against 17 curated k-mer examples associated with selected controlled agents and toxins. A match is a review signal; no match is not clearance. Commercial providers and institutions use broader nucleotide, translated-protein, customer, and end-use screening.
+              The browser compares nucleotide sequences against curated diagnostic k-mer signatures of regulated Select Agents and Controlled Toxins. A match is a review signal; no match is not official clearance. Commercial gene synthesis providers conduct comprehensive multi-database and customer credentialing reviews.
             </p>
           </div>
 
@@ -161,16 +181,20 @@ export function BiosecurityDialog({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
-                    {report.matches.map((m, i) => (
+                    {report.matches.map((m: BiosecurityMatch, i: number) => (
                       <tr key={i} className="hover:bg-[var(--panel-muted)]/50">
                         <td className="px-3 py-2.5 font-sans font-medium text-[var(--text)]">{m.agentName}</td>
                         <td className="px-3 py-2.5 font-sans">
-                          <span className="px-1.5 py-0.5 rounded bg-[var(--danger)]/15 text-[var(--danger)] text-[10px] font-bold">
+                          <span className="px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-500 text-[10px] font-bold">
                             {m.category}
                           </span>
                         </td>
-                        <td className="px-3 py-2.5 text-[var(--accent)] font-bold">{m.start0 + 1}–{m.end0Exclusive} ({m.strand === 1 ? "+" : "-"})</td>
-                        <td className="px-3 py-2.5 font-sans text-[var(--text-secondary)] text-[11px]">{m.providerAction}</td>
+                        <td className="px-3 py-2.5 text-[var(--accent)] font-bold">
+                          {m.start1}–{m.end1} ({m.strand === 1 ? '+' : '-'})
+                        </td>
+                        <td className="px-3 py-2.5 font-sans text-[var(--text-secondary)] text-[11px]">
+                          {m.providerAction}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

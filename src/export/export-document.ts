@@ -1,5 +1,21 @@
 import { getMemorySequence } from '../utils/document-utils';
 import type { SequenceDocument } from '../domain/document';
+export { serializeToGenBank } from './genbank-export';
+
+export const EXPORT_FORMATS = ['genbank', 'fasta', 'seqcraft'] as const;
+export type ExportFormat = typeof EXPORT_FORMATS[number];
+
+export const EXPORT_EXTENSIONS: Record<ExportFormat, string> = {
+  genbank: '.gb',
+  fasta: '.fasta',
+  seqcraft: '.seqcraft'
+};
+
+export const EXPORT_MIME_TYPES: Record<ExportFormat, string> = {
+  genbank: 'text/plain',
+  fasta: 'text/plain',
+  seqcraft: 'application/json'
+};
 
 export function serializeToFasta(document: SequenceDocument): string {
   const sequence = getMemorySequence(document).raw;

@@ -378,7 +378,7 @@ export function DocsPage() {
               10. WebMCP Tool Reference
             </h2>
             <p>
-              SeqCraft exposes 24 tools to browser-connected AI agents via <code className="font-mono text-[12px]">window.document.modelContext</code>.
+              SeqCraft exposes 50 structured biological and workspace tools to browser-connected AI agents via <code className="font-mono text-[12px]">window.document.modelContext</code>.
             </p>
 
             <div className="overflow-x-auto border border-[var(--border)] rounded font-mono text-[11px]">
@@ -386,94 +386,325 @@ export function DocsPage() {
                 <thead className="bg-[var(--panel-muted)] text-[var(--text)] border-b border-[var(--border)]">
                   <tr>
                     <th className="p-2.5">Tool Name</th>
+                    <th className="p-2.5">Effect Class</th>
                     <th className="p-2.5">Description</th>
-                    <th className="p-2.5">readOnlyHint</th>
                     <th className="p-2.5">Approval</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border)] bg-[var(--panel)]">
+                  {/* Context & Capabilities */}
                   <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_document_info</td>
-                    <td className="p-2.5">Document length, topology, and features</td>
-                    <td className="p-2.5">true</td>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_workspace_context</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Bootstrap state: active molecule, selection, features, transaction</td>
                     <td className="p-2.5 text-[var(--success)]">No</td>
                   </tr>
                   <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_detect_restriction_sites</td>
-                    <td className="p-2.5">Scan sequence for restriction enzyme cut sites</td>
-                    <td className="p-2.5">true</td>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_capabilities</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Feature contracts, coordinate models, privacy rules</td>
                     <td className="p-2.5 text-[var(--success)]">No</td>
                   </tr>
                   <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_simulate_restriction_digest</td>
-                    <td className="p-2.5">Cleave construct and return fragment lengths</td>
-                    <td className="p-2.5">true</td>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_selected_context</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Selection coordinates, sequence slice, overlapping annotations</td>
                     <td className="p-2.5 text-[var(--success)]">No</td>
                   </tr>
                   <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_analyze_primers</td>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_document_revision</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Canonical revision number and SHA-256 sequence hash</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_transaction_status</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Staged transaction lifecycle, invariant report, approval status</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+
+                  {/* Navigation & Selection */}
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_focus_region</td>
+                    <td className="p-2.5">navigation</td>
+                    <td className="p-2.5">Scroll and highlight nucleotide range [start1, end1]</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_select_range</td>
+                    <td className="p-2.5">navigation</td>
+                    <td className="p-2.5">Set workspace selection interval [start1, end1]</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_clear_selection</td>
+                    <td className="p-2.5">navigation</td>
+                    <td className="p-2.5">Clear active sequence selection</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_set_active_view</td>
+                    <td className="p-2.5">navigation</td>
+                    <td className="p-2.5">Switch view between 'map', 'sequence', and 'topology'</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_show_feature</td>
+                    <td className="p-2.5">navigation</td>
+                    <td className="p-2.5">Center viewport and select feature by ID or name</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_show_restriction_site</td>
+                    <td className="p-2.5">navigation</td>
+                    <td className="p-2.5">Navigate linear and 3D map views to restriction recognition site</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+
+                  {/* Documents */}
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_list_documents</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">List metadata for all open sequence documents</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_active_document</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Active construct length, topology, revision, feature count</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_set_active_document</td>
+                    <td className="p-2.5">workspace_ephemeral</td>
+                    <td className="p-2.5">Switch active document in workspace</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_create_document</td>
+                    <td className="p-2.5">document_destructive</td>
+                    <td className="p-2.5">Create new construct from raw sequence string</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_delete_document</td>
+                    <td className="p-2.5">document_destructive</td>
+                    <td className="p-2.5">Close and delete construct from workspace</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_duplicate_document</td>
+                    <td className="p-2.5">document_destructive</td>
+                    <td className="p-2.5">Create deep copy of an existing sequence document</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_update_document_metadata</td>
+                    <td className="p-2.5">document_metadata</td>
+                    <td className="p-2.5">Update name, topology (linear/circular), or alphabet</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_create_document_from_region</td>
+                    <td className="p-2.5">document_destructive</td>
+                    <td className="p-2.5">Extract sub-region into new independent sequence document</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_copy_region_between_documents</td>
+                    <td className="p-2.5">sequence_mutation</td>
+                    <td className="p-2.5">Stage inserting sequence slice into target document</td>
+                    <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
+                  </tr>
+
+                  {/* Features & Primers */}
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_list_features</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Return all feature annotations on construct</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_select_feature</td>
+                    <td className="p-2.5">navigation</td>
+                    <td className="p-2.5">Select a feature by ID in workspace store</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_mutate_feature</td>
+                    <td className="p-2.5">annotation_mutation</td>
+                    <td className="p-2.5">Create, update, or delete feature annotations</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_detect_known_features</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Scan plasmid against curated database of known elements</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_propose_annotation</td>
+                    <td className="p-2.5">annotation_mutation</td>
+                    <td className="p-2.5">Apply detected known annotation to document table</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_list_primers</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">List custom primers configured for target molecule</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_mutate_primer</td>
+                    <td className="p-2.5">annotation_mutation</td>
+                    <td className="p-2.5">Create, edit, or delete primers on construct</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_analyze_primer</td>
+                    <td className="p-2.5">read</td>
                     <td className="p-2.5">Calculate primer Tm, GC%, and binding loci</td>
-                    <td className="p-2.5">true</td>
                     <td className="p-2.5 text-[var(--success)]">No</td>
                   </tr>
                   <tr>
                     <td className="p-2.5 text-[var(--accent)]">seqcraft_simulate_pcr</td>
-                    <td className="p-2.5">Predict amplicon size and coordinates</td>
-                    <td className="p-2.5">true</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Simulate linear/circular PCR amplicon sizes</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+
+                  {/* Digestion & Cloning */}
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_analyze_restriction_sites</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Scan sequence for restriction enzyme cut positions</td>
                     <td className="p-2.5 text-[var(--success)]">No</td>
                   </tr>
                   <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_find_orfs</td>
-                    <td className="p-2.5">Scan 6 frames for open reading frames</td>
-                    <td className="p-2.5">true</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_find_crispr_targets</td>
-                    <td className="p-2.5">Scan SpCas9 PAMs and forecast MMEJ</td>
-                    <td className="p-2.5">true</td>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_simulate_digest</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Cleave construct and return fragment lengths & overhangs</td>
                     <td className="p-2.5 text-[var(--success)]">No</td>
                   </tr>
                   <tr>
                     <td className="p-2.5 text-[var(--accent)]">seqcraft_simulate_golden_gate</td>
-                    <td className="p-2.5">Validate Type IIS 4nt cohesive assembly</td>
-                    <td className="p-2.5">true</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Simulate multi-part Type IIS assembly (BsaI, BsmBI, etc.)</td>
                     <td className="p-2.5 text-[var(--success)]">No</td>
                   </tr>
                   <tr>
                     <td className="p-2.5 text-[var(--accent)]">seqcraft_domesticate_sequence</td>
-                    <td className="p-2.5">Propose synonymous codon substitutions</td>
-                    <td className="p-2.5">true</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Find synonymous mutations to abolish internal cut sites</td>
                     <td className="p-2.5 text-[var(--success)]">No</td>
                   </tr>
                   <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_generate_opentrons_protocol</td>
-                    <td className="p-2.5">Generate Opentrons Python protocol</td>
-                    <td className="p-2.5">true</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_focus_region</td>
-                    <td className="p-2.5">Navigate UI selection to [start1, end1]</td>
-                    <td className="p-2.5">false</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_edit_sequence</td>
-                    <td className="p-2.5">Insert, delete, or replace sequence in-place</td>
-                    <td className="p-2.5">false</td>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_stage_domestication_candidate</td>
+                    <td className="p-2.5">sequence_mutation</td>
+                    <td className="p-2.5">Stage candidate domestication mutation for approval</td>
                     <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
                   </tr>
                   <tr>
                     <td className="p-2.5 text-[var(--accent)]">seqcraft_prepare_restriction_clone</td>
+                    <td className="p-2.5">workspace_ephemeral</td>
                     <td className="p-2.5">Stage directional restriction cloning proposal</td>
-                    <td className="p-2.5">false</td>
+                    <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
+                  </tr>
+
+                  {/* Sequence Mutations */}
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_edit_sequence</td>
+                    <td className="p-2.5">sequence_mutation</td>
+                    <td className="p-2.5">Insert, delete, or replace sequence in-place</td>
+                    <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_reverse_complement_region</td>
+                    <td className="p-2.5">sequence_mutation</td>
+                    <td className="p-2.5">Stage reverse-complementing sequence region</td>
                     <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
                   </tr>
                   <tr>
                     <td className="p-2.5 text-[var(--accent)]">seqcraft_rotate_origin</td>
-                    <td className="p-2.5">Re-index circular plasmid origin to new locus</td>
-                    <td className="p-2.5">false</td>
+                    <td className="p-2.5">sequence_mutation</td>
+                    <td className="p-2.5">Re-index circular plasmid origin to new coordinate</td>
+                    <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
+                  </tr>
+
+                  {/* History & Analysis */}
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_undo</td>
+                    <td className="p-2.5">workspace_ephemeral</td>
+                    <td className="p-2.5">Revert last sequence or metadata mutation</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_redo</td>
+                    <td className="p-2.5">workspace_ephemeral</td>
+                    <td className="p-2.5">Re-apply last undone mutation</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_history</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Inspect snapshot undo/redo stack & event history</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_restore_revision</td>
+                    <td className="p-2.5">sequence_mutation</td>
+                    <td className="p-2.5">Stage restoring sequence to snapshot in history</td>
+                    <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_compare_documents</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Circular-invariant, reverse-complement sequence diff</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_find_orfs</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Scan 6 frames for open reading frames</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_find_crispr_targets</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Scan SpCas9 PAMs and forecast MMEJ repair</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_screen_biosecurity</td>
+                    <td className="p-2.5">read</td>
+                    <td className="p-2.5">Screen against curated pathogen k-mer signatures</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+
+                  {/* IO & Automation */}
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_import_sequence_text</td>
+                    <td className="p-2.5">document_destructive</td>
+                    <td className="p-2.5">Parse and import FASTA, GenBank, or raw sequence</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_export_document</td>
+                    <td className="p-2.5">export</td>
+                    <td className="p-2.5">Export GenBank (.gb), FASTA (.fasta), or JSON</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_generate_opentrons_protocol</td>
+                    <td className="p-2.5">export</td>
+                    <td className="p-2.5">Generate Opentrons Python protocol (API v2.15)</td>
+                    <td className="p-2.5 text-[var(--success)]">No</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-[var(--accent)]">seqcraft_execute_actions</td>
+                    <td className="p-2.5">sequence_mutation</td>
+                    <td className="p-2.5">Execute batch sequence & annotation action plan</td>
                     <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
                   </tr>
                 </tbody>

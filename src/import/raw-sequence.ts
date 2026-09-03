@@ -1,10 +1,10 @@
 import type { SequenceDocument } from '../domain/document';
 import { ScientificSequence } from '../scientific/nucleotide';
 import { generateId } from '../utils/id';
-import { inferAlphabet } from '../scientific/alphabet';
+import { inferAlphabet, sanitizeSequence } from '../scientific/alphabet';
 
 export function importRawSequence(data: string, name: string = 'Untitled Sequence'): SequenceDocument {
-  const cleaned = data.replace(/\s+/g, '');
+  const cleaned = sanitizeSequence(data);
   const alphabet = inferAlphabet(cleaned);
   
   return {

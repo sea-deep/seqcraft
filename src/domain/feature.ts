@@ -1,13 +1,64 @@
-export type FeatureType =
-  | "CDS"
-  | "gene"
-  | "promoter"
-  | "terminator"
-  | "origin"
-  | "resistance marker"
-  | "tag"
-  | "misc_feature"
-  | "source";
+export const FEATURE_TYPES = [
+  'CDS',
+  'gene',
+  'exon',
+  'intron',
+  'signal_peptide',
+  'transit_peptide',
+  'cleavage_site',
+  'promoter',
+  'terminator',
+  'polyA_signal',
+  "5'UTR",
+  "3'UTR",
+  'RBS',
+  'regulatory',
+  'enhancer',
+  'operator',
+  'ncRNA',
+  'lncRNA',
+  'tRNA',
+  'rRNA',
+  'snRNA',
+  'snoRNA',
+  'origin',
+  'repeat_region',
+  'LTR',
+  'transposon',
+  'engineered_region',
+  'misc_structure',
+  'protein_bind',
+  'primer_bind',
+  'misc_binding',
+  'misc_difference',
+  'resistance marker',
+  'tag',
+  'reporter',
+  'crispr_target',
+  'recombination_site',
+  'att_site',
+  'loxP_site',
+  'frt_site',
+  'source',
+  'misc_feature'
+] as const;
+
+export type FeatureType = typeof FEATURE_TYPES[number];
+
+export const FEATURE_SOURCES = [
+  'imported',
+  'manual',
+  'detected',
+  'agent',
+  'benchling',
+  'snapgene',
+  'genbank',
+  'ensembl',
+  'uniprot',
+  'community',
+  'prediction'
+] as const;
+export type FeatureSource = typeof FEATURE_SOURCES[number];
 
 export interface SequenceInterval {
   start0: number;
@@ -21,7 +72,7 @@ export interface Feature {
   strand: 1 | -1;
   segments: SequenceInterval[];
   qualifiers: Record<string, string | string[]>;
-  source: "imported" | "manual" | "detected" | "agent";
+  source: FeatureSource;
 }
 
 export function validateInterval(interval: SequenceInterval, sequenceLength: number): void {

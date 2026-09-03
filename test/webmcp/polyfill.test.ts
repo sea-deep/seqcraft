@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { initializeSeqCraftWebMCPRuntime } from '../../src/webmcp/initialize-webmcp';
 import { registerSeqCraftTools } from '../../src/webmcp/register-seqcraft-tools';
+import { ALL_SEQCRAFT_TOOLS } from '../../src/webmcp/registry';
 import { useWorkspaceStore } from '../../src/state/workspace-store';
 import { importGenBank } from '../../src/import/genbank';
 import { DEMO_GENBANK } from '../../src/data/demo-workspace';
@@ -20,35 +21,9 @@ describe('WebMCP Polyfill Runtime', () => {
 
     const tools = await (document as any).modelContext.getTools();
     const seqTools = tools.filter((t: any) => t.name.startsWith('seqcraft_'));
-    expect(seqTools.length).toBe(24);
+    expect(seqTools.length).toBe(ALL_SEQCRAFT_TOOLS.length);
 
-    const expectedNames = [
-      "seqcraft_analyze_primer",
-      "seqcraft_analyze_restriction_sites",
-      "seqcraft_focus_region",
-      "seqcraft_get_active_document",
-      "seqcraft_get_capabilities",
-      "seqcraft_show_feature",
-      "seqcraft_show_restriction_site",
-      "seqcraft_simulate_digest",
-      "seqcraft_simulate_pcr",
-      "seqcraft_list_documents",
-      "seqcraft_prepare_restriction_clone",
-      "seqcraft_find_orfs",
-      "seqcraft_detect_known_features",
-      "seqcraft_list_features",
-      "seqcraft_list_primers",
-      "seqcraft_compare_documents",
-      "seqcraft_propose_annotation",
-      "seqcraft_generate_opentrons_protocol",
-      "seqcraft_find_crispr_targets",
-      "seqcraft_simulate_golden_gate",
-      "seqcraft_domesticate_sequence",
-      "seqcraft_screen_biosecurity",
-      "seqcraft_edit_sequence",
-      "seqcraft_rotate_origin",
-    ].sort();
-
+    const expectedNames = ALL_SEQCRAFT_TOOLS.map((t: any) => t.name).sort();
     const actualNames = seqTools.map((t: any) => t.name).sort();
     expect(actualNames).toEqual(expectedNames);
 

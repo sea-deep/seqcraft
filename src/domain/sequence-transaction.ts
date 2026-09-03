@@ -36,6 +36,9 @@ export interface TransactionInvariantReport {
   summary: string;
 }
 
+export const TRANSACTION_STATUSES = ['pending', 'approved', 'rejected', 'applied', 'stale'] as const;
+export type TransactionStatus = typeof TRANSACTION_STATUSES[number];
+
 export interface SequenceTransaction {
   id: string;
   documentId: string;
@@ -43,10 +46,11 @@ export interface SequenceTransaction {
   baseSequenceHash: string;
   operation: SequenceEditAction;
   affectedRange: { start0: number; end0Exclusive: number };
+  affectedRange1?: { start1: number; end1: number };
   beforeFragment: string;
   afterFragment: string;
   invariantReport: TransactionInvariantReport;
   expectedSequenceHash: string;
-  status: 'pending' | 'approved' | 'rejected' | 'applied' | 'stale';
-  createdAt: number;
+  status: TransactionStatus;
+  createdAt?: number;
 }

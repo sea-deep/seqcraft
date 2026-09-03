@@ -64,9 +64,14 @@ export function RestrictionSite3D({ site, angle, lane, baseRadius }: Restriction
     return geom;
   }, [angle, cutRadius]);
 
-  const color = isSelected ? '#3b82f6' : (hovered ? '#60a5fa' : '#9ca3af');
-  const emissive = isSelected ? '#3b82f6' : (hovered ? '#60a5fa' : '#000000');
-  const emissiveIntensity = isSelected ? 0.6 : (hovered ? 0.4 : 0);
+  const enzyme = BUILTIN_ENZYMES.find(e => e.id === site.enzymeId);
+  const isTypeIIS = enzyme?.enzymeClass === 'type_iis';
+  const isRare8 = enzyme?.category === 'rare_cutter';
+  const defaultColor = isTypeIIS ? '#f59e0b' : isRare8 ? '#a855f7' : '#9ca3af';
+
+  const color = isSelected ? '#3b82f6' : (hovered ? '#60a5fa' : defaultColor);
+  const emissive = isSelected ? '#3b82f6' : (hovered ? '#60a5fa' : isTypeIIS ? '#b45309' : isRare8 ? '#7e22ce' : '#000000');
+  const emissiveIntensity = isSelected ? 0.6 : (hovered ? 0.4 : isTypeIIS || isRare8 ? 0.2 : 0);
 
   const labelPos = angleToPosition(angle, markerEndRadius + 0.5);
 

@@ -3,7 +3,6 @@ import type { SequenceDocument } from '../domain/document';
 import type { SequenceEditAction, SequenceEditResult } from './sequence-editing';
 import { reverseComplementIupac, analyzeRestrictionSites } from './restriction-analysis';
 import { BUILTIN_ENZYMES } from '../data/restriction-enzymes';
-import { TYPE_IIS_ENZYMES } from './golden-gate';
 import type { RestrictionEnzyme } from '../domain/restriction';
 import type { TransactionInvariantReport, CdsTranslationVerification, EnzymeSiteVerification } from '../domain/sequence-transaction';
 
@@ -19,27 +18,26 @@ export function toThreeLetterAa(oneLetter: string): string {
   return Array.from(oneLetter).map(c => THREE_LETTER_AA[c.toUpperCase()] || c).join('-');
 }
 
-const ALL_ENZYMES: RestrictionEnzyme[] = [
-  ...BUILTIN_ENZYMES,
-  ...TYPE_IIS_ENZYMES.map(e => ({
-    id: e.id,
-    name: e.name,
-    recognitionSequence: e.recognitionSequence,
-    forwardCutOffset: e.recognitionSequence.length + e.topCutOffset,
-    reverseCutOffset: e.recognitionSequence.length + e.bottomCutOffset
-  }))
-];
+const ALL_ENZYMES: RestrictionEnzyme[] = BUILTIN_ENZYMES;
+
+import { editSequence } from './sequence-editing';
 
 export function evaluateTransactionInvariants(
   document: SequenceDocument,
   action: SequenceEditAction,
-  editResult: SequenceEditResult,
+  editResult?: SequenceEditResult,
   targetEnzymeName = 'BsaI'
 ): TransactionInvariantReport {
   const rawBefore = document.sequence ? document.sequence.raw : '';
-  const rawAfter = editResult.newSequence;
+  const resolvedEditResult = editResult || editSequence(
+    rawBefore,
+    document.features || [],
+    action,
+    document.topology || 'circular'
+  );
+  const rawAfter = resolvedEditResult.newSequence;
   const lengthBefore = document.length;
-  const lengthAfter = editResult.newLength;
+  const lengthAfter = resolvedEditResult.newLength;
   const lengthDelta = lengthAfter - lengthBefore;
   const coordinatesStable = lengthDelta === 0;
 
@@ -47,7 +45,7 @@ export function evaluateTransactionInvariants(
   let start0 = 0;
   let end0Exclusive = 0;
   let changedNucleotideCount = 0;
-  let position1 = 1;
+  let position1: number;
   let originalBase = '';
   let mutatedBase = '';
 
@@ -106,11 +104,13 @@ export function evaluateTransactionInvariants(
   const affectedCds = affectedFeatures.find(f => f.type === 'CDS');
 
   if (affectedCds && affectedCds.segments && affectedCds.segments.length > 0) {
-    const seg = affectedCds.segments[0];
-    const origCdsDna = rawBefore.slice(seg.start0, seg.end0Exclusive);
-    const mutatedFeature = editResult.newFeatures.find(f => f.id === affectedCds.id);
-    const mutatedSeg = mutatedFeature?.segments[0] || seg;
-    const mutatedCdsDna = rawAfter.slice(mutatedSeg.start0, mutatedSeg.end0Exclusive);
+    const mutatedFeature = resolvedEditResult.newFeatures.find(f => f.id === affectedCds.id);
+    const origSegments = affectedCds.segments;
+    const mutatedSegments = mutatedFeature?.segments || origSegments;
+
+    // Concatenate all exons / segments
+    const origCdsDna = origSegments.map(s => rawBefore.slice(s.start0, s.end0Exclusive)).join('');
+    const mutatedCdsDna = mutatedSegments.map(s => rawAfter.slice(s.start0, s.end0Exclusive)).join('');
 
     const dnaBefore = affectedCds.strand === -1 ? reverseComplementIupac(origCdsDna) : origCdsDna;
     const dnaAfter = affectedCds.strand === -1 ? reverseComplementIupac(mutatedCdsDna) : mutatedCdsDna;
@@ -124,30 +124,39 @@ export function evaluateTransactionInvariants(
 
     const isSynonymous = fullAaBefore === fullAaAfter && fullAaBefore.length > 0;
 
-    // Determine local codon context
+    // Map genomic position1 to transcript coordinate
     let codonBefore = '';
     let codonAfter = '';
     let aaBefore = '';
     let aaAfter = '';
 
-    if (affectedCds.strand === 1) {
-      const relPos = (position1 - 1) - seg.start0;
-      if (relPos >= 0 && relPos < origCdsDna.length) {
-        const codonStartRel = relPos - (relPos % 3);
-        const windowLen = Math.min(6, origCdsDna.length - codonStartRel);
-        codonBefore = origCdsDna.slice(codonStartRel, codonStartRel + windowLen);
-        codonAfter = mutatedCdsDna.slice(codonStartRel, codonStartRel + windowLen);
+    let relPos = -1;
+    let cumulative = 0;
+    for (const seg of origSegments) {
+      if (position1 - 1 >= seg.start0 && position1 - 1 < seg.end0Exclusive) {
+        relPos = cumulative + (position1 - 1 - seg.start0);
+        break;
+      }
+      cumulative += (seg.end0Exclusive - seg.start0);
+    }
 
-        const aaIdx = Math.floor(codonStartRel / 3);
-        const aaCount = Math.ceil(windowLen / 3);
+    if (relPos >= 0) {
+      const transcriptPos = affectedCds.strand === -1
+        ? (origCdsDna.length - 1) - relPos
+        : relPos;
+
+      if (transcriptPos >= 0 && transcriptPos < dnaBefore.length) {
+        const codonStart = transcriptPos - (transcriptPos % 3);
+        codonBefore = dnaBefore.slice(codonStart, codonStart + 3);
+        codonAfter = dnaAfter.slice(codonStart, codonStart + 3);
+
+        const aaIdx = Math.floor(codonStart / 3);
+        const aaCount = Math.min(2, fullAaBefore.length - aaIdx);
         const aaSubBefore = fullAaBefore.slice(aaIdx, aaIdx + aaCount);
         const aaSubAfter = fullAaAfter.slice(aaIdx, aaIdx + aaCount);
         aaBefore = toThreeLetterAa(aaSubBefore);
         aaAfter = toThreeLetterAa(aaSubAfter);
       }
-    } else {
-      aaBefore = toThreeLetterAa(fullAaBefore.slice(0, 2));
-      aaAfter = toThreeLetterAa(fullAaAfter.slice(0, 2));
     }
 
     cdsVerification = {

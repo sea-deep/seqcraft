@@ -9,6 +9,7 @@ import { assertDocumentInvariant } from '../domain/document';
 import { ScientificSequence } from '../scientific/nucleotide';
 import { editSequence } from '../scientific/sequence-editing';
 import type { SequenceEditAction, SequenceEditResult } from '../scientific/sequence-editing';
+import { APP_LIMITS } from '../config/app-limits';
 
 export type WorkspaceView = 'sequence' | 'map' | 'features' | 'primers' | 'enzymes' | 'history' | 'compare';
 
@@ -66,17 +67,25 @@ interface WorkspaceState {
   addProposal: (proposal: StagedProposal) => void;
   removeProposal: (id: string) => void;
   mutateDocumentSequence: (documentId: string, action: SequenceEditAction) => SequenceEditResult;
+  undoStack: Record<string, SequenceDocument[]>;
+  redoStack: Record<string, SequenceDocument[]>;
+  undo: (documentId: string) => boolean;
+  redo: (documentId: string) => boolean;
+  canUndo: (documentId: string) => boolean;
+  canRedo: (documentId: string) => boolean;
 }
 
 function historyEntry(documentId: string, action: WorkspaceHistoryEntry['action'], summary: string): WorkspaceHistoryEntry {
   return { id: generateId(), documentId, timestamp: Date.now(), action, summary };
 }
 
-export const useWorkspaceStore = create<WorkspaceState>((set) => ({
+export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   documents: [], activeDocumentId: null, openDocumentIds: [], activeView: 'sequence', selection: null,
   selectedFeatureId: null, selectedPrimerId: null, selectedRestrictionSiteId: null,
   sidebarOpen: true, inspectorOpen: true, inspectorTab: 'details', stagedProposals: [], historyEntries: [],
   isHydrated: false,
+  undoStack: {},
+  redoStack: {},
 
   setIsHydrated: isHydrated => set({ isHydrated }),
   setSidebarOpen: sidebarOpen => set({ sidebarOpen }),
@@ -309,8 +318,13 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
       };
       assertDocumentInvariant(updatedDoc);
 
+      const previousDocSnapshot = { ...document };
+      const currentUndo = (state.undoStack[documentId] || []).slice(-(APP_LIMITS.MAX_UNDO_SNAPSHOTS - 1));
+
       return {
         documents: state.documents.map(doc => doc.id === documentId ? updatedDoc : doc),
+        undoStack: { ...state.undoStack, [documentId]: [...currentUndo, previousDocSnapshot] },
+        redoStack: { ...state.redoStack, [documentId]: [] },
         selection: null,
         selectedFeatureId: null,
         selectedPrimerId: null,
@@ -320,4 +334,61 @@ export const useWorkspaceStore = create<WorkspaceState>((set) => ({
     });
     return editResult!;
   },
+
+  canUndo: (documentId: string): boolean => Boolean(get().undoStack[documentId]?.length),
+  canRedo: (documentId: string): boolean => Boolean(get().redoStack[documentId]?.length),
+
+  undo: documentId => {
+    let success = false;
+    set(state => {
+      const docHistory = state.undoStack[documentId];
+      if (!docHistory || docHistory.length === 0) return state;
+
+      const currentDoc = state.documents.find(d => d.id === documentId);
+      if (!currentDoc) return state;
+
+      const prevDoc = docHistory[docHistory.length - 1];
+      const newUndo = docHistory.slice(0, docHistory.length - 1);
+      const newRedo = [...(state.redoStack[documentId] || []), currentDoc];
+
+      success = true;
+      return {
+        documents: state.documents.map(d => d.id === documentId ? prevDoc : d),
+        undoStack: { ...state.undoStack, [documentId]: newUndo },
+        redoStack: { ...state.redoStack, [documentId]: newRedo },
+        selection: null,
+        historyEntries: [historyEntry(documentId, 'metadata', `Undid sequence edit on ${currentDoc.name}`), ...(state.historyEntries || [])],
+      };
+    });
+    return success;
+  },
+
+  redo: documentId => {
+    let success = false;
+    set(state => {
+      const redoHistory = state.redoStack[documentId];
+      if (!redoHistory || redoHistory.length === 0) return state;
+
+      const currentDoc = state.documents.find(d => d.id === documentId);
+      if (!currentDoc) return state;
+
+      const nextDoc = redoHistory[redoHistory.length - 1];
+      const newRedo = redoHistory.slice(0, redoHistory.length - 1);
+      const newUndo = [...(state.undoStack[documentId] || []), currentDoc];
+
+      success = true;
+      return {
+        documents: state.documents.map(d => d.id === documentId ? nextDoc : d),
+        undoStack: { ...state.undoStack, [documentId]: newUndo },
+        redoStack: { ...state.redoStack, [documentId]: newRedo },
+        selection: null,
+        historyEntries: [historyEntry(documentId, 'metadata', `Redid sequence edit on ${currentDoc.name}`), ...(state.historyEntries || [])],
+      };
+    });
+    return success;
+  },
 }));
+
+if (typeof window !== 'undefined') {
+  (window as any).__SEQCRAFT_WORKSPACE_STORE__ = useWorkspaceStore;
+}

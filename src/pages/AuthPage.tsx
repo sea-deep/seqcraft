@@ -67,6 +67,7 @@ export function AuthPage() {
     const callbackURL = buildAuthCallbackUrl(window.location.origin, '/dashboard');
     const errorCallbackURL = buildAuthCallbackUrl(window.location.origin, '/auth');
     try {
+      window.sessionStorage.setItem('seqcraft_oauth_pending', '1');
       const result = await authClient.signIn.social({
         provider: 'google',
         callbackURL,

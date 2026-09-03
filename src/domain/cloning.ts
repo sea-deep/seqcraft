@@ -27,6 +27,7 @@ export interface RestrictionCloneProposal {
   
   vectorDocumentId: string;
   vectorDocumentName: string;
+  vectorTopology?: 'linear' | 'circular';
   
   insertDocumentId: string;
   insertDocumentName: string;

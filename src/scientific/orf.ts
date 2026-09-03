@@ -21,11 +21,20 @@ export function findORFs(sequence: string, topology: 'linear' | 'circular', minC
 
   const rawOrfs = Translation.findOpenReadingFrames(seqObj, minCodons);
   
-  const results: OpenReadingFrame[] = [];
-  
+  // Deduplicate nested ORFs in the same reading frame sharing the same stop codon.
+  // In molecular biology, an Open Reading Frame is defined by the longest coding sequence up to a given stop codon.
+  const longestByStop = new Map<string, typeof rawOrfs[number]>();
   for (const raw of rawOrfs) {
     if (raw.start >= length) continue; // Duplicate ORF found in the wrapped region
-    
+    const key = `${raw.strand}_${raw.frame}_${raw.end}`;
+    const existing = longestByStop.get(key);
+    if (!existing || (raw.end - raw.start) > (existing.end - existing.start)) {
+      longestByStop.set(key, raw);
+    }
+  }
+
+  const results: OpenReadingFrame[] = [];
+  for (const raw of longestByStop.values()) {
     let segments: SequenceInterval[];
     if (raw.end > length) {
       if (topology === 'linear') continue; // Should never happen unless bug in library

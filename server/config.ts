@@ -76,7 +76,14 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env) {
     .split(',')
     .map(origin => origin.trim())
     .filter(Boolean)
-    .map(origin => new URL(origin).origin);
+    .map(origin => {
+      try {
+        return new URL(origin).origin;
+      } catch {
+        return null;
+      }
+    })
+    .filter((origin): origin is string => origin !== null);
 
   return {
     ...env,

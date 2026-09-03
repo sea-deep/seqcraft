@@ -1,5 +1,9 @@
 import { type Alphabet } from 'nucleotide-sequence';
 
+export function sanitizeSequence(raw: string): string {
+  return raw.replace(/[\s\d\-.]/g, '').toUpperCase();
+}
+
 export function inferAlphabet(sequence: string): Alphabet {
   const validIUPAC = /^[ACGTURYSWKMBDHVN\-.\s]*$/i;
   if (!validIUPAC.test(sequence)) {

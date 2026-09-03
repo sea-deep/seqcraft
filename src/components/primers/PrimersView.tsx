@@ -37,7 +37,14 @@ export function PrimersView({ document }: { document: SequenceDocument }) {
     return primers.filter(primer => !normalized || primer.name.toLowerCase().includes(normalized) || primer.sequence.toLowerCase().includes(normalized));
   }, [primers, query]);
 
+  const isMemory = document.storageMode === 'memory' && Boolean(document.sequence);
+
   const runPCR = () => {
+    if (!isMemory) {
+      setPcrMessage('PCR simulation is only supported for in-memory documents.');
+      setPcrResult(null);
+      return;
+    }
     const forwardPrimer = primers.find(primer => primer.id === forwardPrimerId);
     const reversePrimer = primers.find(primer => primer.id === reversePrimerId);
     if (!forwardPrimer || !reversePrimer || forwardPrimer.id === reversePrimer.id) {
@@ -76,7 +83,7 @@ export function PrimersView({ document }: { document: SequenceDocument }) {
         <thead className="bg-[var(--panel-muted)] text-left text-[11px] text-[var(--text-muted)]"><tr><th className="px-3 py-2 font-medium">Name</th><th className="px-3 py-2 font-medium">Sequence 5′→3′</th><th className="px-3 py-2 font-medium">Length</th><th className="px-3 py-2 font-medium">GC</th><th className="px-3 py-2 font-medium">Tm</th><th className="px-3 py-2 font-medium">Bindings</th><th className="w-[76px]" /></tr></thead>
         <tbody>{filtered.map(primer => {
           const properties = analyzePrimerProperties(primer.sequence);
-          const bindings = analyzePrimerBindings(getMemorySequence(document).raw, document.topology, primer);
+          const bindings = isMemory ? analyzePrimerBindings(getMemorySequence(document).raw, document.topology, primer) : [];
           return (
             <tr
               key={primer.id}

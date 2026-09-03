@@ -42,7 +42,7 @@ export function GenomicHero() {
 
             {/* Quiet, factual note */}
             <div className="mt-7 font-mono text-[11px] text-[var(--text-muted)]">
-              Local OPFS storage · Standard 1-based biological coordinates · 24 WebMCP tools
+              Local OPFS storage · Standard 1-based biological coordinates · 50 WebMCP tools
             </div>
           </div>
 

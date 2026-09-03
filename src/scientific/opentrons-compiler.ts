@@ -43,13 +43,19 @@ export interface OpentronsProtocolResult {
   summary: string;
 }
 
+import { OPENTRONS_DEFAULTS } from '../config/scientific-defaults';
+import { APP_LIMITS } from '../config/app-limits';
+
+export const OT2_AVAILABLE_TIP_SLOTS = OPENTRONS_DEFAULTS.ot2AvailableTipSlots;
+export const FLEX_AVAILABLE_TIP_SLOTS = OPENTRONS_DEFAULTS.flexAvailableTipSlots;
+
 /**
  * Returns valid 24-tube rack coordinates (A1..A6, B1..B6, C1..C6, D1..D6).
  * Throws if index exceeds 23 (24 tubes maximum).
  */
 export function getTuberackWell(index: number): string {
-  if (index < 0 || index >= 24) {
-    throw new Error(`Tube rack index ${index} exceeds 24-tube rack capacity (max 24 positions A1..D6).`);
+  if (index < 0 || index >= APP_LIMITS.MAX_TUBERACK_CAPACITY) {
+    throw new Error(`Tube rack index ${index} exceeds 24-tube rack capacity (max ${APP_LIMITS.MAX_TUBERACK_CAPACITY} positions A1..D6).`);
   }
   const row = String.fromCharCode(65 + Math.floor(index / 6));
   const col = (index % 6) + 1;
@@ -112,6 +118,14 @@ export function compileOpentronsPCRProtocol(params: OpentronsPCRParams): Opentro
 
   const p20RacksNeeded = Math.max(1, Math.ceil(p20Transfers / 96));
   const p300RacksNeeded = needP300 ? Math.max(1, Math.ceil(p300Transfers / 96)) : 0;
+  const isFlex = robotModel === "Flex";
+
+  const flexTransfers = (waterVolumeUl > 0 ? 1 : 0) + (numReactions * 4);
+  const flexRacksNeeded = Math.max(1, Math.ceil(flexTransfers / 96));
+
+  const p20Slots = OT2_AVAILABLE_TIP_SLOTS.slice(0, p20RacksNeeded);
+  const p300Slots = OT2_AVAILABLE_TIP_SLOTS.slice(p20RacksNeeded, p20RacksNeeded + p300RacksNeeded);
+  const flexSlots = FLEX_AVAILABLE_TIP_SLOTS.slice(0, flexRacksNeeded);
 
   const billOfMaterials = [
     { item: "Nuclease-free Water", quantity: `${totalWaterNeeded} uL`, notes: `Place in Tube ${getTuberackWell(0)}` },
@@ -120,12 +134,15 @@ export function compileOpentronsPCRProtocol(params: OpentronsPCRParams): Opentro
     { item: `${params.reversePrimerName} (10 uM)`, quantity: `${totalRevNeeded} uL`, notes: `Place in Tube ${getTuberackWell(3)}` },
     { item: `Template DNA (${params.templateDocName})`, quantity: `${Math.round(templateVolumeUl * numReactions * 1.15)} uL`, notes: `Place in Tube ${getTuberackWell(4)}` },
     { item: "96-Well PCR Plate", quantity: "1 plate", notes: "NEST 0.1 mL full skirt in Slot 7 or Thermocycler" },
-    { item: "20 uL Filter Tips", quantity: `${p20RacksNeeded} rack(s)`, notes: "Opentrons 96 tip rack" },
-    ...(needP300 ? [{ item: "300 uL Filter Tips", quantity: `${p300RacksNeeded} rack(s)`, notes: "Opentrons 96 tip rack" }] : []),
+    ...(isFlex
+      ? [{ item: "50 uL Flex Filter Tips", quantity: `${flexRacksNeeded} rack(s)`, notes: `Opentrons Flex 96 tip rack (Slots ${flexSlots.join(", ")})` }]
+      : [
+          { item: "20 uL Filter Tips", quantity: `${p20RacksNeeded} rack(s)`, notes: `Opentrons 96 tip rack (Slots ${p20Slots.join(", ")})` },
+          ...(needP300 ? [{ item: "300 uL Filter Tips", quantity: `${p300RacksNeeded} rack(s)`, notes: `Opentrons 96 tip rack (Slots ${p300Slots.join(", ")})` }] : []),
+        ]),
   ];
 
   const wellsList = Object.keys(reagentPlateMap).map(w => JSON.stringify(w)).join(", ");
-  const isFlex = robotModel === "Flex";
 
   const pythonCode = [
     `"""`,
@@ -146,11 +163,11 @@ export function compileOpentronsPCRProtocol(params: OpentronsPCRParams): Opentro
     `def run(protocol: protocol_api.ProtocolContext):`,
     `    # Load Tip Racks`,
     isFlex ? [
-      `    tiprack_50 = protocol.load_labware("opentrons_flex_96_tiprack_50ul", "D1")`,
-      `    pipette = protocol.load_instrument("flex_1channel_50", "left", tip_racks=[tiprack_50])`,
+      `    tipracks_50 = [protocol.load_labware("opentrons_flex_96_tiprack_50ul", slot) for slot in ${JSON.stringify(flexSlots)}]`,
+      `    pipette = protocol.load_instrument("flex_1channel_50", "left", tip_racks=tipracks_50)`,
     ].join("\n") : [
-      `    tipracks_20 = [protocol.load_labware("opentrons_96_tiprack_20ul", str(slot)) for slot in range(1, ${1 + p20RacksNeeded})]`,
-      needP300 ? `    tipracks_300 = [protocol.load_labware("opentrons_96_tiprack_300ul", str(slot)) for slot in range(${1 + p20RacksNeeded}, ${1 + p20RacksNeeded + p300RacksNeeded})]` : ``,
+      `    tipracks_20 = [protocol.load_labware("opentrons_96_tiprack_20ul", slot) for slot in ${JSON.stringify(p20Slots)}]`,
+      needP300 ? `    tipracks_300 = [protocol.load_labware("opentrons_96_tiprack_300ul", slot) for slot in ${JSON.stringify(p300Slots)}]` : ``,
       `    p20 = protocol.load_instrument("p20_single_gen2", "right", tip_racks=tipracks_20)`,
       needP300 ? `    p300 = protocol.load_instrument("p300_single_gen2", "left", tip_racks=tipracks_300)` : ``,
     ].filter(Boolean).join("\n"),
@@ -305,6 +322,14 @@ export function compileOpentronsDigestProtocol(params: OpentronsDigestParams): O
 
   const p20RacksNeeded = Math.max(1, Math.ceil(p20Transfers / 96));
   const p300RacksNeeded = needP300 ? Math.max(1, Math.ceil(p300Transfers / 96)) : 0;
+  const isFlex = robotModel === "Flex";
+
+  const flexTransfers = (waterVolumeUl > 0 ? 1 : 0) + numReactions * (2 + params.enzymeNames.length);
+  const flexRacksNeeded = Math.max(1, Math.ceil(flexTransfers / 96));
+
+  const p20Slots = OT2_AVAILABLE_TIP_SLOTS.slice(0, p20RacksNeeded);
+  const p300Slots = OT2_AVAILABLE_TIP_SLOTS.slice(p20RacksNeeded, p20RacksNeeded + p300RacksNeeded);
+  const flexSlots = FLEX_AVAILABLE_TIP_SLOTS.slice(0, flexRacksNeeded);
 
   const billOfMaterials = [
     { item: "Nuclease-free Water", quantity: `${Math.round(waterVolumeUl * numReactions * 1.10)} uL`, notes: `Tube ${getTuberackWell(0)}` },
@@ -316,12 +341,15 @@ export function compileOpentronsDigestProtocol(params: OpentronsDigestParams): O
     })),
     { item: `Substrate DNA (${params.dnaDocName})`, quantity: `${Math.round(dnaVolumeUl * numReactions * 1.10)} uL`, notes: `Tube ${getTuberackWell(2)}` },
     { item: "96-Well PCR/Reaction Plate", quantity: "1 plate", notes: "Slot 7" },
-    { item: "20 uL Filter Tips", quantity: `${p20RacksNeeded} rack(s)`, notes: "Opentrons 96 tip rack" },
-    ...(needP300 ? [{ item: "300 uL Filter Tips", quantity: `${p300RacksNeeded} rack(s)`, notes: "Opentrons 96 tip rack" }] : []),
+    ...(isFlex
+      ? [{ item: "50 uL Flex Filter Tips", quantity: `${flexRacksNeeded} rack(s)`, notes: `Opentrons Flex 96 tip rack (Slots ${flexSlots.join(", ")})` }]
+      : [
+          { item: "20 uL Filter Tips", quantity: `${p20RacksNeeded} rack(s)`, notes: `Opentrons 96 tip rack (Slots ${p20Slots.join(", ")})` },
+          ...(needP300 ? [{ item: "300 uL Filter Tips", quantity: `${p300RacksNeeded} rack(s)`, notes: `Opentrons 96 tip rack (Slots ${p300Slots.join(", ")})` }] : []),
+        ]),
   ];
 
   const wellsList = Object.keys(reagentPlateMap).map(w => JSON.stringify(w)).join(", ");
-  const isFlex = robotModel === "Flex";
 
   const pythonCode = [
     `"""`,
@@ -342,11 +370,11 @@ export function compileOpentronsDigestProtocol(params: OpentronsDigestParams): O
     `def run(protocol: protocol_api.ProtocolContext):`,
     `    # Load Tip Racks & Pipettes`,
     isFlex ? [
-      `    tiprack_50 = protocol.load_labware("opentrons_flex_96_tiprack_50ul", "D1")`,
-      `    pipette = protocol.load_instrument("flex_1channel_50", "left", tip_racks=[tiprack_50])`,
+      `    tipracks_50 = [protocol.load_labware("opentrons_flex_96_tiprack_50ul", slot) for slot in ${JSON.stringify(flexSlots)}]`,
+      `    pipette = protocol.load_instrument("flex_1channel_50", "left", tip_racks=tipracks_50)`,
     ].join("\n") : [
-      `    tipracks_20 = [protocol.load_labware("opentrons_96_tiprack_20ul", str(slot)) for slot in range(1, ${1 + p20RacksNeeded})]`,
-      needP300 ? `    tipracks_300 = [protocol.load_labware("opentrons_96_tiprack_300ul", str(slot)) for slot in range(${1 + p20RacksNeeded}, ${1 + p20RacksNeeded + p300RacksNeeded})]` : ``,
+      `    tipracks_20 = [protocol.load_labware("opentrons_96_tiprack_20ul", slot) for slot in ${JSON.stringify(p20Slots)}]`,
+      needP300 ? `    tipracks_300 = [protocol.load_labware("opentrons_96_tiprack_300ul", slot) for slot in ${JSON.stringify(p300Slots)}]` : ``,
       `    p20 = protocol.load_instrument("p20_single_gen2", "right", tip_racks=tipracks_20)`,
       needP300 ? `    p300 = protocol.load_instrument("p300_single_gen2", "left", tip_racks=tipracks_300)` : ``,
     ].filter(Boolean).join("\n"),

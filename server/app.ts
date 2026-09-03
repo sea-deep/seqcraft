@@ -143,6 +143,11 @@ export function createApp({ config, projects, auth, resolveUserId, staticDir }: 
 
       void authHandler(req, res).catch(next);
     });
+  } else {
+    app.get('/api/auth/get-session', (_req, res) => {
+      res.setHeader('Cache-Control', 'no-store');
+      res.json(null);
+    });
   }
 
   app.use(express.json({ limit: '32kb', strict: true }));

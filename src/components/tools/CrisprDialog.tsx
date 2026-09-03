@@ -1,20 +1,12 @@
-import { useState, useMemo } from "react";
-import { 
-  Crosshair, Copy, Check, BookmarkPlus, AlertCircle, Sparkles 
-} from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "../ui/dialog";
-import type { SequenceDocument } from "../../domain/document";
-import { findCrisprTargets } from "../../scientific/crispr";
-import type { CrisprTarget } from "../../scientific/crispr";
-import { getMemorySequence } from "../../utils/document-utils";
-import { useWorkspaceStore } from "../../state/workspace-store";
-import { generateId } from "../../utils/id";
+import { useState, useMemo } from 'react';
+import { Crosshair, Copy, Check, BookmarkPlus, AlertCircle, Dna } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../ui/dialog';
+import type { SequenceDocument } from '../../domain/document';
+import { findCrisprTargets, CAS_NUCLEASES, type CrisprTarget } from '../../scientific/crispr';
+import type { CasNucleaseId } from '../../domain/crispr';
+import { getMemorySequence } from '../../utils/document-utils';
+import { useWorkspaceStore } from '../../state/workspace-store';
+import { generateId } from '../../utils/id';
 
 export interface CrisprDialogProps {
   document: SequenceDocument;
@@ -23,12 +15,8 @@ export interface CrisprDialogProps {
   selection?: { start0: number; end0Exclusive: number };
 }
 
-export function CrisprDialog({
-  document,
-  open,
-  onOpenChange,
-  selection
-}: CrisprDialogProps) {
+export function CrisprDialog({ document, open, onOpenChange, selection }: CrisprDialogProps) {
+  const [nucleaseId, setNucleaseId] = useState<CasNucleaseId>('SpCas9');
   const [minQualityScore, setMinQualityScore] = useState(50);
   const [onlySelection, setOnlySelection] = useState(Boolean(selection));
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -37,15 +25,21 @@ export function CrisprDialog({
   const addFeature = useWorkspaceStore(state => state.addFeature);
   const addHistoryEntry = useWorkspaceStore(state => state.addHistoryEntry);
 
+  const selectedNuclease = useMemo(() => {
+    return CAS_NUCLEASES.find(n => n.id === nucleaseId) || CAS_NUCLEASES[0];
+  }, [nucleaseId]);
+
   const targets = useMemo(() => {
+    if (document.storageMode !== 'memory' || !document.sequence) return [];
     const rawSeq = getMemorySequence(document).raw;
     const targetRegion = onlySelection && selection ? selection : undefined;
     return findCrisprTargets(rawSeq, document.topology, {
+      nuclease: nucleaseId,
       targetRegion,
       minQualityScore,
       maxResults: 40
     });
-  }, [document, onlySelection, selection, minQualityScore]);
+  }, [document, nucleaseId, onlySelection, selection, minQualityScore]);
 
   const handleCopySpacer = async (target: CrisprTarget) => {
     await navigator.clipboard.writeText(target.spacer);
@@ -54,65 +48,143 @@ export function CrisprDialog({
   };
 
   const handleAnnotateTarget = (target: CrisprTarget) => {
-    const start0 = target.strand === 1 ? target.pamStart0 - 20 : target.pamStart0;
-    const end0Exclusive = target.strand === 1 ? target.pamEnd0Exclusive : target.pamEnd0Exclusive + 20;
+    const L = document.length;
+    let segments: import('../../domain/feature').SequenceInterval[];
+    const spacerLen = target.spacer.length;
+
+    if (target.pamOrientation === '3prime') {
+      if (target.strand === 1) {
+        const rawStart = target.pamStart0 - spacerLen;
+        const rawEnd = target.pamEnd0Exclusive;
+        if (document.topology === 'circular' && rawStart < 0) {
+          segments = [
+            { start0: L + rawStart, end0Exclusive: L },
+            { start0: 0, end0Exclusive: rawEnd }
+          ];
+        } else {
+          segments = [{ start0: Math.max(0, rawStart), end0Exclusive: Math.min(L, rawEnd) }];
+        }
+      } else {
+        const rawStart = target.pamStart0;
+        const rawEnd = target.pamEnd0Exclusive + spacerLen;
+        if (document.topology === 'circular' && rawEnd > L) {
+          segments = [
+            { start0: rawStart, end0Exclusive: L },
+            { start0: 0, end0Exclusive: rawEnd - L }
+          ];
+        } else {
+          segments = [{ start0: Math.max(0, rawStart), end0Exclusive: Math.min(L, rawEnd) }];
+        }
+      }
+    } else {
+      // 5' PAM (e.g. Cas12a)
+      if (target.strand === 1) {
+        const rawStart = target.pamStart0;
+        const rawEnd = target.pamEnd0Exclusive + spacerLen;
+        if (document.topology === 'circular' && rawEnd > L) {
+          segments = [
+            { start0: rawStart, end0Exclusive: L },
+            { start0: 0, end0Exclusive: rawEnd - L }
+          ];
+        } else {
+          segments = [{ start0: Math.max(0, rawStart), end0Exclusive: Math.min(L, rawEnd) }];
+        }
+      } else {
+        const rawStart = target.pamStart0 - spacerLen;
+        const rawEnd = target.pamEnd0Exclusive;
+        if (document.topology === 'circular' && rawStart < 0) {
+          segments = [
+            { start0: L + rawStart, end0Exclusive: L },
+            { start0: 0, end0Exclusive: rawEnd }
+          ];
+        } else {
+          segments = [{ start0: Math.max(0, rawStart), end0Exclusive: Math.min(L, rawEnd) }];
+        }
+      }
+    }
 
     const feature = {
       id: generateId(),
-      name: "gRNA: " + target.spacer.slice(0, 10) + "...",
-      type: "misc_feature" as const,
+      name: `gRNA (${target.nucleaseId}): ${target.spacer.slice(0, 8)}...`,
+      type: 'crispr_target' as const,
       strand: target.strand,
-      segments: [{ start0, end0Exclusive }],
+      segments: segments.filter(s => s.start0 < s.end0Exclusive),
       qualifiers: {
-        note: "SpCas9 PAM: " + target.pam + "; Quality: " + target.qualityScore + "%; Frameshift Likelihood: " + Math.round(target.frameshiftProbability * 100) + "%"
+        nuclease: target.nucleaseName,
+        pam: target.pam,
+        pamOrientation: target.pamOrientation,
+        qualityScore: String(target.qualityScore),
+        gcPercent: `${target.gcPercent}%`,
+        spacer: target.spacer,
+        cleavage: target.cleavageType,
+        source: 'SeqCraft In Silico CRISPR Designer'
       },
-      source: "agent" as const
+      source: 'detected' as const
     };
 
     addFeature(document.id, feature);
     addHistoryEntry({
       documentId: document.id,
-      action: "feature",
-      summary: "Added CRISPR guide " + feature.name
+      action: 'feature',
+      summary: `Annotated ${target.nucleaseId} CRISPR guide target (${target.qualityScore}% quality)`
     });
 
-    setAddedIds(prev => new Set([...prev, target.id]));
+    setAddedIds(prev => new Set(prev).add(target.id));
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[780px] max-h-[85vh] flex flex-col p-0 overflow-hidden bg-[var(--panel)] border-[var(--border)]">
-        <DialogHeader className="px-6 py-4 border-b border-[var(--border)] shrink-0 bg-[var(--bg)]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/15 text-[var(--accent)] flex items-center justify-center">
-              <Crosshair size={18} />
+      <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col p-6 bg-[var(--panel)] border-[var(--border)] text-[var(--text)]">
+        <DialogHeader className="flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-[var(--accent-soft)] text-[var(--accent)]">
+              <Crosshair size={20} />
             </div>
             <div>
-              <DialogTitle className="text-base font-semibold text-[var(--text)] flex items-center gap-2">
-                CRISPR SpCas9 Target Radar & MMEJ Forecaster
+              <DialogTitle className="text-lg font-semibold flex items-center gap-2">
+                CRISPR Guide RNA Designer & Microhomology Scoring
+                <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] font-medium">
+                  {selectedNuclease.id}
+                </span>
               </DialogTitle>
-              <DialogDescription className="text-xs text-[var(--text-muted)]">
-                Scan for 5'-NGG-3' PAMs, evaluate on-target guide efficiency, and predict microhomology deletion patterns.
+              <DialogDescription className="text-xs text-[var(--text-muted)] mt-0.5">
+                Multi-nuclease PAM scanning, GC balance, Pol III termination checks, and MMEJ frameshift predictions.
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        {/* Filter Bar */}
-        <div className="px-6 py-3 border-b border-[var(--border)] bg-[var(--panel-muted)] flex flex-wrap items-center justify-between gap-4 text-xs text-[var(--text)]">
-          <div className="flex items-center gap-4">
+        {/* Control Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-4 py-3 border-y border-[var(--border)] bg-[var(--panel-muted)] px-3 rounded-lg text-xs">
+          {/* Nuclease Picker */}
+          <div className="flex items-center gap-2">
+            <span className="text-[var(--text-muted)] font-medium">Nuclease:</span>
+            <select
+              value={nucleaseId}
+              onChange={e => setNucleaseId(e.target.value as CasNucleaseId)}
+              className="h-8 rounded border border-[var(--border)] bg-[var(--bg)] px-2.5 text-xs text-[var(--text)] font-medium outline-none focus:border-[var(--accent)]"
+            >
+              {CAS_NUCLEASES.map(n => (
+                <option key={n.id} value={n.id}>
+                  {n.name} (PAM: {n.pamMotif})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-[var(--text-muted)] font-medium">Min Quality:</span>
+              <span className="text-[var(--text-muted)]">Min Quality:</span>
               <input
                 type="range"
                 min={0}
                 max={90}
-                step={5}
+                step={10}
                 value={minQualityScore}
                 onChange={e => setMinQualityScore(Number(e.target.value))}
-                className="w-24 accent-[var(--accent)] cursor-pointer"
+                className="w-20 accent-[var(--accent)]"
               />
-              <span className="font-mono font-semibold text-[var(--accent)]">{minQualityScore}%</span>
+              <span className="font-mono text-[var(--text)] font-semibold w-8">{minQualityScore}%</span>
             </div>
 
             {selection && (
@@ -123,105 +195,119 @@ export function CrisprDialog({
                   onChange={e => setOnlySelection(e.target.checked)}
                   className="accent-[var(--accent)]"
                 />
-                <span className="text-[var(--text-secondary)]">Selection only ({selection.start0 + 1}–{selection.end0Exclusive})</span>
+                <span className="text-[var(--text)]">Target selection ({selection.end0Exclusive - selection.start0} bp)</span>
               </label>
             )}
           </div>
+        </div>
 
-          <div className="text-xs text-[var(--text-muted)] font-medium">
-            Found <span className="font-mono font-bold text-[var(--text)]">{targets.length}</span> target sites
-          </div>
+        {/* Nuclease Spec Banner */}
+        <div className="text-[11px] text-[var(--text-secondary)] px-3 py-1.5 rounded bg-[var(--bg)] border border-[var(--border)] flex items-center justify-between">
+          <span>
+            <strong>PAM:</strong> {selectedNuclease.pamMotif} ({selectedNuclease.pamOrientation}) ·{' '}
+            <strong>Spacer:</strong> {selectedNuclease.spacerLengthBp} nt ·{' '}
+            <strong>Cleavage:</strong> {selectedNuclease.cleavageType}
+          </span>
+          <span className="text-[var(--text-muted)]">{selectedNuclease.description}</span>
         </div>
 
         {/* Target List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2.5 min-h-[350px]">
-          {targets.length === 0 && (
-            <div className="p-12 text-center text-xs text-[var(--text-muted)] space-y-2">
-              <AlertCircle size={24} className="mx-auto text-[var(--text-muted)] opacity-60" />
-              <p>No SpCas9 targets found meeting the minimum quality score ({minQualityScore}%).</p>
-              <p className="text-[11px]">Try lowering the quality threshold or expanding the search window.</p>
+        <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-[300px]">
+          {targets.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 text-[var(--text-muted)] space-y-2">
+              <Dna size={32} className="opacity-40" />
+              <p>No {selectedNuclease.id} target sites found matching criteria.</p>
+              <p className="text-[11px]">Try lowering the minimum quality score threshold.</p>
             </div>
+          ) : (
+            targets.map(target => {
+              const isAdded = addedIds.has(target.id);
+              const isCopied = copiedId === target.id;
+              const isHigh = target.qualityScore >= 75;
+              const isMedium = target.qualityScore >= 50 && target.qualityScore < 75;
+
+              return (
+                <div
+                  key={target.id}
+                  className="p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:border-[var(--accent)]/50 transition-all flex flex-col gap-2"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-9 h-9 rounded-md flex flex-col items-center justify-center font-mono font-bold text-xs ${
+                          isHigh
+                            ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                            : isMedium
+                            ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                            : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                        }`}
+                      >
+                        <span>{target.qualityScore}</span>
+                        <span className="text-[9px] font-normal leading-none">%</span>
+                      </div>
+
+                      <div>
+                        <div className="font-mono text-xs font-semibold tracking-wide flex items-center gap-1.5">
+                          {target.pamOrientation === '5prime' && (
+                            <span className="text-[var(--accent)] font-bold">{target.pam}</span>
+                          )}
+                          <span className="text-[var(--text)]">{target.spacer}</span>
+                          {target.pamOrientation === '3prime' && (
+                            <span className="text-[var(--accent)] font-bold">{target.pam}</span>
+                          )}
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-[var(--panel-muted)] text-[var(--text-muted)]">
+                            {target.strand === 1 ? '+ strand' : '- strand'}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-[var(--text-muted)] mt-0.5 flex gap-3">
+                          <span>PAM: {target.pamStart0 + 1}–{target.pamEnd0Exclusive}</span>
+                          <span>Cut: {target.cutSite0 + 1}{target.bottomCutSite0 ? ` / ${target.bottomCutSite0 + 1}` : ''}</span>
+                          <span>GC: {target.gcPercent}%</span>
+                          <span>Frameshift: {Math.round(target.frameshiftProbability * 100)}%</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleCopySpacer(target)}
+                        className="p-1.5 rounded border border-[var(--border)] bg-[var(--panel)] hover:bg-[var(--panel-muted)] text-[var(--text-secondary)] transition-colors cursor-pointer"
+                        title="Copy spacer nucleotide sequence"
+                      >
+                        {isCopied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                      </button>
+
+                      <button
+                        onClick={() => handleAnnotateTarget(target)}
+                        disabled={isAdded}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-semibold border transition-colors cursor-pointer ${
+                          isAdded
+                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500 cursor-default'
+                            : 'border-[var(--accent)]/40 bg-[var(--accent-soft)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] text-[var(--accent)]'
+                        }`}
+                      >
+                        {isAdded ? <Check size={13} /> : <BookmarkPlus size={13} />}
+                        {isAdded ? 'Annotated' : 'Add to Map'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {target.penalties.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-0.5">
+                      {target.penalties.map((pen, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-rose-500/10 text-rose-500 border border-rose-500/20"
+                        >
+                          <AlertCircle size={10} /> {pen}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
-
-          {targets.map(target => (
-            <div 
-              key={target.id}
-              className="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--panel)] hover:border-[var(--accent)]/40 transition-colors space-y-2.5 shadow-sm"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className={"px-2 py-0.5 rounded text-[11px] font-bold font-mono " + (target.qualityScore >= 75 ? "bg-[var(--success)]/15 text-[var(--success)]" : target.qualityScore >= 50 ? "bg-[var(--accent)]/15 text-[var(--accent)]" : "bg-[var(--warning)]/15 text-[var(--warning)]")}>
-                    {target.qualityScore}% Quality
-                  </span>
-                  <span className="text-xs font-medium text-[var(--text-muted)]">
-                    Strand: <strong className="text-[var(--text)]">{target.strand === 1 ? "+ (Sense)" : "- (Antisense)"}</strong>
-                  </span>
-                  <span className="text-xs font-medium text-[var(--text-muted)]">
-                    Cut: <strong className="font-mono text-[var(--text)]">{target.cutSite0 + 1}</strong>
-                  </span>
-                  <span className="text-xs font-medium text-[var(--text-muted)]">
-                    GC: <strong className="font-mono text-[var(--text)]">{target.gcPercent}%</strong>
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => handleCopySpacer(target)}
-                    className="flex items-center gap-1 h-7 px-2.5 rounded border border-[var(--border)] bg-[var(--panel-muted)] text-[11px] hover:text-[var(--text)] transition-colors cursor-pointer"
-                  >
-                    {copiedId === target.id ? <Check size={12} className="text-[var(--success)]" /> : <Copy size={12} />}
-                    {copiedId === target.id ? "Copied" : "Copy Spacer"}
-                  </button>
-                  <button
-                    onClick={() => handleAnnotateTarget(target)}
-                    disabled={addedIds.has(target.id)}
-                    className={"flex items-center gap-1 h-7 px-2.5 rounded border text-[11px] font-semibold transition-colors " + (addedIds.has(target.id) ? "border-transparent bg-[var(--panel-muted)] text-[var(--text-muted)] opacity-60" : "border-[var(--border)] bg-[var(--panel-muted)] text-[var(--accent)] hover:bg-[var(--panel)] cursor-pointer")}
-                  >
-                    <BookmarkPlus size={12} />
-                    {addedIds.has(target.id) ? "Annotated" : "Add Feature"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Spacer + PAM Sequence Box */}
-              <div className="p-2 rounded bg-[var(--bg-editor)] border border-[var(--border)] font-mono text-xs flex items-center justify-between">
-                <div>
-                  <span className="text-[var(--text)] tracking-wider font-semibold">{target.spacer}</span>
-                  <span className="ml-2 font-bold px-1.5 py-0.5 rounded bg-[var(--accent)] text-[var(--accent-foreground)]">
-                    {target.pam}
-                  </span>
-                </div>
-                <div className="text-[11px] text-[var(--text-muted)] font-sans">
-                  Frameshift KO Likelihood: <strong className="text-[var(--text)] font-mono">{Math.round(target.frameshiftProbability * 100)}%</strong>
-                </div>
-              </div>
-
-              {/* MMEJ Predicted Deletions */}
-              {target.mmejDeletions.length > 0 && (
-                <div className="text-[11px] text-[var(--text-muted)] flex flex-wrap items-center gap-2 pt-0.5">
-                  <span className="font-semibold text-[var(--text)] flex items-center gap-1">
-                    <Sparkles size={11} className="text-[var(--accent)]" /> Predicted MMEJ Deletions:
-                  </span>
-                  {target.mmejDeletions.map((del, i) => (
-                    <span key={i} className="px-1.5 py-0.5 rounded bg-[var(--panel-muted)] border border-[var(--border)] font-mono text-[10px]">
-                      -{del.deletionSizeBp}bp ({del.microhomology}) {del.isFrameshift ? "⚡Frameshift" : "In-frame"}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Penalties if any */}
-              {target.penalties.length > 0 && (
-                <div className="text-[11px] text-[var(--warning)] flex flex-wrap items-center gap-2">
-                  {target.penalties.map((p, i) => (
-                    <span key={i} className="flex items-center gap-1">
-                      <AlertCircle size={11} /> {p}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
         </div>
       </DialogContent>
     </Dialog>

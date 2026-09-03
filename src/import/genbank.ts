@@ -1,6 +1,6 @@
 import genbankToJson from '@seqcraft/genbank-parser';
 import type { SequenceDocument } from '../domain/document';
-import type { Feature, SequenceInterval, FeatureType } from '../domain/feature';
+import type { Feature, SequenceInterval } from '../domain/feature';
 import { ScientificSequence } from '../scientific/nucleotide';
 import { generateId } from '../utils/id';
 import { inferAlphabet } from '../scientific/alphabet';
@@ -35,19 +35,7 @@ interface TeselagenResult {
   parsedSequence?: TeselagenParsedSequence;
 }
 
-function normalizeFeatureType(rawType?: string): FeatureType {
-  const type = rawType?.toLowerCase() || 'misc_feature';
-  switch (type) {
-    case 'cds': return 'CDS';
-    case 'gene': return 'gene';
-    case 'promoter': return 'promoter';
-    case 'terminator': return 'terminator';
-    case 'rep_origin':
-    case 'origin': return 'origin';
-    case 'source': return 'source';
-    default: return 'misc_feature';
-  }
-}
+import { normalizeFeatureType } from '../domain/feature-ontology';
 
 export function importGenBank(data: string, defaultName = 'GenBank Sequence'): SequenceDocument[] {
   const results = genbankToJson(data, { inclusive1BasedStart: false, inclusive1BasedEnd: false }) as TeselagenResult[];

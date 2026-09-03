@@ -31,6 +31,33 @@ export function extractFragmentSequence(document: SequenceDocument, fragment: Di
   return seq;
 }
 
+export function invertDigestEnd(end: import('../domain/digest').DigestEnd): import('../domain/digest').DigestEnd {
+  return {
+    ...end,
+    fragmentSide: end.fragmentSide === 'left' ? 'right' : 'left',
+    protrudingStrand: end.protrudingStrand === 'forward' ? 'reverse' : end.protrudingStrand === 'reverse' ? 'forward' : 'none',
+    sequence: reverseComplementIupac(end.sequence),
+  };
+}
+
+export function extractReverseInsertSequence(document: SequenceDocument, fragment: DigestFragment): string {
+  const leftSite = fragment.leftEnd.sites[0];
+  const rightSite = fragment.rightEnd.sites[0];
+  if (!leftSite || !rightSite) {
+    return reverseComplementIupac(extractFragmentSequence(document, fragment));
+  }
+  const raw = getMemorySequence(document).raw;
+  const rLeft = leftSite.reverseCut0;
+  const rRight = rightSite.reverseCut0;
+  let revCutSeq: string;
+  if (rLeft <= rRight) {
+    revCutSeq = raw.slice(rLeft, rRight);
+  } else {
+    revCutSeq = raw.slice(rLeft) + raw.slice(0, rRight);
+  }
+  return reverseComplementIupac(revCutSeq);
+}
+
 export function planRestrictionClone(params: RestrictionCloneParams): { proposal: RestrictionCloneProposal | null, error?: string } {
   const { vectorDocument, insertDocument, enzymes, vectorFragmentId, insertFragmentId } = params;
 
@@ -184,10 +211,13 @@ export function planRestrictionClone(params: RestrictionCloneParams): { proposal
       });
   }
 
-  // Reverse Orientation: Vector Right <-> Insert Right AND Insert Left <-> Vector Left
-  const revJ1 = analyzeEndCompatibility(vectorFrag.rightEnd, insertFrag.rightEnd);
-  const revJ2 = analyzeEndCompatibility(insertFrag.leftEnd, vectorFrag.leftEnd);
+  // Reverse Orientation: Vector Right <-> Inverted Insert Left AND Inverted Insert Right <-> Vector Left
+  const invertedInsertRight = invertDigestEnd(insertFrag.rightEnd);
+  const invertedInsertLeft = invertDigestEnd(insertFrag.leftEnd);
+  const revJ1 = analyzeEndCompatibility(vectorFrag.rightEnd, invertedInsertRight);
+  const revJ2 = analyzeEndCompatibility(invertedInsertLeft, vectorFrag.leftEnd);
   const revValid = revJ1.isCompatible && revJ2.isCompatible;
+  const revInsertSeq = extractReverseInsertSequence(insertDocument, insertFrag);
 
   if (revValid || (fwdValid === false && revValid === false && candidates.length === 0)) {
      // If both invalid and candidates is empty, just push one to have something to show in warnings
@@ -198,7 +228,7 @@ export function planRestrictionClone(params: RestrictionCloneParams): { proposal
         junction2: revJ2,
         isValid: revValid,
         recombinantLengthBp: vectorFrag.lengthBp + insertFrag.lengthBp,
-        recombinantSequence: vSeq + reverseComplementIupac(iSeq),
+        recombinantSequence: vSeq + revInsertSeq,
         recombinantFeatures: [
           ...mapFeatures(vectorDocument, vectorFrag, false, 0),
           ...mapFeatures(insertDocument, insertFrag, true, vectorFrag.lengthBp)
@@ -222,6 +252,7 @@ export function planRestrictionClone(params: RestrictionCloneParams): { proposal
     proposalId: generateId(),
     vectorDocumentId: vectorDocument.id,
     vectorDocumentName: vectorDocument.name,
+    vectorTopology: vectorDocument.topology,
     insertDocumentId: insertDocument.id,
     insertDocumentName: insertDocument.name,
     enzymeIds,

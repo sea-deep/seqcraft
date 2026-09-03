@@ -3,6 +3,7 @@ import type { PCRResult, PCRProduct } from '../domain/pcr';
 import type { SequenceInterval } from '../domain/feature';
 import { analyzePrimerBindings, circularDistanceInDirection } from './primer-binding';
 import { analyzePrimerProperties } from './primer-properties';
+import { APP_LIMITS } from '../config/app-limits';
 
 export interface PCRParams {
   sequence: string;
@@ -11,7 +12,7 @@ export interface PCRParams {
   reversePrimer: Primer;
 }
 
-export const MAX_PCR_PRODUCTS = 250;
+export const MAX_PCR_PRODUCTS = APP_LIMITS.MAX_PCR_PRODUCTS;
 
 export function simulatePCR(params: PCRParams): PCRResult {
   const { sequence, topology, forwardPrimer, reversePrimer } = params;
@@ -51,7 +52,9 @@ export function simulatePCR(params: PCRParams): PCRResult {
       let wrapsOrigin = false;
 
       if (topology === 'linear') {
-        if (plus5 <= minus5 && plusBinding.threePrimeBase0 <= minusBinding.threePrimeBase0) {
+        // In linear DNA, the 5' end of the plus primer must be <= the 5' end of the minus primer.
+        // Overlapping 3' ends (such as in overlap-extension PCR) are biologically valid.
+        if (plus5 <= minus5) {
           isValid = true;
           lengthBp = minus5 - plus5 + 1;
           segments = [{ start0: plus5, end0Exclusive: minus5 + 1 }];

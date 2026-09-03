@@ -6,14 +6,14 @@ import {
 } from "react-resizable-panels";
 import { useWorkspaceStore } from "../state/workspace-store";
 import { X } from 'lucide-react';
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useHotkeys } from 'react-hotkeys-hook';
 
 import { WorkspaceCenter } from "../components/workspace/WorkspaceCenter";
 import { Inspector } from "../components/inspector/Inspector";
 import { WebMCPBridge } from '../webmcp/WebMCPBridge';
 import { CloningApprovalModal } from '../components/cloning/CloningApprovalModal';
-import { useActivityStore, type ActivityEvent } from "../state/activity-store";
+import { useActivityStore } from "../state/activity-store";
 import { applyThemePreference, useThemeStore } from "../state/theme-store";
 
 import { AppCommandBar } from '../components/shell/AppCommandBar';
@@ -36,7 +36,6 @@ export function AppShell() {
   const activeDocumentId = useWorkspaceStore(s => s.activeDocumentId);
   const closeDocumentTab = useWorkspaceStore(s => s.closeDocumentTab);
   const themePreference = useThemeStore(s => s.preference);
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (pendingTransaction) {
@@ -72,6 +71,18 @@ export function AppShell() {
     if (activeDocumentId) closeDocumentTab(activeDocumentId);
   }, [activeDocumentId]);
   
+  const undo = useWorkspaceStore(s => s.undo);
+  const redo = useWorkspaceStore(s => s.redo);
+
+  useHotkeys('mod+z', (e) => {
+    e.preventDefault();
+    if (activeDocumentId) undo(activeDocumentId);
+  }, [activeDocumentId, undo]);
+  useHotkeys(['mod+y', 'mod+shift+z'], (e) => {
+    e.preventDefault();
+    if (activeDocumentId) redo(activeDocumentId);
+  }, [activeDocumentId, redo]);
+
   useHotkeys('1', () => setActiveView('map'));
   useHotkeys('2', () => setActiveView('sequence'));
   useHotkeys('3', () => setActiveView('features'));
@@ -186,67 +197,12 @@ export function AppShell() {
         </PanelGroup>
       </div>
 
-      {drawerOpen && (
-        <div className="flex-none border-t border-[var(--border)] bg-[var(--panel)] overflow-hidden" style={{ height: 220 }}>
-          <ActivityDrawerContent />
-        </div>
-      )}
-      
-      <EditorStatusBar drawerOpen={drawerOpen} setDrawerOpen={setDrawerOpen} />
+      <EditorStatusBar />
       
       <WebMCPBridge />
       <CloningApprovalModal />
       <AnnotationApprovalModal />
       <SequenceEditApprovalModal />
-    </div>
-  );
-}
-
-function ActivityDrawerContent() {
-  const events = useActivityStore(s => s.events);
-
-  if (events.length === 0) {
-    return (
-      <div className="p-4 text-[12px] text-[var(--text-muted)] font-ui">
-        No agent activity recorded yet.
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-y-auto h-full font-ui">
-      <table className="w-full text-[11px] font-mono">
-        <thead>
-          <tr className="text-left text-[var(--text-muted)] border-b border-[var(--border)] sticky top-0 bg-[var(--panel)]">
-            <th className="px-3 py-1.5 font-medium w-[70px]">Time</th>
-            <th className="px-3 py-1.5 font-medium">Tool</th>
-            <th className="px-3 py-1.5 font-medium w-[50px]">Status</th>
-            <th className="px-3 py-1.5 font-medium">Input</th>
-            <th className="px-3 py-1.5 font-medium">Result</th>
-          </tr>
-        </thead>
-        <tbody>
-          {events.map((event: ActivityEvent) => {
-            const d = new Date(event.timestamp);
-            const time = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
-            const shortName = event.toolName.replace('seqcraft_', '');
-            return (
-              <tr
-                key={event.id}
-                className="border-b border-[var(--border)]/50 hover:bg-[var(--panel-muted)] transition-colors"
-              >
-                <td className="px-3 py-1 text-[var(--text-muted)]">{time}</td>
-                <td className="px-3 py-1 text-[var(--accent)] font-medium truncate max-w-[200px]">{shortName}</td>
-                <td className="px-3 py-1">
-                  <span className={`inline-block w-2 h-2 rounded-full ${event.status === 'success' ? 'bg-green-500' : 'bg-red-500'}`} />
-                </td>
-                <td className="px-3 py-1 text-[var(--text-muted)] truncate max-w-[200px]">{event.inputSummary}</td>
-                <td className="px-3 py-1 text-[var(--text)] truncate max-w-[260px]">{event.resultSummary}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
     </div>
   );
 }

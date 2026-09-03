@@ -63,7 +63,6 @@ export function createSeqCraftAuth(
     },
     account: {
       storeStateStrategy: 'database',
-      skipStateCookieCheck: true,
     },
     advanced: {
       database: { joins: true },

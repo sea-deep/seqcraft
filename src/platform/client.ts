@@ -88,7 +88,14 @@ export function consumeAuthRedirectToken(): string | null {
   if (typeof window === 'undefined') return null;
   const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
   const { token, cleanedUrl } = extractAuthRedirectToken(window.location.href);
-  if (token) saveToken(token);
+  if (token) {
+    // Guard against session fixation: only accept token if an OAuth flow was legitimately initiated
+    const isPending = window.sessionStorage.getItem('seqcraft_oauth_pending');
+    if (isPending) {
+      saveToken(token);
+      window.sessionStorage.removeItem('seqcraft_oauth_pending');
+    }
+  }
   if (cleanedUrl !== currentUrl) {
     window.history.replaceState(window.history.state, '', cleanedUrl);
   }

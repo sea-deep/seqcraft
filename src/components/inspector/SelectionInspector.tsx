@@ -1,4 +1,5 @@
 import type { SequenceDocument } from '../../domain/document';
+import type { Feature } from '../../domain/feature';
 import { useEffect, useState } from 'react';
 import { ScientificSequence } from '../../scientific/nucleotide';
 import { Translation } from 'nucleotide-sequence';
@@ -113,6 +114,31 @@ export function SelectionInspector({ document, selection }: SelectionInspectorPr
   const handleExtract = () => {
     if (loadingSeq || !seqSlice) return;
     const docId = generateId();
+    const selStart = selection.start0;
+    const selEnd = selection.end0Exclusive;
+
+    const extractedFeatures: Feature[] = [];
+    for (const f of document.features) {
+      const clippedSegments: import('../../domain/feature').SequenceInterval[] = [];
+      for (const seg of f.segments) {
+        const overlapStart = Math.max(seg.start0, selStart);
+        const overlapEnd = Math.min(seg.end0Exclusive, selEnd);
+        if (overlapStart < overlapEnd) {
+          clippedSegments.push({
+            start0: overlapStart - selStart,
+            end0Exclusive: overlapEnd - selStart
+          });
+        }
+      }
+      if (clippedSegments.length > 0) {
+        extractedFeatures.push({
+          ...f,
+          id: generateId(),
+          segments: clippedSegments
+        });
+      }
+    }
+
     const newDoc: SequenceDocument = {
       id: docId,
       name: `${document.name} (Extract ${formatNum.format(selection.start0 + 1)}-${formatNum.format(selection.end0Exclusive)})`,
@@ -121,13 +147,13 @@ export function SelectionInspector({ document, selection }: SelectionInspectorPr
       storageMode: 'memory',
       sequence: new ScientificSequence(seqSlice, document.alphabet),
       alphabet: document.alphabet,
-      features: [],
+      features: extractedFeatures,
       primers: [],
       source: 'raw',
       version: 1
     };
     addDocument(newDoc);
-    addHistoryEntry({ documentId: docId, action: 'metadata', summary: `Extracted from ${document.name}` });
+    addHistoryEntry({ documentId: docId, action: 'metadata', summary: `Extracted from ${document.name} (${extractedFeatures.length} feature(s) preserved)` });
     setActiveView('sequence');
   };
 

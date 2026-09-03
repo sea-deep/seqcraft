@@ -2,10 +2,17 @@ import { ScientificSequence } from '../scientific/nucleotide';
 import type { Feature } from './feature';
 import type { Primer } from './primer';
 
-export type Topology = "linear" | "circular";
-export type DocumentSource = "fasta" | "genbank" | "raw" | "demo" | "pcr_product" | "cloning_preview";
+export const TOPOLOGIES = ['linear', 'circular'] as const;
+export type Topology = typeof TOPOLOGIES[number];
 
-export type StorageMode = 'memory' | 'chunked';
+export const DOCUMENT_SOURCES = ['fasta', 'genbank', 'raw', 'demo', 'pcr_product', 'cloning_preview'] as const;
+export type DocumentSource = typeof DOCUMENT_SOURCES[number];
+
+export const STORAGE_MODES = ['memory', 'chunked'] as const;
+export type StorageMode = typeof STORAGE_MODES[number];
+
+export const ALPHABETS = ['DNA', 'RNA', 'MIXED', 'UNKNOWN'] as const;
+export type Alphabet = typeof ALPHABETS[number];
 
 export interface DocumentCapabilities {
   sequenceView: true;
@@ -31,7 +38,7 @@ export interface SequenceDocument {
   length: number;
   storageMode: StorageMode;
   storageRef?: ChunkedStorageReference;
-  alphabet: "DNA" | "RNA" | "MIXED" | "UNKNOWN";
+  alphabet: Alphabet;
   features: Feature[];
   primers: Primer[];
   source: DocumentSource;

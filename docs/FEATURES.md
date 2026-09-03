@@ -223,45 +223,40 @@ The MVP includes this single cloning workflow. Other cloning methods are outside
 
 ---
 
-## 10. Agent Collaboration
+## 10. Agent Collaboration (WebMCP Semantic Actuation Surface)
 
-SeqCraft exposes meaningful scientific actions to compatible WebMCP agents while keeping the same workspace usable manually.
+SeqCraft exposes a complete semantic actuation surface through 50 structured WebMCP tools registered via `window.document.modelContext`, letting agents perform essentially every meaningful action available in the UI.
 
-The agent can:
+Tools are categorized by biological module and explicit mutation risk (`EffectClass`):
 
-- inspect the current workspace
-- inspect sequence metadata
-- inspect bounded sequence regions
-- navigate/focus a sequence region
-- list and inspect annotations
-- find known features
-- find restriction sites
-- simulate restriction digests
-- inspect/analyse primers
-- find primer binding sites
-- simulate PCR
-- find ORFs
-- translate sequence regions
-- compare sequences
-- propose annotations
-- assist with the PCR/restriction-cloning workflow
+- **Workspace & Context** (`read`):
+  - `seqcraft_get_workspace_context` — Preferred bootstrap tool returning active construct summary, selection, active view, and tool catalog count.
+  - `seqcraft_get_capabilities` — Discovers system features, coordinate contracts, privacy rules, and recommended workflows.
+  - `seqcraft_get_selected_context` — Returns active selection coordinates, exact local sequence slice, and overlapping features.
+  - `seqcraft_get_document_revision` — Canonical revision number and SHA-256 sequence hash.
+  - `seqcraft_get_transaction_status` — Live status and provenance of staged sequence transactions.
+- **Navigation & Selection** (`navigation`):
+  - `seqcraft_focus_region`, `seqcraft_select_range`, `seqcraft_clear_selection`, `seqcraft_set_active_view`, `seqcraft_show_feature`, `seqcraft_show_restriction_site`.
+- **Document Lifecycle & Metadata** (`read` / `workspace_ephemeral` / `document_destructive` / `document_metadata`):
+  - `seqcraft_list_documents`, `seqcraft_get_active_document`, `seqcraft_set_active_document`, `seqcraft_create_document`, `seqcraft_delete_document`, `seqcraft_duplicate_document`, `seqcraft_update_document_metadata`, `seqcraft_create_document_from_region`, `seqcraft_copy_region_between_documents`.
+- **Features & Primers** (`read` / `annotation_mutation`):
+  - `seqcraft_list_features`, `seqcraft_select_feature`, `seqcraft_mutate_feature`, `seqcraft_detect_known_features`, `seqcraft_propose_annotation`.
+  - `seqcraft_list_primers`, `seqcraft_mutate_primer`, `seqcraft_analyze_primer`, `seqcraft_simulate_pcr`.
+- **Enzymatic Analysis & Cloning** (`read` / `workspace_ephemeral` / `sequence_mutation`):
+  - `seqcraft_analyze_restriction_sites`, `seqcraft_simulate_digest`, `seqcraft_simulate_golden_gate`, `seqcraft_domesticate_sequence`, `seqcraft_stage_domestication_candidate`, `seqcraft_prepare_restriction_clone`.
+- **Sequence Mutations** (`sequence_mutation`):
+  - `seqcraft_edit_sequence`, `seqcraft_reverse_complement_region`, `seqcraft_rotate_origin`.
+- **History & Undo/Redo** (`workspace_ephemeral` / `read` / `sequence_mutation`):
+  - `seqcraft_undo`, `seqcraft_redo`, `seqcraft_get_history`, `seqcraft_restore_revision`.
+- **Genomics, Analysis, Import/Export & Batch** (`read` / `export` / `document_destructive` / `sequence_mutation`):
+  - `seqcraft_compare_documents`, `seqcraft_find_orfs`, `seqcraft_find_crispr_targets`, `seqcraft_screen_biosecurity`.
+  - `seqcraft_import_sequence_text`, `seqcraft_export_document`, `seqcraft_generate_opentrons_protocol`, `seqcraft_execute_actions`.
 
-### Human Approval
+### Human Approval & Revision Locking
 
-Agent actions that only inspect or navigate may happen immediately.
+Agent actions that only inspect (`read`) or adjust UI viewport (`navigation`) execute immediately.
 
-Persistent scientific/document changes are staged first, including:
-
-- new annotations
-- proposed construct changes
-
-The user can:
-
-- review
-- apply
-- reject
-
-before the document is changed.
+Persistent sequence-modifying operations (`sequence_mutation`) stage a `SequenceTransaction` bound to `(documentId, baseRevision, baseSequenceHash)`. Staged transactions evaluate biological invariants (codon preservation, length delta, Type IIS site abolition) and require human review in the SeqCraft interface before commitment. If the underlying molecule changes before approval, the transaction is flagged as stale.
 
 ---
 
@@ -318,9 +313,13 @@ Client-side extensions implemented in SeqCraft adhering to the zero-cloud sequen
 - **Automated Robotics Protocol Compiler**:
   - Automated Opentrons OT-2 and Flex Python script synthesis with dead-volume calculation, 24-tube rack coordinates, and thermocycler elongation timings.
 - **Dual-Use Biosecurity Screener**:
-  - 100% client-side pre-order screening against HHS/USDA Select Agents and IGSC standards with downloadable compliance audit records.
-- **In-Place Sequence Modification Suite**:
+  - 100% client-side pre-order screening against HHS/USDA Select Agents and IGSC standards with downloadable compliance audit records and circular origin spanning detection.
+- **In-Place Sequence Modification & Undo/Redo Suite**:
   - Local molecular transformations (insert, delete, replace, reverse complement, rotate origin) with deterministic coordinate transformation and strict human-in-the-loop staged approval.
+  - Multi-level 50-step snapshot sequence transaction history with global keyboard shortcuts (`Ctrl/Cmd+Z`, `Ctrl/Cmd+Y`, `Ctrl/Cmd+Shift+Z`) and WebMCP agent integration (`seqcraft_undo`, `seqcraft_redo`).
+- **Lossless Multi-Format Bio-CAD Export**:
+  - Full NCBI GenBank (.gb) flat-file generation with compliant `LOCUS`, multi-segment `join()`, antisense `complement()`, feature qualifiers, and 60 bp grouped `ORIGIN` lines for instant interoperability with SnapGene and Benchling.
+  - FASTA and native `.seqcraft` JSON serialization.
 
 ---
 

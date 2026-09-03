@@ -2,10 +2,10 @@
 
 SeqCraft is a browser-native DNA engineering workbench with deterministic sequence analysis and a structured WebMCP interface that lets browser agents inspect, analyze, navigate, and propose changes to the same molecular model a human is working on.
 
-[![Tests](https://img.shields.io/badge/tests-358%20passed-brightgreen.svg)](test)
-[![Test Suites](https://img.shields.io/badge/test%20suites-63%20passed-brightgreen.svg)](test)
+[![Tests](https://img.shields.io/badge/tests-389%20passed-brightgreen.svg)](test)
+[![Test Suites](https://img.shields.io/badge/test%20suites-64%20passed-brightgreen.svg)](test)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](tsconfig.json)
-[![WebMCP](https://img.shields.io/badge/WebMCP-24%20tools-teal.svg)](src/webmcp/register-seqcraft-tools.ts)
+[![WebMCP](https://img.shields.io/badge/WebMCP-50%20tools-teal.svg)](src/webmcp/registry.ts)
 [![Frontend](https://img.shields.io/badge/live%20app-Render-0F766E.svg)](https://seqcraft.onrender.com)
 [![Backend](https://img.shields.io/badge/api-Railway-darkblue.svg)](https://seqcraft.up.railway.app/api/health)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -15,13 +15,15 @@ SeqCraft is a browser-native DNA engineering workbench with deterministic sequen
 ## Capabilities at a Glance
 
 * **Linear and 3D Plasmid Visualization**: Monospace `ch`-metric virtualized sequence rendering alongside a Three.js / WebGL 3D annular ribbon map with lane collision packing, directional feature arrows, and drag-selection.
-* **Enzymatic Analysis & Digestion**: IUPAC-aware restriction site recognition for linear and circular topologies, complete with multi-enzyme in vitro digest fragment profiling and sticky/blunt overhang classification.
-* **Type IIS Assembly & Domestication**: Directional Golden Gate assembly simulation (BsaI, BsmBI, BbsI, PaqCI, SapI) with cohesive overhang validation and automated synonymous codon substitutions that eliminate internal cut sites without modifying translated reading frames.
-* **Thermodynamics, Primers & PCR**: Nearest-neighbor melting temperature ($T_m$) calculations, mismatch and ambiguity detection, and linear/circular amplicon simulation.
-* **CRISPR Target Radar & MMEJ Forecasting**: Sense and antisense SpCas9 5′-NGG-3′ PAM scanning, GC content balancing, poly-T transcription termination checks, and microhomology-mediated end joining (MMEJ) repair deletion forecasting.
-* **Laboratory Automation & Diagnostic Screening**: Direct Opentrons Python protocol compilation (OT-2 / Flex API v2.15) with dead-volume calculations, and offline heuristic biosecurity motif comparison against curated pathogen signatures.
+* **Enzymatic Analysis & Digestion**: IUPAC-aware restriction site recognition for linear and circular topologies, multi-enzyme digest fragment profiling, sticky/blunt overhang classification, and exact double-strand cut geometry for forward/reverse restriction cloning.
+* **Type IIS Assembly & Domestication**: Directional Golden Gate assembly simulation (BsaI, BsmBI, BbsI, PaqCI, SapI) with circular junction segment wrapping, cohesive overhang validation, and synonymous codon substitutions verified across full flanking regions.
+* **Thermodynamics, Primers & PCR**: Nearest-neighbor melting temperature ($T_m$) calculations, mismatch and ambiguity detection, linear/circular amplicon simulation, and overlap-extension PCR support.
+* **CRISPR Target Radar & MMEJ Forecasting**: Sense and antisense SpCas9 5′-NGG-3′ PAM scanning with circular origin wrapping, GC content balancing, poly-T transcription termination checks, and microhomology-mediated end joining (MMEJ) repair deletion forecasting.
+* **Laboratory Automation & Diagnostic Screening**: Direct Opentrons Python protocol compilation (OT-2 / Flex API v2.15) with strict deck collision prevention and dynamic tip allocations; offline heuristic biosecurity screening with circular origin bridging.
+* **Bio-CAD Interoperability**: Full export to NCBI GenBank flat-file format (`LOCUS`, `FEATURES`, `join()`, `complement()`, and grouped `ORIGIN` lines) for seamless import into Benchling and SnapGene, alongside FASTA and native `.seqcraft` JSON.
+* **In-Place Mutation History & Undo/Redo**: 50-step snapshot sequence transaction stack with global keyboard shortcuts (`Ctrl/Cmd+Z`, `Ctrl/Cmd+Y`, `Ctrl/Cmd+Shift+Z`) and programmatic WebMCP tools (`seqcraft_undo`, `seqcraft_redo`).
 * **Local-First Privacy Architecture**: All raw sequence bytes, annotations, and derived constructs remain strictly inside the browser runtime (IndexedDB and OPFS). The cloud control plane receives only sequence-free metadata descriptors.
-* **Verified Agent Runs with Revision Locking**: 24 WebMCP tools registered via `window.document.modelContext`. Mutating operations stage pre-commit sequence transactions that evaluate biological invariants before requiring explicit human approval.
+* **Complete WebMCP Semantic Actuation Surface**: 50 structured tools registered via `window.document.modelContext` across 12 biological modules with explicit mutation risk classification (`EffectClass`) and revision-locked pre-commit sequence transactions.
 
 ---
 
@@ -37,7 +39,7 @@ Instead of clicking pixels or parsing screen text, an agent calls typed, develop
 
 ## WebMCP Integration
 
-SeqCraft exposes 24 structured tools through the emerging WebMCP browser standard. Tools declare typed input schemas, execution constraints, and behavioral annotations (`readOnlyHint`, `untrustedContentHint`).
+SeqCraft exposes 50 structured tools through the emerging WebMCP browser standard across 12 biological actuation families. Tools declare typed input schemas, execution constraints, and behavioral annotations (`readOnlyHint`, `untrustedContentHint`).
 
 ### Example Agent Trajectory
 
@@ -127,36 +129,99 @@ Subsequent verification calls remain independent agent operations logged in the 
 
 ---
 
-## WebMCP Tool Reference
+## WebMCP Tool Reference (50 Tools)
 
-SeqCraft registers exactly 24 tools via `window.document.modelContext.registerTool`:
+SeqCraft registers 50 tools via `window.document.modelContext.registerTool` organized across 12 domain modules:
 
-| Tool Name | Type | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `seqcraft_get_capabilities` | Discovery | Read-only | Discovers supported workflows, coordinate contracts, privacy rules, and recommended agent call sequences. |
-| `seqcraft_get_active_document` | Inspection | Read-only | Returns active construct metadata, topology, length, revision, and feature summaries. |
-| `seqcraft_list_documents` | Inspection | Read-only | Lists metadata for all sequence documents in the active workspace. |
-| `seqcraft_list_features` | Inspection | Read-only | Returns all annotated features on the active construct. |
-| `seqcraft_list_primers` | Inspection | Read-only | Returns all primers associated with the active construct. |
-| `seqcraft_detect_known_features` | Discovery | Read-only | Scans construct against canonical plasmid elements (promoters, origins, selection markers). |
-| `seqcraft_focus_region` | Navigation | UI State | Highlights and scrolls viewport to a 1-based inclusive nucleotide range `[start1, end1]`. |
-| `seqcraft_show_restriction_site` | Navigation | UI State | Navigates the linear and 3D map views to a specific restriction enzyme recognition site. |
-| `seqcraft_show_feature` | Navigation | UI State | Centers viewport and selects an annotated sequence feature by identifier or name. |
-| `seqcraft_analyze_restriction_sites`| Analysis | Read-only | Scans linear or circular sequences for restriction enzyme cut positions, overhang types, and cut frequencies. |
-| `seqcraft_simulate_digest` | Simulation | Read-only | Cleaves construct with one or more enzymes, predicting sorted fragment sizes and terminal overhang compatibilities. |
-| `seqcraft_analyze_primer` | Analysis | Read-only | Computes primer length, GC percentage, melting temperature ($T_m$), and binding sites across the construct. |
-| `seqcraft_simulate_pcr` | Simulation | Read-only | Simulates linear or circular PCR amplification between forward and reverse primers, detecting ambiguous binding. |
-| `seqcraft_find_orfs` | Analysis | Read-only | Detects open reading frames across all 6 translation frames above a minimum codon threshold. |
-| `seqcraft_find_crispr_targets` | Analysis | Read-only | Identifies SpCas9 5′-NGG-3′ PAM sites, calculates GC balance scores, and forecasts MMEJ repair deletion profiles. |
-| `seqcraft_simulate_golden_gate` | Simulation | Read-only | Simulates multi-part Type IIS assembly (BsaI, BsmBI, BbsI, PaqCI, SapI) with 4nt overhang compatibility checks. |
-| `seqcraft_compare_documents` | Comparison | Read-only | Performs circular-invariant, reverse-complement-aware diffing between reference and query documents. |
-| `seqcraft_domesticate_sequence` | Engineering| Read-only | Proposes silent synonymous mutations to eliminate internal restriction sites without changing amino acid translations. |
-| `seqcraft_generate_opentrons_protocol`| Automation| Export | Compiles Python protocol scripts (API v2.15) for Opentrons OT-2 and Flex liquid handlers. |
-| `seqcraft_screen_biosecurity` | Diagnostics| Read-only | Executes client-side diagnostic comparison against curated k-mer sequences of regulated pathogens. |
-| `seqcraft_propose_annotation` | Annotation | Staged Mutation | Stages a new sequence feature annotation proposal for human review. |
-| `seqcraft_prepare_restriction_clone`| Assembly | Staged Mutation | Stages a directional restriction cloning construct proposal for human review. |
-| `seqcraft_edit_sequence` | Mutation | Staged Mutation | Stages an in-place insertion, deletion, replacement, or reverse-complement transaction for human review. |
-| `seqcraft_rotate_origin` | Topology | Staged Mutation | Re-indexes position 1 of a circular plasmid to a new coordinate (requires human approval). |
+### 1. Context & Capabilities
+| Tool Name | EffectClass | Description |
+| :--- | :--- | :--- |
+| `seqcraft_get_workspace_context` | `read` | Preferred bootstrap tool returning active molecule summary, selection state, feature details, pending transaction, and tool catalog count. |
+| `seqcraft_get_capabilities` | `read` | Discovers supported workflows, coordinate contracts, privacy rules, and recommended agent call sequences. |
+| `seqcraft_get_selected_context` | `read` | Returns active selection coordinates, exact local sequence slice, overlapping features, and active view. |
+| `seqcraft_get_document_revision` | `read` | Returns document ID, name, revision number, and canonical SHA-256 sequence hash. |
+| `seqcraft_get_transaction_status` | `read` | Live transaction provenance and status (pending, approved, rejected, applied, stale). |
+
+### 2. Workspace Navigation & Selection
+| Tool Name | EffectClass | Description |
+| :--- | :--- | :--- |
+| `seqcraft_focus_region` | `navigation` | Highlights and scrolls viewport to a 1-based inclusive nucleotide range `[start1, end1]`. |
+| `seqcraft_select_range` | `navigation` | Sets the workspace sequence selection interval. |
+| `seqcraft_clear_selection` | `navigation` | Clears the current sequence selection. |
+| `seqcraft_set_active_view` | `navigation` | Switches active editor view mode (`'map'`, `'sequence'`, `'topology'`). |
+| `seqcraft_show_feature` | `navigation` | Centers viewport and selects an annotated sequence feature by identifier or name. |
+| `seqcraft_show_restriction_site` | `navigation` | Navigates the linear and 3D map views to a specific restriction enzyme recognition site. |
+
+### 3. Document Lifecycle & Metadata
+| Tool Name | EffectClass | Description |
+| :--- | :--- | :--- |
+| `seqcraft_list_documents` | `read` | Lists metadata for all sequence documents in the active workspace. |
+| `seqcraft_get_active_document` | `read` | Returns active construct metadata, topology, length, revision, and feature summaries. |
+| `seqcraft_set_active_document` | `workspace_ephemeral` | Switches the active document in the workspace. |
+| `seqcraft_create_document` | `document_destructive` | Creates a new sequence document in the workspace from raw sequence text. |
+| `seqcraft_delete_document` | `document_destructive` | Closes and deletes a document from the workspace. |
+| `seqcraft_duplicate_document` | `document_destructive` | Creates a deep copy of an existing document. |
+| `seqcraft_update_document_metadata` | `document_metadata` | Updates document name, topology (linear/circular), or alphabet. |
+| `seqcraft_create_document_from_region` | `document_destructive` | Extracts a sub-region into a new independent sequence document. |
+| `seqcraft_copy_region_between_documents` | `sequence_mutation` | Stages insertion of a sequence segment from one document into another. |
+
+### 4. Features & Annotations
+| Tool Name | EffectClass | Description |
+| :--- | :--- | :--- |
+| `seqcraft_list_features` | `read` | Returns all annotated features on the active construct. |
+| `seqcraft_select_feature` | `navigation` | Selects a feature by ID in the workspace store. |
+| `seqcraft_mutate_feature` | `annotation_mutation` | Creates, updates, or deletes feature annotations on a document. |
+| `seqcraft_detect_known_features` | `read` | Scans construct against curated plasmid elements (promoters, origins, selection markers). |
+| `seqcraft_propose_annotation` | `annotation_mutation` | Applies a detected known feature match to the document annotation table. |
+
+### 5. Primers & PCR
+| Tool Name | EffectClass | Description |
+| :--- | :--- | :--- |
+| `seqcraft_list_primers` | `read` | Returns all custom oligonucleotides and primers configured for the target molecule. |
+| `seqcraft_mutate_primer` | `annotation_mutation` | Creates, updates, or removes primers associated with the construct. |
+| `seqcraft_analyze_primer` | `read` | Computes primer length, GC percentage, melting temperature ($T_m$), and binding sites across the construct. |
+| `seqcraft_simulate_pcr` | `read` | Simulates linear or circular PCR amplification between forward and reverse primers. |
+
+### 6. Enzymatic Digestion & Cloning
+| Tool Name | EffectClass | Description |
+| :--- | :--- | :--- |
+| `seqcraft_analyze_restriction_sites` | `read` | Scans linear or circular sequences for restriction enzyme cut positions, overhang types, and cut frequencies. |
+| `seqcraft_simulate_digest` | `read` | Cleaves construct with one or more enzymes, predicting sorted fragment sizes and terminal overhang compatibilities. |
+| `seqcraft_simulate_golden_gate` | `read` | Simulates multi-part Type IIS assembly (BsaI, BsmBI, BbsI, PaqCI, SapI) with cohesive overhang verification. |
+| `seqcraft_domesticate_sequence` | `read` | Proposes silent synonymous mutations to eliminate internal restriction sites without altering protein translation. |
+| `seqcraft_stage_domestication_candidate` | `sequence_mutation` | Stages a specific domestication candidate mutation as a revision-locked transaction. |
+| `seqcraft_prepare_restriction_clone` | `workspace_ephemeral` | Stages a directional restriction cloning construct proposal for human review. |
+
+### 7. Sequence Mutation & Revision Staging
+| Tool Name | EffectClass | Description |
+| :--- | :--- | :--- |
+| `seqcraft_edit_sequence` | `sequence_mutation` | Stages an in-place insertion, deletion, or replacement transaction for human review. |
+| `seqcraft_reverse_complement_region` | `sequence_mutation` | Stages an in-place reverse complement of a nucleotide region `[start1, end1]`. |
+| `seqcraft_rotate_origin` | `sequence_mutation` | Stages setting a new circular origin (position 1) on a circular plasmid. |
+
+### 8. History & Undo/Redo
+| Tool Name | EffectClass | Description |
+| :--- | :--- | :--- |
+| `seqcraft_undo` | `workspace_ephemeral` | Reverts the last sequence or metadata mutation on the active document. |
+| `seqcraft_redo` | `workspace_ephemeral` | Re-applies the last undone mutation on the active document. |
+| `seqcraft_get_history` | `read` | Inspects the undo/redo snapshot stack and history event log for the document. |
+| `seqcraft_restore_revision` | `sequence_mutation` | Stages restoring the molecule to a previous snapshot state from the history stack. |
+
+### 9. Genomics, Analysis & Compliance
+| Tool Name | EffectClass | Description |
+| :--- | :--- | :--- |
+| `seqcraft_compare_documents` | `read` | Performs circular-invariant, reverse-complement-aware diffing between reference and query documents. |
+| `seqcraft_find_orfs` | `read` | Detects open reading frames across all 6 translation frames above a minimum codon threshold. |
+| `seqcraft_find_crispr_targets` | `read` | Identifies SpCas9 5′-NGG-3′ PAM sites, calculates GC balance scores, and forecasts MMEJ repair deletion profiles. |
+| `seqcraft_screen_biosecurity` | `read` | Executes client-side diagnostic comparison against curated k-mer sequences of regulated pathogens. |
+
+### 10. Import, Export, Automation & Batch
+| Tool Name | EffectClass | Description |
+| :--- | :--- | :--- |
+| `seqcraft_import_sequence_text` | `document_destructive` | Parses and imports FASTA, GenBank, or raw sequence text into the workspace. |
+| `seqcraft_export_document` | `export` | Serializes and exports construct to NCBI GenBank (.gb), FASTA (.fasta), or `.seqcraft` JSON. |
+| `seqcraft_generate_opentrons_protocol` | `export` | Compiles Python protocol scripts (API v2.15) for Opentrons OT-2 and Flex liquid handlers. |
+| `seqcraft_execute_actions` | `sequence_mutation` | Executes an atomic batch list of sequence and annotation actions. |
 
 ---
 
@@ -308,7 +373,7 @@ You can inspect the active WebMCP registry directly in the browser developer con
 await window.__SEQCRAFT_WEBMCP__.status();
 // Returns: { available: true, registered: true, secureContext: true, modelContextAvailable: true }
 
-// List all 24 registered SeqCraft tools and schemas
+// List all 50 registered SeqCraft tools and schemas
 await window.__SEQCRAFT_WEBMCP__.listTools();
 
 // Or access document.modelContext directly
@@ -320,7 +385,7 @@ await document.modelContext.getTools();
 ## Development
 
 ```bash
-# Run unit and integration tests (63 test files, 358 tests)
+# Run unit and integration tests (64 test files, 389 tests)
 npm test
 
 # Build client and server bundles
@@ -340,8 +405,8 @@ npm run typecheck:api
 ```text
 seqcraft/
 ├── src/
-│   ├── domain/           # Core biological and application domain types
-│   ├── scientific/       # 23 deterministic biological analysis modules
+│   ├── domain/           # Biological and application domain types
+│   ├── scientific/       # Deterministic biological analysis modules
 │   │   ├── restriction-analysis.ts   # IUPAC restriction recognition
 │   │   ├── golden-gate.ts            # Type IIS assembly & domestication
 │   │   ├── pcr.ts                    # Thermodynamic primer & PCR simulation
@@ -350,15 +415,19 @@ seqcraft/
 │   │   ├── biosecurity.ts            # Diagnostic pathogen motif scan
 │   │   ├── sequence-editing.ts       # Coordinate interval arithmetic
 │   │   └── transaction-invariants.ts # Pre-commit invariant evaluation
-│   ├── webmcp/           # 24 WebMCP tools registered via document.modelContext
+│   ├── export/           # Serializers: FASTA, native .seqcraft, and NCBI GenBank (.gb)
+│   ├── webmcp/           # 50 WebMCP tools organized across 12 domain modules in src/webmcp/tools/
+│   │   ├── tools/        # context, workspace, documents, features, primers, cloning, sequence, analysis, history, io, automation, batch
+│   │   ├── registry.ts   # Central tool registration, execution, and provenance logging
+│   │   └── types.ts      # EffectClass, SeqCraftToolDefinition, ToolResponse
 │   ├── storage/          # Browser persistence (OPFSBackend & IndexedDB)
 │   ├── workers/          # Web Workers for streaming FASTA and sequence diffs
-│   ├── state/            # Zustand state stores (workspace, activity, cloning)
+│   ├── state/            # Zustand state stores (workspace with Undo/Redo, activity)
 │   ├── components/       # React UI components
 │   │   ├── sequence/     # Virtualized monospace sequence viewer
 │   │   ├── map/          # Three.js 3D plasmid & 2D circular canvas
 │   │   └── agent-run/    # Activity timeline & transaction review panel
-│   └── pages/            # Top-level application routes & documentation
+│   └── pages/            # Application routes & documentation
 ├── server/               # Express backend with Better Auth & MongoDB Atlas
 │   ├── app.ts            # Server endpoints with 32KB request limit
 │   └── privacy/          # Strict Zod schemas enforcing zero sequence exposure
@@ -366,7 +435,7 @@ seqcraft/
 │   ├── FEATURES.md       # Functional scope & scientific contracts
 │   ├── DESIGN.md         # Design system, tokens, and UX guidelines
 │   └── IMPLEMENTATION.md # Architecture, state flow, and coordinate models
-├── test/                 # Test suite (63 test files, 358 tests)
+├── test/                 # Test suite (64 test files, 389 tests)
 ├── SECURITY.md           # Data boundary & disclosure policy
 └── package.json          # Dependencies and scripts
 ```

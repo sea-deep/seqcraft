@@ -11,7 +11,7 @@
 import { getMemorySequence } from '../utils/document-utils';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { analyzeRestrictionSites } from '../scientific/restriction-analysis';
-import { BUILTIN_ENZYMES } from '../data/restriction-enzymes';
+import { BUILTIN_ENZYMES, findEnzyme } from '../data/restriction-enzymes';
 import type { SequenceDocument } from '../domain/document';
 import type { RestrictionEnzyme } from '../domain/restriction';
 
@@ -48,7 +48,7 @@ function getActiveDoc(): SequenceDocument | null {
 }
 
 function resolveEnzyme(name: string): RestrictionEnzyme | null {
-  return BUILTIN_ENZYMES.find(e => e.name.toLowerCase() === name.toLowerCase()) || null;
+  return findEnzyme(name) || null;
 }
 
 // ─── focusSequenceRegion ───────────────────────────────────────────────

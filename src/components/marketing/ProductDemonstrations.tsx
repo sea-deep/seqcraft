@@ -72,7 +72,7 @@ export function ProductDemonstrations() {
               An agent that proposes edits—and waits for your stamp.
             </h2>
             <p className="mt-5 text-[16px] leading-7 text-[var(--text-secondary)]">
-              SeqCraft exposes 24 biological tools directly to AI models via WebMCP. Instead of
+              SeqCraft exposes 50 biological tools directly to AI models via WebMCP. Instead of
               silently mutating your plasmid, changes are staged for review: coordinate shifts,
               junction scar checks, and feature splits are fully auditable.
             </p>

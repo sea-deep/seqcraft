@@ -1,63 +1,21 @@
 import { reverseComplementIupac } from "./restriction-analysis";
 import type { Feature } from "../domain/feature";
+import { getTypeIISEnzymes } from "../data/restriction-enzymes";
+import type { RestrictionEnzyme } from "../domain/restriction";
 
-export interface TypeIISEnzyme {
-  id: string;
-  name: string;
-  recognitionSequence: string; // e.g. GGTCTC
-  topCutOffset: number; // e.g. 1
-  bottomCutOffset: number; // e.g. 5
-  overhangLength: number; // e.g. 4
+export type TypeIISEnzyme = Required<Pick<RestrictionEnzyme, 'id' | 'name' | 'recognitionSequence' | 'topCutOffset' | 'bottomCutOffset' | 'overhangLength'>> & {
   overhangPolarity: "5prime" | "3prime";
-}
+};
 
-export const TYPE_IIS_ENZYMES: TypeIISEnzyme[] = [
-  {
-    id: "bsai",
-    name: "BsaI",
-    recognitionSequence: "GGTCTC",
-    topCutOffset: 1,
-    bottomCutOffset: 5,
-    overhangLength: 4,
-    overhangPolarity: "5prime"
-  },
-  {
-    id: "bsmbi",
-    name: "BsmBI",
-    recognitionSequence: "CGTCTC",
-    topCutOffset: 1,
-    bottomCutOffset: 5,
-    overhangLength: 4,
-    overhangPolarity: "5prime"
-  },
-  {
-    id: "bbsi",
-    name: "BbsI",
-    recognitionSequence: "GAAGAC",
-    topCutOffset: 2,
-    bottomCutOffset: 6,
-    overhangLength: 4,
-    overhangPolarity: "5prime"
-  },
-  {
-    id: "paqci",
-    name: "PaqCI",
-    recognitionSequence: "CACCTGC",
-    topCutOffset: 4,
-    bottomCutOffset: 8,
-    overhangLength: 4,
-    overhangPolarity: "5prime"
-  },
-  {
-    id: "sapi",
-    name: "SapI",
-    recognitionSequence: "GCTCTTC",
-    topCutOffset: 1,
-    bottomCutOffset: 4,
-    overhangLength: 3,
-    overhangPolarity: "5prime"
-  }
-];
+export const TYPE_IIS_ENZYMES: TypeIISEnzyme[] = getTypeIISEnzymes().map(e => ({
+  id: e.id,
+  name: e.name,
+  recognitionSequence: e.recognitionSequence,
+  topCutOffset: e.topCutOffset ?? 1,
+  bottomCutOffset: e.bottomCutOffset ?? 5,
+  overhangLength: e.overhangLength ?? 4,
+  overhangPolarity: (e.overhangPolarity === '3prime' ? '3prime' : '5prime') as "5prime" | "3prime"
+}));
 
 export interface GoldenGatePart {
   id: string;
@@ -284,6 +242,27 @@ export function assembleGoldenGate(
     if (fullSeq.endsWith(firstLeft)) {
       fullSeq = fullSeq.slice(0, fullSeq.length - firstLeft.length);
     }
+    const finalLen = fullSeq.length;
+    // Normalize and wrap feature segments so no segment extends beyond finalLen
+    for (const f of assembledFeatures) {
+      const normalizedSegments: import('../domain/feature').SequenceInterval[] = [];
+      for (const s of f.segments) {
+        if (s.end0Exclusive <= finalLen) {
+          normalizedSegments.push(s);
+        } else if (s.start0 < finalLen) {
+          normalizedSegments.push({ start0: s.start0, end0Exclusive: finalLen });
+          const remainder = s.end0Exclusive - finalLen;
+          if (remainder > 0) {
+            normalizedSegments.push({ start0: 0, end0Exclusive: Math.min(remainder, finalLen) });
+          }
+        } else {
+          const wrappedStart = (s.start0 - finalLen + finalLen) % finalLen;
+          const wrappedEnd = Math.min(wrappedStart + (s.end0Exclusive - s.start0), finalLen);
+          normalizedSegments.push({ start0: wrappedStart, end0Exclusive: wrappedEnd });
+        }
+      }
+      f.segments = normalizedSegments.filter(s => s.start0 < s.end0Exclusive);
+    }
   }
 
   return {
@@ -371,8 +350,10 @@ export function domesticateSequence(
         const origBase = currentSeq[pos0];
         const newBase = origBase === "A" ? "G" : origBase === "G" ? "A" : origBase === "C" ? "T" : "C";
         const mutatedSeq = currentSeq.slice(0, pos0) + newBase + currentSeq.slice(pos0 + 1);
-        if (!mutatedSeq.slice(siteIdx, siteIdx + siteLen).includes(fwdSite) &&
-            !mutatedSeq.slice(siteIdx, siteIdx + siteLen).includes(revSite)) {
+        const flankStart = Math.max(0, pos0 - siteLen);
+        const flankEnd = Math.min(mutatedSeq.length, pos0 + siteLen + 1);
+        const flank = mutatedSeq.slice(flankStart, flankEnd);
+        if (!flank.includes(fwdSite) && !flank.includes(revSite)) {
           currentSeq = mutatedSeq;
           mutations.push({
             position1: pos0 + 1,
@@ -382,7 +363,7 @@ export function domesticateSequence(
             originalCodon: "N/A",
             mutatedCodon: "N/A",
             aminoAcid: "N/A",
-            isSynonymous: true
+            isSynonymous: false
           });
           mutationMade = true;
           break;
@@ -403,9 +384,11 @@ export function domesticateSequence(
         // Must be synonymous
         if (candidateAA === origAA) {
           const testSeq = currentSeq.slice(0, pos0) + altBase + currentSeq.slice(pos0 + 1);
-          // Check that site is eliminated
-          if (!testSeq.slice(siteIdx, siteIdx + siteLen).includes(fwdSite) &&
-              !testSeq.slice(siteIdx, siteIdx + siteLen).includes(revSite)) {
+          // Check that site is eliminated and no new flanking site is created
+          const flankStart = Math.max(0, pos0 - siteLen);
+          const flankEnd = Math.min(testSeq.length, pos0 + siteLen + 1);
+          const flank = testSeq.slice(flankStart, flankEnd);
+          if (!flank.includes(fwdSite) && !flank.includes(revSite)) {
             currentSeq = testSeq;
             mutations.push({
               position1: pos0 + 1,
@@ -444,7 +427,14 @@ export function domesticateSequence(
   if (!hasInternalSites) {
     summary = `No internal ${enzyme.name} sites detected. Sequence is already domesticated.`;
   } else {
-    summary = `Domesticated ${mutations.length} internal ${enzyme.name} recognition site(s) via synonymous codon mutations (100% amino acid sequence preserved).`;
+    const hasNonCoding = mutations.some(m => m.aminoAcid === "N/A");
+    if (hasNonCoding) {
+      const synCount = mutations.filter(m => m.aminoAcid !== "N/A").length;
+      const nonCodingCount = mutations.length - synCount;
+      summary = `Domesticated ${mutations.length} internal ${enzyme.name} recognition site(s) (${synCount} synonymous codon mutation(s), ${nonCodingCount} non-coding substitution(s)).`;
+    } else {
+      summary = `Domesticated ${mutations.length} internal ${enzyme.name} recognition site(s) via synonymous codon mutations (100% amino acid sequence preserved).`;
+    }
   }
 
   return {

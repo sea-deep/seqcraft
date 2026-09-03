@@ -2,7 +2,7 @@ import { useWorkspaceStore } from '../state/workspace-store';
 import { useCloningStore } from '../state/cloning-store';
 import { useActivityStore } from '../state/activity-store';
 import { planRestrictionClone } from '../scientific/restriction-cloning';
-import { BUILTIN_ENZYMES } from '../data/restriction-enzymes';
+import { findEnzyme } from '../data/restriction-enzymes';
 import { generateId } from '../utils/id';
 import type { SequenceDocument } from '../domain/document';
 import { ScientificSequence } from '../scientific/nucleotide';
@@ -24,7 +24,7 @@ export function prepareRestrictionClone(params: PrepareCloneParams) {
   if (!vectorDoc) return { ok: false, error: 'VECTOR_DOCUMENT_NOT_FOUND', details: {} };
   if (!insertDoc) return { ok: false, error: 'INSERT_DOCUMENT_NOT_FOUND', details: {} };
 
-  const enzymes = params.enzymeNames.map(name => BUILTIN_ENZYMES.find(e => e.name.toLowerCase() === name.toLowerCase()));
+  const enzymes = params.enzymeNames.map(name => findEnzyme(name));
   if (enzymes.some(e => !e)) return { ok: false, error: 'UNKNOWN_ENZYME', details: {} };
 
   const { proposal, error } = planRestrictionClone({
@@ -58,7 +58,7 @@ export function approveRestrictionClone() {
     storageMode: "memory",
     id: docId,
     name: `${proposal.vectorDocumentName} - ${proposal.insertDocumentName} Recombinant`,
-    topology: 'circular',
+    topology: proposal.vectorTopology || 'circular',
     sequence: new ScientificSequence(candidate.recombinantSequence, 'DNA'),
     alphabet: 'DNA',
     features: candidate.recombinantFeatures,

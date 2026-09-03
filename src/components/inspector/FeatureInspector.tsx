@@ -14,6 +14,19 @@ export function FeatureInspector({ document, feature }: { document: SequenceDocu
   const maxEnd = Math.max(...feature.segments.map(s => s.end0Exclusive));
   const length = getFeatureLength(feature);
 
+  const isOriginSpanning = document.topology === 'circular' &&
+    feature.segments.length === 2 &&
+    feature.segments.some(s => s.end0Exclusive === document.length) &&
+    feature.segments.some(s => s.start0 === 0);
+
+  const rangeDisplay = isOriginSpanning
+    ? (() => {
+        const seg1 = feature.segments.find(s => s.end0Exclusive === document.length)!;
+        const seg2 = feature.segments.find(s => s.start0 === 0)!;
+        return `${formatNum.format(seg1.start0 + 1)}–${formatNum.format(document.length)} ^ 1–${formatNum.format(seg2.end0Exclusive)}`;
+      })()
+    : `${formatNum.format(minStart + 1)}–${formatNum.format(maxEnd)}`;
+
   const colorVar = getFeatureColor(feature.type);
 
   const qualifiers = Object.entries(feature.qualifiers || {});
@@ -30,7 +43,7 @@ export function FeatureInspector({ document, feature }: { document: SequenceDocu
       
       <div className="grid grid-cols-[80px_1fr] gap-y-2">
         <div className="text-[var(--text-muted)]">Range</div>
-        <div className="text-[var(--text)] font-medium">{formatNum.format(minStart + 1)}–{formatNum.format(maxEnd)}</div>
+        <div className="text-[var(--text)] font-medium">{rangeDisplay}</div>
         
         <div className="text-[var(--text-muted)]">Length</div>
         <div className="text-[var(--text)]">{formatNum.format(length)} bp</div>

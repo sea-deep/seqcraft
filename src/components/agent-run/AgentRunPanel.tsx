@@ -174,92 +174,102 @@ export function AgentRunPanel() {
               </div>
 
               <div className="space-y-2 text-[12px]">
-                <div>
-                  <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Position</div>
-                  <div className="font-semibold text-[var(--text)]">
-                    {pendingTransaction.invariantReport.position1.toLocaleString()}
-                  </div>
-                </div>
+                {pendingTransaction.invariantReport && (
+                  <>
+                    <div>
+                      <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Position</div>
+                      <div className="font-semibold text-[var(--text)]">
+                        {pendingTransaction.invariantReport.position1?.toLocaleString() ?? '—'}
+                      </div>
+                    </div>
 
-                <div>
-                  <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Change</div>
-                  <div className="font-semibold text-[var(--text)]">
-                    {pendingTransaction.invariantReport.originalBase} → {pendingTransaction.invariantReport.mutatedBase}
-                  </div>
-                </div>
+                    <div>
+                      <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Change</div>
+                      <div className="font-semibold text-[var(--text)]">
+                        {pendingTransaction.invariantReport.originalBase} → {pendingTransaction.invariantReport.mutatedBase}
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">DNA</div>
                   <div className="text-[12px] tracking-widest text-[var(--text)] font-mono">
-                    {pendingTransaction.invariantReport.cdsVerification?.codonBefore || pendingTransaction.beforeFragment}
+                    {pendingTransaction.invariantReport?.cdsVerification?.codonBefore || pendingTransaction.beforeFragment}
                     <span className="text-[var(--text-muted)] mx-2">→</span>
-                    {pendingTransaction.invariantReport.cdsVerification?.codonAfter || pendingTransaction.afterFragment}
+                    {pendingTransaction.invariantReport?.cdsVerification?.codonAfter || pendingTransaction.afterFragment}
                   </div>
                 </div>
 
-                <div>
-                  <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Protein</div>
-                  <div className="flex items-center gap-2 text-[12px]">
-                    <span className="text-[var(--text)]">
-                      {pendingTransaction.invariantReport.cdsVerification?.aminoAcidBefore || 'N/A'}
-                      <span className="text-[var(--text-muted)] mx-2">→</span>
-                      {pendingTransaction.invariantReport.cdsVerification?.aminoAcidAfter || 'N/A'}
-                    </span>
-                    {pendingTransaction.invariantReport.cdsVerification?.isSynonymous && (
-                      <span className="text-[var(--success)] text-[11px]">✓ unchanged</span>
-                    )}
+                {pendingTransaction.invariantReport?.cdsVerification && (
+                  <div>
+                    <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Protein</div>
+                    <div className="flex items-center gap-2 text-[12px]">
+                      <span className="text-[var(--text)]">
+                        {pendingTransaction.invariantReport.cdsVerification.aminoAcidBefore || 'N/A'}
+                        <span className="text-[var(--text-muted)] mx-2">→</span>
+                        {pendingTransaction.invariantReport.cdsVerification.aminoAcidAfter || 'N/A'}
+                      </span>
+                      {pendingTransaction.invariantReport.cdsVerification.isSynonymous && (
+                        <span className="text-[var(--success)] text-[11px]">✓ unchanged</span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Verified Effects / Invariants */}
-              <div className="border-t border-[var(--border)] pt-2.5 space-y-1.5">
-                <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold">
-                  Verified effects
-                </div>
-                <div className="space-y-1 text-[11px]">
-                  <div className="flex items-center gap-1.5">
-                    <span className={pendingTransaction.invariantReport.cdsVerification?.isSynonymous ? 'text-[var(--success)]' : 'text-[var(--danger)]'}>
-                      {pendingTransaction.invariantReport.cdsVerification?.isSynonymous ? '✓' : '✕'}
-                    </span>
-                    <span>
-                      {pendingTransaction.invariantReport.cdsVerification?.isSynonymous ? 'translation unchanged' : 'translation altered'}
-                    </span>
+              {pendingTransaction.invariantReport && (
+                <div className="border-t border-[var(--border)] pt-2.5 space-y-1.5">
+                  <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-semibold">
+                    Verified effects
                   </div>
+                  <div className="space-y-1 text-[11px]">
+                    {pendingTransaction.invariantReport.cdsVerification && (
+                      <div className="flex items-center gap-1.5">
+                        <span className={pendingTransaction.invariantReport.cdsVerification.isSynonymous ? 'text-[var(--success)]' : 'text-[var(--danger)]'}>
+                          {pendingTransaction.invariantReport.cdsVerification.isSynonymous ? '✓' : '✕'}
+                        </span>
+                        <span>
+                          {pendingTransaction.invariantReport.cdsVerification.isSynonymous ? 'translation unchanged' : 'translation altered'}
+                        </span>
+                      </div>
+                    )}
 
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[var(--success)]">✓</span>
-                    <span>
-                      sequence length {pendingTransaction.invariantReport.lengthBefore} → {pendingTransaction.invariantReport.lengthAfter}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[var(--success)]">✓</span>
-                    <span>
-                      {pendingTransaction.invariantReport.changedNucleotideCount} nucleotide{pendingTransaction.invariantReport.changedNucleotideCount === 1 ? '' : 's'} changed
-                    </span>
-                  </div>
-
-                  {pendingTransaction.invariantReport.enzymeVerification && (
                     <div className="flex items-center gap-1.5">
                       <span className="text-[var(--success)]">✓</span>
                       <span>
-                        internal {pendingTransaction.invariantReport.enzymeVerification.enzymeName} sites {pendingTransaction.invariantReport.enzymeVerification.countBefore} → {pendingTransaction.invariantReport.enzymeVerification.countAfter}
+                        sequence length {pendingTransaction.invariantReport.lengthBefore} → {pendingTransaction.invariantReport.lengthAfter}
                       </span>
                     </div>
-                  )}
 
-                  <div className="flex items-center gap-1.5">
-                    <span className={pendingTransaction.invariantReport.coordinatesStable ? 'text-[var(--success)]' : 'text-[var(--danger)]'}>
-                      {pendingTransaction.invariantReport.coordinatesStable ? '✓' : '⚠'}
-                    </span>
-                    <span>
-                      {pendingTransaction.invariantReport.coordinatesStable ? 'feature coordinates unchanged' : 'feature coordinates shifted'}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[var(--success)]">✓</span>
+                      <span>
+                        {pendingTransaction.invariantReport.changedNucleotideCount} nucleotide{pendingTransaction.invariantReport.changedNucleotideCount === 1 ? '' : 's'} changed
+                      </span>
+                    </div>
+
+                    {pendingTransaction.invariantReport.enzymeVerification && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[var(--success)]">✓</span>
+                        <span>
+                          internal {pendingTransaction.invariantReport.enzymeVerification.enzymeName} sites {pendingTransaction.invariantReport.enzymeVerification.countBefore} → {pendingTransaction.invariantReport.enzymeVerification.countAfter}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-1.5">
+                      <span className={pendingTransaction.invariantReport.coordinatesStable ? 'text-[var(--success)]' : 'text-[var(--danger)]'}>
+                        {pendingTransaction.invariantReport.coordinatesStable ? '✓' : '⚠'}
+                      </span>
+                      <span>
+                        {pendingTransaction.invariantReport.coordinatesStable ? 'feature coordinates unchanged' : 'feature coordinates shifted'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <div className="border-t border-[var(--border)] pt-2 flex items-center justify-between text-[11px] text-[var(--text-muted)]">
                 <span>Base revision</span>

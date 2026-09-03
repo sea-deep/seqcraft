@@ -5,12 +5,7 @@ import { analyzeRestrictionSites } from '../../scientific/restriction-analysis';
 import { BUILTIN_ENZYMES } from '../../data/restriction-enzymes';
 import { useWebMCPToolCount } from '../../webmcp/use-webmcp-status';
 
-interface EditorStatusBarProps {
-  drawerOpen: boolean;
-  setDrawerOpen: (val: boolean | ((prev: boolean) => boolean)) => void;
-}
-
-export function EditorStatusBar({ drawerOpen, setDrawerOpen }: EditorStatusBarProps) {
+export function EditorStatusBar() {
   const activeDocumentId = useWorkspaceStore(s => s.activeDocumentId);
   const documents = useWorkspaceStore(s => s.documents);
   const selection = useWorkspaceStore(s => s.selection);
@@ -70,21 +65,13 @@ export function EditorStatusBar({ drawerOpen, setDrawerOpen }: EditorStatusBarPr
             setInspectorOpen(true);
           }}
           className="flex items-center gap-1.5 h-full px-2 hover:bg-[var(--panel)] hover:text-[var(--text)] transition-colors cursor-pointer outline-none"
-          title="Open Agent Run (WebMCP capabilities)"
+          title="Open Agent Run (WebMCP inspector & activity)"
         >
           <span>WebMCP · {toolCount}</span>
           <span className={`w-1.5 h-1.5 rounded-full ${isWebMCPHealthy ? 'bg-[var(--success)]' : 'bg-[var(--border)]'}`} aria-hidden="true" />
-        </button>
-        
-        <div className="w-px h-3 bg-[var(--border)]" />
-        
-        <button 
-          className={`flex items-center gap-1.5 h-full px-2 hover:bg-[var(--panel)] hover:text-[var(--text)] transition-colors cursor-pointer outline-none focus-visible:bg-[var(--panel)] focus-visible:ring-1 focus-visible:ring-[var(--accent)] ${drawerOpen ? 'bg-[var(--panel)] text-[var(--text)]' : ''}`}
-          onClick={() => setDrawerOpen(p => !p)}
-          aria-expanded={drawerOpen}
-          aria-label={`Agent Activity Drawer (${eventCount} events)`}
-        >
-          <span>Agent {eventCount}</span>
+          {eventCount > 0 && (
+            <span className="text-[10px] font-mono text-[var(--accent)] font-semibold">({eventCount})</span>
+          )}
         </button>
       </div>
     </footer>

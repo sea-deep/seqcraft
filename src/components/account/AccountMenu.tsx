@@ -128,7 +128,7 @@ export function AccountMenu({ user, size = 'default' }: AccountMenuProps) {
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-[440px] p-5 gap-4">
           <DialogHeader>
             <DialogTitle>Delete all SeqCraft data?</DialogTitle>
             <DialogDescription>

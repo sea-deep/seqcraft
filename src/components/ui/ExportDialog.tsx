@@ -25,7 +25,7 @@ export function ExportDialog({ document, children }: { document: SequenceDocumen
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={children} />
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] p-5">
         <DialogHeader>
           <DialogTitle>Export {document.name}</DialogTitle>
         </DialogHeader>

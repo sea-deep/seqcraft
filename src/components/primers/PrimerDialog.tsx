@@ -48,7 +48,7 @@ export function PrimerDialog({ document, primer, selection, open, onOpenChange }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] gap-4">
+      <DialogContent className="sm:max-w-[500px] p-5 gap-4">
         <DialogHeader><DialogTitle>{primer ? 'Edit primer' : 'Create primer'}</DialogTitle></DialogHeader>
         <div className="grid gap-3 text-[12px]">
           <label className="grid gap-1.5"><span className="text-[var(--text-secondary)]">Name</span><input autoFocus value={name} onChange={event => setName(event.target.value)} className="h-[34px] rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 outline-none focus:border-[var(--accent)]" /></label>

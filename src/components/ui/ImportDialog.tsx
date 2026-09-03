@@ -83,7 +83,7 @@ export function ImportDialog({ children, open: controlledOpen, onOpenChange }: {
       setOpen(o);
     }}>
       {children && <DialogTrigger render={children} />}
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] p-5">
         <DialogHeader>
           <DialogTitle>Import Sequence</DialogTitle>
         </DialogHeader>

@@ -20,12 +20,12 @@ export function CloningDialog({ activeDocument, documents, open, onOpenChange }:
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[540px] gap-4">
+      <DialogContent className="sm:max-w-[540px] p-5 gap-4">
         <DialogHeader><DialogTitle>Restriction cloning</DialogTitle></DialogHeader>
         <div className="grid gap-3 text-[12px]">
           <label className="grid gap-1.5"><span className="text-[var(--text-secondary)]">Circular vector</span><input value={activeDocument.name} readOnly className="h-[34px] rounded-md border border-[var(--border)] bg-[var(--panel-muted)] px-2" /></label>
           <label className="grid gap-1.5"><span className="text-[var(--text-secondary)]">Insert document</span><select value={insertDocumentId} onChange={event => setInsertDocumentId(event.target.value)} className="h-[34px] rounded-md border border-[var(--border)] bg-[var(--bg)] px-2"><option value="">Choose insert</option>{insertOptions.map(document => <option key={document.id} value={document.id}>{document.name} · {document.length} bp</option>)}</select></label>
-          <div><div className="mb-1.5 text-[var(--text-secondary)]">Restriction enzymes</div><div className="grid grid-cols-3 gap-1.5">{BUILTIN_ENZYMES.map(enzyme => <label key={enzyme.id} className="flex items-center gap-2 rounded border border-[var(--border)] px-2 py-1.5"><input type="checkbox" checked={enzymeIds.includes(enzyme.id)} onChange={() => setEnzymeIds(current => current.includes(enzyme.id) ? current.filter(id => id !== enzyme.id) : [...current, enzyme.id])} /><span>{enzyme.name}</span></label>)}</div></div>
+          <div><div className="mb-1.5 text-[var(--text-secondary)]">Restriction enzymes</div><div className="max-h-[220px] overflow-y-auto rounded border border-[var(--border)] bg-[var(--bg)] p-1.5"><div className="grid grid-cols-3 gap-1">{BUILTIN_ENZYMES.map(enzyme => <label key={enzyme.id} className="flex items-center gap-2 rounded border border-[var(--border)] px-2 py-1.5 cursor-pointer hover:bg-[var(--panel-muted)] transition-colors"><input type="checkbox" checked={enzymeIds.includes(enzyme.id)} onChange={() => setEnzymeIds(current => current.includes(enzyme.id) ? current.filter(id => id !== enzyme.id) : [...current, enzyme.id])} /><span>{enzyme.name}</span></label>)}</div></div></div>
           {message && <div className="rounded border border-[var(--warning)] p-2 text-[var(--warning)]">{message}</div>}
           <div className="text-[var(--text-muted)]">The predicted construct remains staged for review before a recombinant document is created.</div>
         </div>

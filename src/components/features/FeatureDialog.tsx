@@ -75,7 +75,7 @@ export function FeatureDialog({ document, feature, selection, open, onOpenChange
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] gap-4">
+      <DialogContent className="sm:max-w-[500px] p-5 gap-4">
         <DialogHeader>
           <DialogTitle>{feature ? 'Edit Feature' : 'Add Feature'}</DialogTitle>
         </DialogHeader>

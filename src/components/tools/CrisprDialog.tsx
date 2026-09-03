@@ -212,7 +212,7 @@ export function CrisprDialog({ document, open, onOpenChange, selection }: Crispr
         </div>
 
         {/* Target List */}
-        <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-[300px]">
+        <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-0">
           {targets.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-[var(--text-muted)] space-y-2">
               <Dna size={32} className="opacity-40" />
@@ -229,46 +229,47 @@ export function CrisprDialog({ document, open, onOpenChange, selection }: Crispr
               return (
                 <div
                   key={target.id}
-                  className="p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:border-[var(--accent)]/50 transition-all flex flex-col gap-2"
+                  className="p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)] hover:border-[var(--accent)]/50 transition-all"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-9 h-9 rounded-md flex flex-col items-center justify-center font-mono font-bold text-xs ${
-                          isHigh
-                            ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-                            : isMedium
-                            ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                            : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
-                        }`}
-                      >
-                        <span>{target.qualityScore}</span>
-                        <span className="text-[9px] font-normal leading-none">%</span>
-                      </div>
+                  <div className="flex items-center gap-3 min-w-0">
+                    {/* Quality score badge */}
+                    <div
+                      className={`shrink-0 w-9 h-9 rounded-md flex flex-col items-center justify-center font-mono font-bold text-xs ${
+                        isHigh
+                          ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                          : isMedium
+                          ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                          : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                      }`}
+                    >
+                      <span>{target.qualityScore}</span>
+                      <span className="text-[9px] font-normal leading-none">%</span>
+                    </div>
 
-                      <div>
-                        <div className="font-mono text-xs font-semibold tracking-wide flex items-center gap-1.5">
-                          {target.pamOrientation === '5prime' && (
-                            <span className="text-[var(--accent)] font-bold">{target.pam}</span>
-                          )}
-                          <span className="text-[var(--text)]">{target.spacer}</span>
-                          {target.pamOrientation === '3prime' && (
-                            <span className="text-[var(--accent)] font-bold">{target.pam}</span>
-                          )}
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-[var(--panel-muted)] text-[var(--text-muted)]">
-                            {target.strand === 1 ? '+ strand' : '- strand'}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-[var(--text-muted)] mt-0.5 flex gap-3">
-                          <span>PAM: {target.pamStart0 + 1}–{target.pamEnd0Exclusive}</span>
-                          <span>Cut: {target.cutSite0 + 1}{target.bottomCutSite0 ? ` / ${target.bottomCutSite0 + 1}` : ''}</span>
-                          <span>GC: {target.gcPercent}%</span>
-                          <span>Frameshift: {Math.round(target.frameshiftProbability * 100)}%</span>
-                        </div>
+                    {/* Guide sequence + metadata – shrinks freely */}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-mono text-xs font-semibold tracking-wide flex items-center gap-1.5 flex-wrap">
+                        {target.pamOrientation === '5prime' && (
+                          <span className="text-[var(--accent)] font-bold shrink-0">{target.pam}</span>
+                        )}
+                        <span className="text-[var(--text)] truncate max-w-[200px]">{target.spacer}</span>
+                        {target.pamOrientation === '3prime' && (
+                          <span className="text-[var(--accent)] font-bold shrink-0">{target.pam}</span>
+                        )}
+                        <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-[var(--panel-muted)] text-[var(--text-muted)]">
+                          {target.strand === 1 ? '+ strand' : '− strand'}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-[var(--text-muted)] mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                        <span>PAM: {target.pamStart0 + 1}–{target.pamEnd0Exclusive}</span>
+                        <span>Cut: {target.cutSite0 + 1}{target.bottomCutSite0 ? ` / ${target.bottomCutSite0 + 1}` : ''}</span>
+                        <span>GC: {target.gcPercent}%</span>
+                        <span>Frameshift: {Math.round(target.frameshiftProbability * 100)}%</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    {/* Action buttons – never shrink */}
+                    <div className="shrink-0 flex items-center gap-1.5 ml-auto pl-2">
                       <button
                         onClick={() => handleCopySpacer(target)}
                         className="p-1.5 rounded border border-[var(--border)] bg-[var(--panel)] hover:bg-[var(--panel-muted)] text-[var(--text-secondary)] transition-colors cursor-pointer"
@@ -280,7 +281,7 @@ export function CrisprDialog({ document, open, onOpenChange, selection }: Crispr
                       <button
                         onClick={() => handleAnnotateTarget(target)}
                         disabled={isAdded}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-semibold border transition-colors cursor-pointer ${
+                        className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-semibold border transition-colors cursor-pointer whitespace-nowrap ${
                           isAdded
                             ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-500 cursor-default'
                             : 'border-[var(--accent)]/40 bg-[var(--accent-soft)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] text-[var(--accent)]'

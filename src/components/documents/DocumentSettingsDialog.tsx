@@ -16,7 +16,7 @@ export function DocumentSettingsDialog({ document, open, onOpenChange }: { docum
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[440px] gap-4">
+      <DialogContent className="sm:max-w-[440px] p-5 gap-4">
         <DialogHeader><DialogTitle>Document settings</DialogTitle></DialogHeader>
         <div className="grid gap-3 text-[12px]">
           <label className="grid gap-1.5"><span className="text-[var(--text-secondary)]">Name</span><input autoFocus value={name} onChange={event => setName(event.target.value)} className="h-[34px] rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 outline-none focus:border-[var(--accent)]" /></label>

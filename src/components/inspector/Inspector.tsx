@@ -62,7 +62,7 @@ export function Inspector() {
   }
 
   return (
-    <div className="p-3 h-full overflow-y-auto bg-[var(--panel)]">
+    <div className="p-3 h-full overflow-y-auto overflow-x-hidden min-w-0 bg-[var(--panel)]">
       {content}
     </div>
   );

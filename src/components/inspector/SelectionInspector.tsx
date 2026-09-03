@@ -161,7 +161,7 @@ export function SelectionInspector({ document, selection }: SelectionInspectorPr
     <div className="flex flex-col text-[12px] font-ui space-y-3">
       <h2 className="text-[14px] font-semibold text-[var(--text)] mb-1">Selection</h2>
       
-      <div className="grid grid-cols-[80px_1fr] gap-y-2">
+      <div className="grid grid-cols-[80px_minmax(0,1fr)] gap-y-2">
         <div className="text-[var(--text-muted)]">Range</div>
         <div className="text-[var(--text-secondary)] font-mono font-medium">{formatNum.format(selection.start0 + 1)}–{formatNum.format(selection.end0Exclusive)}</div>
         
@@ -172,7 +172,7 @@ export function SelectionInspector({ document, selection }: SelectionInspectorPr
         <div className="text-[var(--text-secondary)] font-mono">{loadingSeq ? '...' : gcPercent} %</div>
       </div>
 
-      <div className="border-t border-[var(--border)] pt-3 mt-1 grid grid-cols-[80px_1fr]">
+      <div className="border-t border-[var(--border)] pt-3 mt-1 grid grid-cols-[80px_minmax(0,1fr)]">
         <div className="text-[var(--text-muted)]">Sequence</div>
         {loadingSeq ? (
           <Skeleton className="h-4 w-full mt-0.5" />

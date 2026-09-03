@@ -34,14 +34,14 @@ export function FeatureInspector({ document, feature }: { document: SequenceDocu
   return (
     <div className="flex flex-col text-[12px] font-ui space-y-4">
       <div className="flex flex-col gap-0.5">
-        <h2 className="text-[14px] font-semibold text-[var(--text)] flex items-center gap-2">
+        <h2 className="text-[14px] font-semibold text-[var(--text)] flex items-center gap-2 min-w-0">
           <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: colorVar }} />
-          {feature.name}
+          <span className="truncate" title={feature.name}>{feature.name}</span>
         </h2>
         <div className="text-[11px] text-[var(--text-muted)] capitalize">{feature.type}</div>
       </div>
       
-      <div className="grid grid-cols-[80px_1fr] gap-y-2">
+      <div className="grid grid-cols-[80px_minmax(0,1fr)] gap-y-2">
         <div className="text-[var(--text-muted)]">Range</div>
         <div className="text-[var(--text)] font-medium">{rangeDisplay}</div>
         
@@ -72,7 +72,7 @@ export function FeatureInspector({ document, feature }: { document: SequenceDocu
           {qualifiers.map(([key, val]) => (
             <div key={key}>
               <div className="text-[11px] font-medium text-[var(--text-muted)] capitalize mb-0.5">{key}</div>
-              <div className="text-[var(--text)] leading-relaxed">
+              <div className="text-[var(--text)] leading-relaxed break-words">
                 {Array.isArray(val) ? val.join(', ') : val}
               </div>
             </div>

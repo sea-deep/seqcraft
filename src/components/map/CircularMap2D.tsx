@@ -27,6 +27,54 @@ function featureColor(feature: Feature): string {
   return getFeatureColor(feature.type);
 }
 
+/**
+ * Wraps or truncates SVG center title text so it strictly fits inside the circular map badge.
+ * Max chord width at radius 120 is ~230px, comfortable text width is ~180-195px (~22-25 characters per line).
+ */
+function wrapSvgCenterTitle(name: string, maxLines = 2, maxCharsPerLine = 22): string[] {
+  if (!name) return [''];
+  if (name.length <= maxCharsPerLine) return [name];
+
+  const tokens = name.split(/(?<=\s|[-_+/:])/);
+  const lines: string[] = [];
+  let current = '';
+
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if ((current + token).length <= maxCharsPerLine) {
+      current += token;
+    } else {
+      if (current.trim()) {
+        lines.push(current.trim());
+      }
+      if (lines.length === maxLines - 1) {
+        const remaining = tokens.slice(i).join('').trim();
+        if (remaining.length > maxCharsPerLine) {
+          lines.push(remaining.slice(0, Math.max(1, maxCharsPerLine - 1)).trimEnd() + '…');
+        } else {
+          lines.push(remaining);
+        }
+        return lines;
+      }
+      current = token;
+      while (current.length > maxCharsPerLine && lines.length < maxLines - 1) {
+        lines.push(current.slice(0, maxCharsPerLine));
+        current = current.slice(maxCharsPerLine);
+      }
+    }
+  }
+
+  if (current.trim() && lines.length < maxLines) {
+    lines.push(current.trim());
+  }
+
+  if (lines.length === 0) {
+    return [name.slice(0, maxCharsPerLine - 1) + '…'];
+  }
+
+  return lines;
+}
+
 type CutterFilter = 'all' | 'unique' | 'double';
 type EnzymeCategoryFilter = 'all' | RestrictionCategory;
 
@@ -266,7 +314,7 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
   return (
     <div className="relative h-full w-full overflow-hidden bg-[var(--bg-editor)] scientific-grid">
       {/* Top Left Navigation & Scientific Layers Toolbar */}
-      <div className="absolute left-4 top-4 z-20 flex flex-wrap items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--panel)]/95 backdrop-blur-sm p-1 shadow-md text-xs">
+      <div className="absolute left-4 top-4 z-20 flex flex-wrap items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--panel)]/95 backdrop-blur-sm p-1 shadow-md text-xs max-w-[calc(100%-190px)]">
         {/* Zoom Controls */}
         <div className="flex items-center rounded border border-[var(--border)] bg-[var(--bg)] p-0.5">
           <button
@@ -748,7 +796,8 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
                     selected ? 'fill-[var(--accent)] font-bold' : 'fill-[var(--text)] font-medium'
                   }`}
                 >
-                  {feature.name}
+                  <title>{feature.name}</title>
+                  {feature.name.length > 22 ? `${feature.name.slice(0, 20)}…` : feature.name}
                 </text>
               </g>
             );
@@ -756,17 +805,53 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
 
           {/* Center Informational Badge with Feature Inspector Details */}
           <circle cx="360" cy="360" r={120} fill="var(--panel)" stroke="var(--border)" className="shadow-inner" />
+          
+          {/* Plasmid Name (wrapped to safe chord width inside r=120 badge) */}
+          {(() => {
+            const titleLines = wrapSvgCenterTitle(document.name, hoveredFeature ? 2 : 3, 22);
+            const isSingle = titleLines.length === 1;
+
+            return (
+              <text
+                x="360"
+                textAnchor="middle"
+                className={`fill-[var(--text)] font-ui font-semibold select-none ${
+                  isSingle ? 'text-[15px]' : titleLines.length === 2 ? 'text-[13px]' : 'text-[12px]'
+                }`}
+              >
+                <title>{document.name}</title>
+                {titleLines.map((line, idx) => {
+                  let y = 345;
+                  if (hoveredFeature) {
+                    y = titleLines.length === 1 ? 324 : 316 + idx * 15;
+                  } else {
+                    if (titleLines.length === 1) y = 345;
+                    else if (titleLines.length === 2) y = 336 + idx * 16;
+                    else y = 327 + idx * 16;
+                  }
+                  return (
+                    <tspan key={idx} x="360" y={y}>
+                      {line}
+                    </tspan>
+                  );
+                })}
+              </text>
+            );
+          })()}
+
           <text
             x="360"
-            y={hoveredFeature ? 325 : 345}
-            textAnchor="middle"
-            className="fill-[var(--text)] font-ui text-[16px] font-semibold"
-          >
-            {document.name}
-          </text>
-          <text
-            x="360"
-            y={hoveredFeature ? 346 : 368}
+            y={
+              hoveredFeature
+                ? wrapSvgCenterTitle(document.name, 2, 22).length === 1
+                  ? 344
+                  : 349
+                : wrapSvgCenterTitle(document.name, 3, 22).length === 1
+                ? 368
+                : wrapSvgCenterTitle(document.name, 3, 22).length === 2
+                ? 373
+                : 380
+            }
             textAnchor="middle"
             className="fill-[var(--text-secondary)] font-mono text-[12px]"
           >
@@ -775,18 +860,25 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
 
           {hoveredFeature ? (
             <g pointerEvents="none">
-              <rect x="260" y="360" width="200" height="42" rx="4" fill="var(--panel-muted)" stroke="var(--border)" />
-              <text x="360" y="376" textAnchor="middle" className="fill-[var(--accent)] font-ui text-[11px] font-bold">
-                {hoveredFeature.name}
+              <rect x="255" y="360" width="210" height="44" rx="5" fill="var(--panel-muted)" stroke="var(--border)" />
+              <text x="360" y="377" textAnchor="middle" className="fill-[var(--accent)] font-ui text-[11px] font-bold">
+                <title>{hoveredFeature.name}</title>
+                {hoveredFeature.name.length > 25 ? `${hoveredFeature.name.slice(0, 24)}…` : hoveredFeature.name}
               </text>
-              <text x="360" y="392" textAnchor="middle" className="fill-[var(--text-muted)] font-ui text-[10px]">
+              <text x="360" y="393" textAnchor="middle" className="fill-[var(--text-muted)] font-ui text-[10px]">
                 {getFeatureTypeMetadata(hoveredFeature.type).label} ({hoveredFeature.strand === 1 ? '+' : '-'})
               </text>
             </g>
           ) : (
             <text
               x="360"
-              y={391}
+              y={
+                wrapSvgCenterTitle(document.name, 3, 22).length === 1
+                  ? 391
+                  : wrapSvgCenterTitle(document.name, 3, 22).length === 2
+                  ? 394
+                  : 398
+              }
               textAnchor="middle"
               className="fill-[var(--accent)] font-mono text-[11px]"
             >

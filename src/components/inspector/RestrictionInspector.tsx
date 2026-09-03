@@ -18,7 +18,7 @@ export function RestrictionInspector({ site }: RestrictionInspectorProps) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="grid grid-cols-[80px_1fr] gap-y-2">
+        <div className="grid grid-cols-[80px_minmax(0,1fr)] gap-y-2">
           <div className="text-[var(--text-muted)]">Recognition</div>
           <div className="font-mono text-[11px]">{site.recognitionSequence}</div>
 

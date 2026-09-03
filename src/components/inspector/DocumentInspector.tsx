@@ -21,7 +21,7 @@ export function DocumentInspector({ document }: { document: SequenceDocument }) 
     <div className="flex flex-col text-[12px] font-ui space-y-3">
       <h2 className="text-[14px] font-semibold text-[var(--text)] mb-1">Document</h2>
       
-      <div className="grid grid-cols-[80px_1fr] gap-y-2">
+      <div className="grid grid-cols-[80px_minmax(0,1fr)] gap-y-2">
         <div className="text-[var(--text-muted)]">Name</div>
         <div className="text-[var(--text)] font-semibold truncate" title={document.name}>{document.name}</div>
         
@@ -41,7 +41,7 @@ export function DocumentInspector({ document }: { document: SequenceDocument }) 
         <div className="text-[var(--text-secondary)] capitalize">{document.storageMode}</div>
       </div>
 
-      <div className="border-t border-[var(--border)] pt-3 mt-1 grid grid-cols-[80px_1fr]">
+      <div className="border-t border-[var(--border)] pt-3 mt-1 grid grid-cols-[80px_minmax(0,1fr)]">
         <div className="text-[var(--text-muted)]">Features</div>
         <div className="text-[var(--text-secondary)]">{document.features.length} annotations</div>
       </div>

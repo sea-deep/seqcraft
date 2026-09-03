@@ -215,7 +215,7 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
   return (
     <div className="relative h-full w-full overflow-hidden bg-[var(--bg-editor)] scientific-grid">
       {/* Top Left Scientific Layers Toolbar */}
-      <div className="absolute left-4 top-4 z-20 flex flex-wrap items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--panel)]/95 backdrop-blur-sm p-1 shadow-md text-xs">
+      <div className="absolute left-4 top-4 z-20 flex flex-wrap items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--panel)]/95 backdrop-blur-sm p-1 shadow-md text-xs max-w-[calc(100%-2rem)]">
         {/* Restriction Site Layers & Filters */}
         <div className="flex items-center gap-1">
           <button
@@ -540,20 +540,20 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
       </svg>
 
       {/* Construct Summary and Hover Card */}
-      <div className="absolute bottom-4 left-4 flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--panel)]/95 px-3 py-1.5 shadow-sm text-xs">
-        <div>
-          <span className="font-semibold text-[var(--text)]">{document.name}</span>
-          <span className="text-[var(--text-muted)] font-mono ml-2">{formattedLength} bp · linear</span>
+      <div className="absolute bottom-4 left-4 max-w-[calc(100%-2rem)] flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--panel)]/95 px-3 py-1.5 shadow-sm text-xs">
+        <div className="min-w-0 flex items-center gap-2">
+          <span className="font-semibold text-[var(--text)] truncate max-w-[280px]" title={document.name}>{document.name}</span>
+          <span className="text-[var(--text-muted)] font-mono shrink-0">{formattedLength} bp · linear</span>
         </div>
 
         {hoveredFeature && (
-          <div className="flex items-center gap-2 pl-3 border-l border-[var(--border)]">
+          <div className="flex items-center gap-2 pl-3 border-l border-[var(--border)] min-w-0">
             <div
               className="w-2.5 h-2.5 rounded-full shrink-0"
               style={{ backgroundColor: getFeatureColor(hoveredFeature.type) }}
             />
-            <span className="font-medium text-[var(--text)]">{hoveredFeature.name}</span>
-            <span className="text-[10px] text-[var(--text-muted)]">
+            <span className="font-medium text-[var(--text)] truncate max-w-[180px]" title={hoveredFeature.name}>{hoveredFeature.name}</span>
+            <span className="text-[10px] text-[var(--text-muted)] shrink-0">
               {getFeatureTypeMetadata(hoveredFeature.type).label} ({hoveredFeature.strand === 1 ? '+' : '-'})
             </span>
           </div>

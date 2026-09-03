@@ -88,28 +88,23 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
 
   commitPendingTransaction: async () => {
     const tx = get().pendingTransaction;
-    console.log('[SeqCraft Commit] commitPendingTransaction invoked with tx:', tx?.id, tx?.status);
     if (!tx) return { success: false, error: 'No pending transaction' };
 
     // Idempotency: if already applied, do not re-apply
     if (tx.status === 'applied') {
-      console.log('[SeqCraft Commit] Already applied, returning success');
       return { success: true };
     }
 
     const workspace = useWorkspaceStore.getState();
     const doc = workspace.documents.find(d => d.id === tx.documentId);
     if (!doc || !doc.sequence) {
-      console.log('[SeqCraft Commit] Document not found or has no sequence');
       return { success: false, error: `Document ${tx.documentId} not found or has no sequence` };
     }
 
     // Revision-locked commit — check both revision number AND sequence hash
     const currentHash = await computeSequenceSha256(doc.sequence.raw);
-    console.log('[SeqCraft Commit] doc version:', doc.version, 'tx.baseRevision:', tx.baseRevision, 'hash match:', currentHash === tx.baseSequenceHash);
     if (doc.version !== tx.baseRevision || currentHash !== tx.baseSequenceHash) {
       const errorMsg = 'Sequence changed after this proposal was analysed.\nRe-analysis required.';
-      console.log('[SeqCraft Commit] Marking stale:', errorMsg);
       // Mark transaction as stale
       const updatedTx: SequenceTransaction = { ...tx, status: 'stale' };
       set({ pendingTransaction: updatedTx });
@@ -117,7 +112,6 @@ export const useActivityStore = create<ActivityState>((set, get) => ({
     }
 
     // Apply mutation
-    console.log('[SeqCraft Commit] Applying mutation to doc:', tx.documentId);
     workspace.mutateDocumentSequence(tx.documentId, tx.operation);
     const updatedDoc = useWorkspaceStore.getState().documents.find(d => d.id === tx.documentId);
     const revisionAfter = updatedDoc ? updatedDoc.version : tx.baseRevision + 1;

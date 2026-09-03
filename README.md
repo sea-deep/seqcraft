@@ -18,8 +18,8 @@ SeqCraft is a browser-native DNA engineering workbench with deterministic sequen
 * **Enzymatic Analysis & Digestion**: IUPAC-aware restriction site recognition for linear and circular topologies, multi-enzyme digest fragment profiling, sticky/blunt overhang classification, and exact double-strand cut geometry for forward/reverse restriction cloning.
 * **Type IIS Assembly & Domestication**: Directional Golden Gate assembly simulation (BsaI, BsmBI, BbsI, PaqCI, SapI) with circular junction segment wrapping, cohesive overhang validation, and synonymous codon substitutions verified across full flanking regions.
 * **Thermodynamics, Primers & PCR**: Nearest-neighbor melting temperature ($T_m$) calculations, mismatch and ambiguity detection, linear/circular amplicon simulation, and overlap-extension PCR support.
-* **CRISPR Target Radar & MMEJ Forecasting**: Sense and antisense SpCas9 5′-NGG-3′ PAM scanning with circular origin wrapping, GC content balancing, poly-T transcription termination checks, and microhomology-mediated end joining (MMEJ) repair deletion forecasting.
-* **Laboratory Automation & Diagnostic Screening**: Direct Opentrons Python protocol compilation (OT-2 / Flex API v2.15) with strict deck collision prevention and dynamic tip allocations; offline heuristic biosecurity screening with circular origin bridging.
+* **Multi-Nuclease CRISPR & MMEJ Forecasting**: Guide scanning for SpCas9, SaCas9, Cas12a, and Cas12e with per-nuclease PAM and spacer length rules, circular origin wrapping, GC content balancing, poly-T transcription termination checks, and microhomology-mediated end joining (MMEJ) repair deletion forecasting.
+* **Laboratory Automation & Diagnostic Screening**: Direct Opentrons Python protocol compilation (OT-2 / Flex API v2.15) with strict deck collision prevention and dynamic tip allocations; offline heuristic biosecurity screening against 18 curated regulated agent signatures with circular origin bridging.
 * **Bio-CAD Interoperability**: Full export to NCBI GenBank flat-file format (`LOCUS`, `FEATURES`, `join()`, `complement()`, and grouped `ORIGIN` lines) for seamless import into Benchling and SnapGene, alongside FASTA and native `.seqcraft` JSON.
 * **In-Place Mutation History & Undo/Redo**: 50-step snapshot sequence transaction stack with global keyboard shortcuts (`Ctrl/Cmd+Z`, `Ctrl/Cmd+Y`, `Ctrl/Cmd+Shift+Z`) and programmatic WebMCP tools (`seqcraft_undo`, `seqcraft_redo`).
 * **Local-First Privacy Architecture**: All raw sequence bytes, annotations, and derived constructs remain strictly inside the browser runtime (IndexedDB and OPFS). The cloud control plane receives only sequence-free metadata descriptors.
@@ -110,22 +110,22 @@ When an agent invokes a sequence modification tool (`seqcraft_edit_sequence`), t
 3. **Biological Invariant Verification**: Before presentation to the user, SeqCraft executes automated checks against the proposed edit:
    * **Sequence Length Delta**: Verifies whether overall nucleotide count changes or coordinates remain stable.
    * **CDS Translation Check**: Translates affected coding sequences before and after mutation using `nucleotide-sequence` to verify whether the alteration is synonymous.
-   * **Codon and Amino Acid Context**: Identifies the exact codon substitution (e.g., `GGT` $\rightarrow$ `GGC`) and amino acid effect (e.g., `Gly` $\rightarrow$ `Gly`).
+   * **Codon and Amino Acid Context**: Identifies the exact codon substitution (e.g., `GGT` → `GGC`) and amino acid effect (e.g., `Gly` → `Gly`).
    * **Enzyme Site Verification**: Confirms that the targeted restriction enzyme site is abolished without introducing secondary recognition sites.
 
 ### Revision-Locked Safety
 
 If a human user edits the construct or switches documents while a transaction is pending, the transaction detects the discrepancy:
 
-$$\text{activeDoc.version} \neq \text{tx.baseRevision} \quad \lor \quad \text{SHA256}(\text{activeDoc.raw}) \neq \text{tx.baseSequenceHash}$$
+```
+activeDoc.version ≠ tx.baseRevision  ∨  SHA256(activeDoc.raw) ≠ tx.baseSequenceHash
+```
 
 The transaction is flagged as `stale`, preventing execution:
 
 ```text
 Stale transaction: Sequence changed after this proposal was analysed. Re-analysis required.
 ```
-
-Subsequent verification calls remain independent agent operations logged in the trajectory.
 
 ---
 
@@ -179,7 +179,7 @@ SeqCraft registers 50 tools via `window.document.modelContext.registerTool` orga
 | :--- | :--- | :--- |
 | `seqcraft_list_primers` | `read` | Returns all custom oligonucleotides and primers configured for the target molecule. |
 | `seqcraft_mutate_primer` | `annotation_mutation` | Creates, updates, or removes primers associated with the construct. |
-| `seqcraft_analyze_primer` | `read` | Computes primer length, GC percentage, melting temperature ($T_m$), and binding sites across the construct. |
+| `seqcraft_analyze_primer` | `read` | Computes primer length, GC percentage, melting temperature (Tm), and binding sites across the construct. |
 | `seqcraft_simulate_pcr` | `read` | Simulates linear or circular PCR amplification between forward and reverse primers. |
 
 ### 6. Enzymatic Digestion & Cloning
@@ -212,8 +212,8 @@ SeqCraft registers 50 tools via `window.document.modelContext.registerTool` orga
 | :--- | :--- | :--- |
 | `seqcraft_compare_documents` | `read` | Performs circular-invariant, reverse-complement-aware diffing between reference and query documents. |
 | `seqcraft_find_orfs` | `read` | Detects open reading frames across all 6 translation frames above a minimum codon threshold. |
-| `seqcraft_find_crispr_targets` | `read` | Identifies SpCas9 5′-NGG-3′ PAM sites, calculates GC balance scores, and forecasts MMEJ repair deletion profiles. |
-| `seqcraft_screen_biosecurity` | `read` | Executes client-side diagnostic comparison against curated k-mer sequences of regulated pathogens. |
+| `seqcraft_find_crispr_targets` | `read` | Identifies guide RNA target sites for SpCas9, SaCas9, Cas12a, and Cas12e; calculates GC balance scores and forecasts MMEJ repair deletion profiles. |
+| `seqcraft_screen_biosecurity` | `read` | Executes client-side diagnostic comparison against curated k-mer sequences of regulated pathogens and toxins. |
 
 ### 10. Import, Export, Automation & Batch
 | Tool Name | EffectClass | Description |
@@ -232,12 +232,12 @@ SeqCraft registers 50 tools via `window.document.modelContext.registerTool` orga
 | **Coordinate System** | 0-based half-open `[start, end)` internally; 1-based inclusive `[start, end]` in UI & WebMCP. Origin-spanning circular features partitioned into canonical `[start, len)` and `[0, end)` segments. | `src/domain/document.ts`<br/>`src/scientific/canonical-sequence.ts` |
 | **Restriction Enzymes** | IUPAC nucleotide pattern matching across standard NEB/Thermo libraries; categorizes 5′ overhangs, 3′ overhangs, and blunt termini; linear and circular cut mapping. | `src/scientific/restriction-analysis.ts`<br/>`src/data/restriction-enzymes.ts` |
 | **In Vitro Digestion** | Multi-cut cleaving, fragment sizing, sticky-end orientation, and terminal overhang matching. | `src/scientific/digest.ts`<br/>`src/scientific/digest-ends.ts` |
-| **PCR & Primers** | SantaLucia nearest-neighbor thermodynamic $T_m$ calculation, GC content evaluation, mismatch tolerance, multi-binding ambiguity detection, linear and circular amplicon prediction. | `src/scientific/pcr.ts`<br/>`src/scientific/primer-binding.ts`<br/>`src/scientific/primer-properties.ts` |
+| **PCR & Primers** | SantaLucia nearest-neighbor thermodynamic Tm calculation, GC content evaluation, mismatch tolerance, multi-binding ambiguity detection, linear and circular amplicon prediction. | `src/scientific/pcr.ts`<br/>`src/scientific/primer-binding.ts`<br/>`src/scientific/primer-properties.ts` |
 | **Translation & ORFs** | Six-frame translation (standard genetic code 1), circular wrap-around ORF detection, customizable minimal codon cutoffs. Powered by `nucleotide-sequence`. | `src/scientific/orf.ts`<br/>`src/scientific/protein-consequences.ts` |
-| **Golden Gate Assembly** | Multi-fragment Type IIS assembly simulation (BsaI, BsmBI, BbsI, PaqCI, SapI) with 4nt overhang fidelity verification. Synonymous codon domestication preserving amino acid sequences. | `src/scientific/golden-gate.ts`<br/>`src/scientific/transaction-invariants.ts` |
-| **CRISPR & MMEJ** | 20nt SpCas9 guide scanning with 5′-NGG-3′ PAM, GC balance scoring (40–60% optimal), poly-T run penalties ($T \ge 4$), and microhomology alignment forecasting deletion profiles. | `src/scientific/crispr.ts` |
+| **Golden Gate Assembly** | Multi-fragment Type IIS assembly simulation (BsaI, BsmBI, BbsI, PaqCI, SapI) with 4 nt overhang fidelity verification. Synonymous codon domestication preserving amino acid sequences. | `src/scientific/golden-gate.ts`<br/>`src/scientific/transaction-invariants.ts` |
+| **CRISPR & MMEJ** | Multi-nuclease guide scanning (SpCas9 NGG, SaCas9 NNGRRT, Cas12a TTTV, Cas12e TTCN) with per-nuclease spacer lengths, GC balance scoring (40–60% optimal), poly-T run penalties (T ≥ 4), and microhomology alignment forecasting deletion profiles. | `src/domain/crispr.ts`<br/>`src/scientific/crispr.ts` |
 | **Robotics Automation** | Executable Python protocol generation for Opentrons OT-2 and Flex robots (API v2.15), automated 10% dead-volume overage calculations, 24-tube rack layouts, and thermocycler ramp/elongation timing. | `src/scientific/opentrons-compiler.ts` |
-| **Biosecurity Pre-Screen** | Offline diagnostic comparison against 17 curated pathogenic k-mer signatures. Generates structured JSON diagnostic reports with scope disclosures. | `src/scientific/biosecurity.ts` |
+| **Biosecurity Pre-Screen** | Offline diagnostic comparison against 18 curated pathogenic and toxin k-mer signatures across four regulatory tiers (Tier 1 Select Agent, HHS/USDA Select Agent, Controlled Toxin, Dual-Use Pathogen). Generates structured JSON diagnostic reports with scope disclosures. | `src/scientific/biosecurity.ts` |
 | **Construct Comparison** | Alignment engine invariant to circular origin shifts and reverse-complement orientation. Identifies insertions, deletions, substitutions, and coding consequence impacts. | `src/scientific/biological-sequence-diff.ts`<br/>`src/workers/sequence-diff.worker.ts` |
 
 Detailed mathematical formulations, thermodynamic parameters, and coordinate contracts are documented in [docs/FEATURES.md](docs/FEATURES.md) and the in-app Reference Manual (`/docs`).
@@ -366,8 +366,6 @@ SeqCraft registers tools via `window.document.modelContext`.
 
 ### Inspecting WebMCP via DevTools
 
-You can inspect the active WebMCP registry directly in the browser developer console:
-
 ```javascript
 // Check WebMCP runtime registration status
 await window.__SEQCRAFT_WEBMCP__.status();
@@ -406,18 +404,24 @@ npm run typecheck:api
 seqcraft/
 ├── src/
 │   ├── domain/           # Biological and application domain types
+│   │   ├── crispr.ts             # Multi-nuclease registry (SpCas9, SaCas9, Cas12a, Cas12e)
+│   │   └── feature-ontology.ts  # 42-type feature ontology across 7 categories
 │   ├── scientific/       # Deterministic biological analysis modules
 │   │   ├── restriction-analysis.ts   # IUPAC restriction recognition
 │   │   ├── golden-gate.ts            # Type IIS assembly & domestication
 │   │   ├── pcr.ts                    # Thermodynamic primer & PCR simulation
-│   │   ├── crispr.ts                 # SpCas9 PAM radar & MMEJ forecaster
+│   │   ├── crispr.ts                 # Multi-nuclease PAM scanning & MMEJ forecaster
 │   │   ├── opentrons-compiler.ts     # Liquid-handling protocol generation
-│   │   ├── biosecurity.ts            # Diagnostic pathogen motif scan
+│   │   ├── biosecurity.ts            # Diagnostic pathogen motif scan (18 agents)
 │   │   ├── sequence-editing.ts       # Coordinate interval arithmetic
 │   │   └── transaction-invariants.ts # Pre-commit invariant evaluation
+│   ├── data/
+│   │   ├── restriction-enzymes.ts   # 80+ enzymes: Type II, Type IIS, rare cutters
+│   │   └── known-features.ts        # 50+ curated biological parts library
 │   ├── export/           # Serializers: FASTA, native .seqcraft, and NCBI GenBank (.gb)
-│   ├── webmcp/           # 50 WebMCP tools organized across 12 domain modules in src/webmcp/tools/
-│   │   ├── tools/        # context, workspace, documents, features, primers, cloning, sequence, analysis, history, io, automation, batch
+│   ├── webmcp/           # 50 WebMCP tools organized across 12 domain modules
+│   │   ├── tools/        # context, workspace, documents, features, primers, cloning,
+│   │   │                 # sequence, analysis, history, io, automation, batch
 │   │   ├── registry.ts   # Central tool registration, execution, and provenance logging
 │   │   └── types.ts      # EffectClass, SeqCraftToolDefinition, ToolResponse
 │   ├── storage/          # Browser persistence (OPFSBackend & IndexedDB)
@@ -470,9 +474,9 @@ console.log(protein); // "MGL*"
 ## Scientific Scope and Limitations
 
 * **Genetic Code Assumptions**: Open reading frame detection and CDS verification currently assume standard genetic code 1 (canonical nuclear eukaryotic / bacterial translation table). Alternative genetic codes (e.g., mitochondrial, mycoplasma) are not yet configurable.
-* **Thermodynamic PCR Parameters**: Melting temperatures ($T_m$) are calculated using nearest-neighbor enthalpy and entropy parameters under standard monovalent cation conditions. They serve as in silico estimates and do not replace physical annealing temperature gradient optimization in the wet lab.
-* **CRISPR Scoring Boundaries**: CRISPR guide evaluation identifies SpCas9 5′-NGG-3′ PAM sites, flags GC imbalance, checks for poly-T termination signals, and forecasts microhomology-mediated repair deletion patterns. It does not perform genome-wide off-target mismatch alignment searches.
-* **Biosecurity Pre-Screening Scope**: The biosecurity screening tool is an offline diagnostic check comparing k-mer substrings against 17 curated pathogenic and toxin signatures. **It does not constitute regulatory compliance screening.** Commercial gene synthesis providers and institutions must continue to perform formal biosecurity screening under applicable national and international regulatory frameworks.
+* **Thermodynamic PCR Parameters**: Melting temperatures (Tm) are calculated using nearest-neighbor enthalpy and entropy parameters under standard monovalent cation conditions. They serve as in silico estimates and do not replace physical annealing temperature gradient optimization in the wet lab.
+* **CRISPR Scoring Boundaries**: CRISPR guide evaluation covers SpCas9, SaCas9, Cas12a, and Cas12e PAM recognition with per-nuclease spacer lengths, GC balance scoring, poly-T termination signal checks, and microhomology-mediated end joining repair forecasting. It does not perform genome-wide off-target mismatch alignment searches.
+* **Biosecurity Pre-Screening Scope**: The biosecurity screening tool is an offline diagnostic check comparing k-mer substrings against 18 curated pathogenic and toxin signatures. **It does not constitute regulatory compliance screening.** Commercial gene synthesis providers and institutions must continue to perform formal biosecurity screening under applicable national and international regulatory frameworks.
 * **Coordinate Invariant**: Internal data structures use 0-based half-open intervals `[start, end)`. User-facing interfaces, dialogs, and WebMCP parameters accept 1-based inclusive intervals `[start, end]` unless specifically labeled otherwise.
 
 ---

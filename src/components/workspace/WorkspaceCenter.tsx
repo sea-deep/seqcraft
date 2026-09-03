@@ -9,7 +9,6 @@ import { CompareView } from '../compare/CompareView';
 import { ImportDialog } from '../ui/ImportDialog';
 import { DocumentTabs } from '../shell/DocumentTabs';
 import { getDocumentCapabilities } from '../../domain/document';
-import { loadDemoWorkspace } from '../../data/demo-workspace';
 
 export function WorkspaceCenter() {
   const activeDocumentId = useWorkspaceStore(s => s.activeDocumentId);
@@ -32,9 +31,6 @@ export function WorkspaceCenter() {
                   Import sequence
                 </button>
               </ImportDialog>
-              <button type="button" onClick={loadDemoWorkspace} className="cursor-pointer bg-[var(--panel)] border border-[var(--border)] hover:bg-[var(--panel-muted)] text-[var(--text)] px-4 py-2 rounded-md text-[12px] font-medium">
-                Open demo workspace
-              </button>
             </div>
           </div>
         </div>

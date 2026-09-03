@@ -36,7 +36,7 @@ export function GenomicHero() {
                 to="/dashboard"
                 className="h-11 inline-flex items-center gap-2 px-5 rounded-md border border-[var(--border)] bg-[var(--panel)] text-[14px] font-medium text-[var(--text)] hover:bg-[var(--panel-muted)] transition-colors cursor-pointer"
               >
-                <Compass size={16} className="text-[var(--accent)]" /> Open pUC19 demo
+                <Compass size={16} className="text-[var(--accent)]" /> Explore pUC19
               </Link>
             </div>
 

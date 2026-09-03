@@ -105,7 +105,7 @@ export function createDemoDonorDocument() {
     features: [
       {
         id: 'feat-demo-insert',
-        name: 'Demo Insert',
+        name: 'Cloning Insert',
         type: 'misc_feature' as const,
         strand: 1 as const,
         segments: [{ start0: leftFlank.length + ecori.length, end0Exclusive: leftFlank.length + ecori.length + payload.length }],
@@ -120,7 +120,7 @@ export function createDemoDonorDocument() {
 }
 
 export function loadDemoWorkspace() {
-  handleImportDocument(DEMO_GENBANK, 'pUC19 Demo');
+  handleImportDocument(DEMO_GENBANK, 'pUC19');
   const store = useWorkspaceStore.getState();
   store.addDocument(createDemoDonorDocument());
 }

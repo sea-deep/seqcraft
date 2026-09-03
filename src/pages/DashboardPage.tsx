@@ -20,7 +20,6 @@ import {
   DialogFooter,
 } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
-import { loadDemoWorkspace } from '../data/demo-workspace';
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -280,9 +279,6 @@ export function DashboardPage() {
                   <FileUp size={15} /> Import sequence
                 </button>
               </ImportDialog>
-              <button type="button" onClick={loadDemoWorkspace} className="h-10 px-5 border border-[var(--border)] bg-[var(--panel)] hover:bg-[var(--panel-muted)] text-[var(--text)] rounded-md text-[13px] font-semibold transition-colors cursor-pointer">
-                Open demo workspace
-              </button>
             </div>
           </div>
         ) : filteredDocuments.length === 0 ? (

@@ -14,6 +14,11 @@ import { compareSequenceDocuments } from '../application/sequence-diff';
 import { generateId } from '../utils/id';
 import type { FeatureType } from '../domain/feature';
 import { detectKnownFeatures } from '../scientific/known-feature-detection';
+import { findORFs } from '../scientific/orf';
+import { compileOpentronsPCRProtocol, compileOpentronsDigestProtocol } from '../scientific/opentrons-compiler';
+import { findCrisprTargets } from '../scientific/crispr';
+import { TYPE_IIS_ENZYMES, assembleGoldenGate, domesticateSequence } from '../scientific/golden-gate';
+import { screenBiosecurity } from '../scientific/biosecurity';
 
 const createError = (code: string, message: string, details?: any) => ({
   ok: false,
@@ -779,7 +784,6 @@ export const seqcraftFindOrfsTool = {
       const doc = getActiveDocument();
       if (!doc) return createError('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');
       
-      const { findORFs } = await import('../scientific/orf');
       const orfs = findORFs(getMemorySequence(doc).raw, doc.topology, input.minCodons || 30);
       const maxResults = Math.min(Math.max(input.maxResults ?? 50, 1), 200);
       const returnedOrfs = orfs.slice(0, maxResults);
@@ -861,8 +865,6 @@ export const seqcraftGenerateOpentronsProtocolTool = {
       const doc = getActiveDocument();
       if (!doc) return createError('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');
       
-      const { compileOpentronsPCRProtocol, compileOpentronsDigestProtocol } = await import('../scientific/opentrons-compiler');
-      
       if (input.reactionType === 'pcr') {
         const p = input.pcrParameters || {};
         const fwdName = p.forwardPrimerName || (doc.primers[0]?.name ?? 'Fwd-Primer');
@@ -920,7 +922,6 @@ export const seqcraftFindCrisprTargetsTool = {
       const doc = getActiveDocument();
       if (!doc) return createError('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');
       
-      const { findCrisprTargets } = await import('../scientific/crispr');
       const targetRegion = input.start1 && input.end1 ? { start0: input.start1 - 1, end0Exclusive: input.end1 } : undefined;
       
       const targets = findCrisprTargets(getMemorySequence(doc).raw, doc.topology, {
@@ -995,7 +996,6 @@ export const seqcraftSimulateGoldenGateTool = {
         return createError('DOCUMENTS_NOT_FOUND', `Could not find document(s): ${missing.join(', ')}`);
       }
       
-      const { TYPE_IIS_ENZYMES, assembleGoldenGate } = await import('../scientific/golden-gate');
       const enzyme = TYPE_IIS_ENZYMES.find(e => e.id === (input.enzymeId || 'bsai')) || TYPE_IIS_ENZYMES[0];
       
       const parts = partDocs.map(doc => ({
@@ -1052,7 +1052,6 @@ export const seqcraftDomesticateSequenceTool = {
       const doc = getActiveDocument();
       if (!doc) return createError('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');
       
-      const { TYPE_IIS_ENZYMES, domesticateSequence } = await import('../scientific/golden-gate');
       const enzyme = TYPE_IIS_ENZYMES.find(e => e.id === (input.enzymeId || 'bsai')) || TYPE_IIS_ENZYMES[0];
       
       const res = domesticateSequence(getMemorySequence(doc).raw, enzyme, input.readingFrame || 1);
@@ -1085,7 +1084,6 @@ export const seqcraftScreenBiosecurityTool = {
       const doc = getActiveDocument();
       if (!doc) return createError('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');
       
-      const { screenBiosecurity } = await import('../scientific/biosecurity');
       const report = screenBiosecurity(getMemorySequence(doc).raw, doc.topology);
       
       return createSuccess({

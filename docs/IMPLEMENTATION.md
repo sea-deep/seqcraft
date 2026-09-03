@@ -1503,7 +1503,7 @@ It is complete when:
 7. tests cover critical behavior
 8. loading/error/empty states exist
 9. no obvious unbounded rendering/result behavior exists
-10. `AGENTS.md` is updated with the completed work and any remaining caveat
+10. documentation and tests are updated with completed work and any remaining caveats
 
 ---
 

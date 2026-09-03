@@ -184,14 +184,16 @@ export function GoldenGateDialog({
         </DialogHeader>
 
         {/* Tab Selector */}
-        <div className="px-6 py-2 border-b border-[var(--border)] bg-[var(--panel-muted)] flex items-center gap-2 text-xs">
+        <div role="group" aria-label="Golden Gate task" className="px-6 py-2 border-b border-[var(--border)] bg-[var(--panel-muted)] flex items-center gap-2 text-xs">
           <button
+            aria-pressed={activeTab === "assembly"}
             onClick={() => setActiveTab("assembly")}
             className={"px-3 py-1 rounded font-medium transition-colors cursor-pointer " + (activeTab === "assembly" ? "bg-[var(--panel)] shadow-sm text-[var(--accent)] font-semibold" : "text-[var(--text-muted)] hover:text-[var(--text)]")}
           >
             Multi-Part Assembly ({parts.length} parts)
           </button>
           <button
+            aria-pressed={activeTab === "domestication"}
             onClick={() => setActiveTab("domestication")}
             className={"px-3 py-1 rounded font-medium transition-colors cursor-pointer " + (activeTab === "domestication" ? "bg-[var(--panel)] shadow-sm text-[var(--accent)] font-semibold" : "text-[var(--text-muted)] hover:text-[var(--text)]")}
           >

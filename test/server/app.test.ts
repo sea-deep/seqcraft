@@ -59,4 +59,21 @@ describe('SeqCraft API privacy boundary', () => {
       .expect(400);
     expect(response.body.error).toBe('INVALID_INPUT');
   });
+
+  it('deletes every synced metadata project for only the requested account', async () => {
+    const projects = new InMemoryProjectRepository();
+    const input = {
+      name: 'Workspace',
+      documents: [],
+      activeDocumentId: null,
+      preferences: { theme: 'system' as const, activeView: 'sequence' as const },
+    };
+    await projects.upsert('user-1', 'project-1', input);
+    await projects.upsert('user-1', 'project-2', input);
+    await projects.upsert('user-2', 'project-3', input);
+
+    expect(await projects.deleteAll('user-1')).toBe(2);
+    expect(await projects.list('user-1')).toEqual([]);
+    expect(await projects.list('user-2')).toHaveLength(1);
+  });
 });

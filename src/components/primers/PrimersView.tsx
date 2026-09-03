@@ -78,7 +78,20 @@ export function PrimersView({ document }: { document: SequenceDocument }) {
           const properties = analyzePrimerProperties(primer.sequence);
           const bindings = analyzePrimerBindings(getMemorySequence(document).raw, document.topology, primer);
           return (
-            <tr key={primer.id} onClick={() => { if (bindings[0]) setSelection(document.id, bindings[0].start0, bindings[0].end0Exclusive); selectPrimer(primer.id); }} className={`cursor-pointer border-b border-[var(--border)] hover:bg-[var(--panel-muted)] ${selectedPrimerId === primer.id ? 'bg-[var(--accent-soft)]' : ''}`}>
+            <tr
+              key={primer.id}
+              tabIndex={0}
+              aria-selected={selectedPrimerId === primer.id}
+              onClick={() => { if (bindings[0]) setSelection(document.id, bindings[0].start0, bindings[0].end0Exclusive); selectPrimer(primer.id); }}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  if (bindings[0]) setSelection(document.id, bindings[0].start0, bindings[0].end0Exclusive);
+                  selectPrimer(primer.id);
+                }
+              }}
+              className={`cursor-pointer border-b border-[var(--border)] outline-none hover:bg-[var(--panel-muted)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)] ${selectedPrimerId === primer.id ? 'bg-[var(--accent-soft)]' : ''}`}
+            >
               <td className="px-3 py-2 font-medium">{primer.name}</td><td className="max-w-[260px] truncate px-3 py-2 font-mono" title={primer.sequence}>{primer.sequence}</td><td className="px-3 py-2 font-mono">{properties.length}</td><td className="px-3 py-2">{properties.gcPercent.toFixed(1)}%</td><td className="px-3 py-2">{properties.meltingTemperature.toFixed(1)}°C</td><td className="px-3 py-2">{bindings.length}</td>
               <td className="px-2"><div className="flex"><button aria-label={`Edit ${primer.name}`} onClick={event => { event.stopPropagation(); setEditingPrimerId(primer.id); }} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text)]"><Edit3 size={14} /></button><button aria-label={`Delete ${primer.name}`} onClick={event => { event.stopPropagation(); if (window.confirm(`Delete primer “${primer.name}”?`)) deletePrimer(document.id, primer.id); }} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)]"><Trash2 size={14} /></button></div></td>
             </tr>

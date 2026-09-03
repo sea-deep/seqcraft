@@ -2,10 +2,10 @@ import React from 'react';
 import { BookOpen, FileUp, Download, Eye, TestTube, Cpu, Code2, Terminal, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 
-export function DocsDialog({ children, open, onOpenChange }: { children?: React.ReactNode, open?: boolean, onOpenChange?: (open: boolean) => void }) {
+export function DocsDialog({ children, open, onOpenChange }: { children?: React.ReactElement, open?: boolean, onOpenChange?: (open: boolean) => void }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {children && <DialogTrigger>{children}</DialogTrigger>}
+      {children && <DialogTrigger render={children} />}
       <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="px-6 py-4 border-b border-[var(--border)] shrink-0 bg-[var(--panel)]">
           <DialogTitle className="flex items-center gap-2">
@@ -25,18 +25,18 @@ export function DocsDialog({ children, open, onOpenChange }: { children?: React.
 
             {/* Getting Started */}
             <section className="space-y-3">
-              <h2 className="text-[14px] font-semibold text-[var(--text)] border-b border-[var(--border)] pb-1.5 flex items-center gap-2">
+              <h3 className="text-[14px] font-semibold text-[var(--text)] border-b border-[var(--border)] pb-1.5 flex items-center gap-2">
                 <FileUp size={14} className="text-[var(--accent)]" /> Data Management
-              </h2>
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="border border-[var(--border)] rounded-md p-3 bg-[var(--panel)]">
-                  <h3 className="font-semibold mb-1 text-[13px]">Importing</h3>
+                  <h4 className="font-semibold mb-1 text-[13px]">Importing</h4>
                   <p className="text-[12px] text-[var(--text-muted)]">
                     Import sequences using the button in the Project sidebar. We support raw DNA sequences, standard FASTA (.fasta), and fully annotated GenBank (.gb, .gbk) files.
                   </p>
                 </div>
                 <div className="border border-[var(--border)] rounded-md p-3 bg-[var(--panel)]">
-                  <h3 className="font-semibold mb-1 text-[13px] flex items-center gap-1.5">Exporting <Download size={12}/></h3>
+                  <h4 className="font-semibold mb-1 text-[13px] flex items-center gap-1.5">Exporting <Download size={12}/></h4>
                   <p className="text-[12px] text-[var(--text-muted)]">
                     Click Export in the top right to download your sequence. Choose `.seqcraft` to losslessly save all your annotations, history, and metadata.
                   </p>
@@ -46,9 +46,9 @@ export function DocsDialog({ children, open, onOpenChange }: { children?: React.
 
             {/* Views */}
             <section className="space-y-3">
-              <h2 className="text-[14px] font-semibold text-[var(--text)] border-b border-[var(--border)] pb-1.5 flex items-center gap-2">
+              <h3 className="text-[14px] font-semibold text-[var(--text)] border-b border-[var(--border)] pb-1.5 flex items-center gap-2">
                 <Eye size={14} className="text-[var(--accent)]" /> Visualization & Tools
-              </h2>
+              </h3>
               <ul className="space-y-3 text-[12px] text-[var(--text-muted)] pl-1">
                 <li><strong className="text-[var(--text)] block mb-0.5">Sequence View:</strong> The primary linear view of your DNA. Features (genes, promoters) and translations (ORFs) are mapped directly onto the bases.</li>
                 <li><strong className="text-[var(--text)] block mb-0.5">Map View:</strong> Circular molecules open in a deterministic 2D map for coordinate work. Switch to the secondary 3D view when spatial exploration is useful.</li>
@@ -60,20 +60,20 @@ export function DocsDialog({ children, open, onOpenChange }: { children?: React.
 
             {/* Advanced Workflows */}
             <section className="space-y-3">
-              <h2 className="text-[14px] font-semibold text-[var(--text)] border-b border-[var(--border)] pb-1.5 flex items-center gap-2">
+              <h3 className="text-[14px] font-semibold text-[var(--text)] border-b border-[var(--border)] pb-1.5 flex items-center gap-2">
                 <TestTube size={14} className="text-[var(--accent)]" /> Restriction Cloning
-              </h2>
+              </h3>
               <p className="text-[12px] text-[var(--text-muted)] leading-relaxed pl-1">
-                Access the Cloning Planner via <code className="bg-[var(--panel-muted)] px-1 py-0.5 rounded text-[11px] font-mono text-[var(--text)]">Tools &rarr; Restriction Cloning</code>. 
+                Access the Cloning Planner via <code className="bg-[var(--panel-muted)] px-1 py-0.5 rounded text-[11px] font-mono text-[var(--text)]">Workflows &rarr; Restriction Cloning</code>.
                 SeqCraft will guide you through selecting a Vector and Insert, picking restriction sites, analyzing sticky-end compatibility, and generating the recombinant construct.
               </p>
             </section>
 
             {/* AI Integration */}
             <section className="space-y-3">
-              <h2 className="text-[14px] font-semibold text-[var(--text)] border-b border-[var(--border)] pb-1.5 flex items-center gap-2">
+              <h3 className="text-[14px] font-semibold text-[var(--text)] border-b border-[var(--border)] pb-1.5 flex items-center gap-2">
                 <Cpu size={14} className="text-[var(--accent)]" /> WebMCP Agent Integration
-              </h2>
+              </h3>
               <p className="text-[12px] text-[var(--text-muted)] leading-relaxed pl-1">
                 SeqCraft fully integrates with WebMCP (Model Context Protocol). If you are using SeqCraft inside an AI agent environment (like Claude or Gemini), the agent can natively interact with your sequences. It can search for ORFs, analyze restriction sites, propose annotations, and even draft cloning plans for you. 
               </p>
@@ -87,9 +87,9 @@ export function DocsDialog({ children, open, onOpenChange }: { children?: React.
             {/* Scientific Engine */}
             <section className="space-y-3">
               <div className="flex items-center justify-between border-b border-[var(--border)] pb-1.5">
-                <h2 className="text-[14px] font-semibold text-[var(--text)] flex items-center gap-2">
+                <h3 className="text-[14px] font-semibold text-[var(--text)] flex items-center gap-2">
                   <Code2 size={14} className="text-[var(--accent)]" /> Powered by nucleotide-sequence
-                </h2>
+                </h3>
                 <a 
                   href="https://www.npmjs.com/package/nucleotide-sequence" 
                   target="_blank" 

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, Dna, LockKeyhole, ShieldCheck } from 'lucide-react';
-import { authClient, loadPlatformConfig, type PlatformConfig } from '../platform/client';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Check, LockKeyhole, ShieldCheck } from 'lucide-react';
+import { SeqCraftLogo } from '../components/ui/SeqCraftLogo';
+import { authClient, buildAuthCallbackUrl, fetchSession, loadPlatformConfig, saveToken, type PlatformConfig } from '../platform/client';
 
 export function AuthPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [platform, setPlatform] = useState<PlatformConfig | null>(null);
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
   const [email, setEmail] = useState('');
@@ -15,8 +17,11 @@ export function AuthPage() {
   useEffect(() => {
     const controller = new AbortController();
     void loadPlatformConfig(controller.signal).then(setPlatform);
+    void fetchSession(controller.signal).then(user => {
+      if (user && !controller.signal.aborted) navigate('/dashboard', { replace: true });
+    });
 
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(location.search || window.location.search);
     const err = params.get('error') || params.get('error_description');
     if (err) {
       if (err === 'state_mismatch') {
@@ -27,7 +32,7 @@ export function AuthPage() {
     }
 
     return () => controller.abort();
-  }, []);
+  }, [location.search, navigate]);
 
   const authEnabled = platform?.auth.enabled === true;
 
@@ -36,32 +41,44 @@ export function AuthPage() {
     if (!authEnabled) return;
     setIsLoading(true);
     setError(null);
-    const callbackURL = `${window.location.origin}/dashboard`;
-    const result = mode === 'sign-in'
-      ? await authClient.signIn.email({ email, password, callbackURL })
-      : await authClient.signUp.email({ email, password, name: email.split('@')[0] || 'SeqCraft user', callbackURL });
-    setIsLoading(false);
-    if (result.error) {
-      setError(result.error.message ?? 'Authentication failed. Please try again.');
-      return;
+    const callbackURL = buildAuthCallbackUrl(window.location.origin, '/dashboard');
+    try {
+      const result = mode === 'sign-in'
+        ? await authClient.signIn.email({ email, password, callbackURL })
+        : await authClient.signUp.email({ email, password, name: email.split('@')[0] || 'SeqCraft user', callbackURL });
+      if (result.error) {
+        setError(result.error.message ?? 'Authentication failed. Please try again.');
+        return;
+      }
+      const token = (result.data as { token?: string } | null)?.token;
+      if (token) saveToken(token);
+      navigate('/dashboard', { replace: true });
+    } catch {
+      setError('Unable to reach the authentication service. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    navigate('/dashboard');
   }
 
   async function handleGoogleAuth() {
     if (!platform?.auth.googleEnabled) return;
     setIsLoading(true);
     setError(null);
-    const callbackURL = `${window.location.origin}/dashboard`;
-    const errorCallbackURL = `${window.location.origin}/auth`;
-    const result = await authClient.signIn.social({ 
-      provider: 'google', 
-      callbackURL,
-      errorCallbackURL
-    });
-    if (result?.error) {
+    const callbackURL = buildAuthCallbackUrl(window.location.origin, '/dashboard');
+    const errorCallbackURL = buildAuthCallbackUrl(window.location.origin, '/auth');
+    try {
+      const result = await authClient.signIn.social({
+        provider: 'google',
+        callbackURL,
+        errorCallbackURL
+      });
+      if (result?.error) {
+        setError(result.error.message ?? 'Google sign-in failed.');
+      }
+    } catch {
+      setError('Unable to start Google sign-in. Please try again.');
+    } finally {
       setIsLoading(false);
-      setError(result.error.message ?? 'Google sign-in failed.');
     }
   }
 
@@ -69,13 +86,13 @@ export function AuthPage() {
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] grid lg:grid-cols-[minmax(0,1fr)_minmax(440px,0.72fr)]">
       <section className="scientific-grid hidden lg:flex flex-col justify-between border-r border-[var(--border)] p-12 xl:p-16">
         <Link to="/" className="inline-flex items-center gap-2 text-[var(--accent)] font-semibold text-lg w-fit">
-          <Dna size={22} /> SeqCraft
+          <SeqCraftLogo size={24} /> SeqCraft
         </Link>
         <div className="max-w-xl">
           <p className="font-mono text-[12px] tracking-[0.16em] uppercase text-[var(--accent)] mb-5">Local scientific data plane</p>
-          <h1 className="text-4xl xl:text-5xl font-semibold tracking-[-0.035em] leading-[1.08] mb-6">
+          <h2 className="text-4xl xl:text-5xl font-semibold tracking-[-0.035em] leading-[1.08] mb-6">
             Your sequence stays here. Your workspace travels with you.
-          </h1>
+          </h2>
           <p className="text-[16px] leading-7 text-[var(--text-secondary)] max-w-lg">
             Accounts sync preferences and sequence-free project metadata. Raw bases, files, selections, and derived constructs remain in browser storage.
           </p>
@@ -94,7 +111,7 @@ export function AuthPage() {
           <div className="flex items-center gap-3 mb-7">
             <div className="size-10 rounded-md bg-[var(--accent-soft)] text-[var(--accent)] grid place-items-center"><LockKeyhole size={19} /></div>
             <div>
-              <h2 className="text-xl font-semibold tracking-[-0.015em]">{mode === 'sign-in' ? 'Sign in to SeqCraft' : 'Create your account'}</h2>
+              <h1 className="text-xl font-semibold tracking-[-0.015em]">{mode === 'sign-in' ? 'Sign in to SeqCraft' : 'Create your account'}</h1>
               <p className="text-[13px] text-[var(--text-muted)]">Cloud identity, local sequences.</p>
             </div>
           </div>

@@ -3,7 +3,7 @@ import type { SequenceDocument } from '../domain/document';
 import type { WorkspaceView } from '../state/workspace-store';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { useThemeStore } from '../state/theme-store';
-import { authClient, getApiUrl, loadPlatformConfig } from './client';
+import { consumeAuthRedirectToken, fetchSession, getApiUrl, loadToken, type SessionUser } from './client';
 
 export type CloudSyncStatus = 'checking' | 'guest' | 'syncing' | 'synced' | 'error';
 
@@ -44,7 +44,7 @@ export function toProjectMetadataInput(
 }
 
 export async function syncWorkspaceMetadata(input: ProjectMetadataInput, signal?: AbortSignal) {
-  const token = typeof window !== 'undefined' ? window.localStorage.getItem('better-auth_token') : null;
+  const token = loadToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -61,7 +61,7 @@ export async function syncWorkspaceMetadata(input: ProjectMetadataInput, signal?
 
 export function useWorkspaceCloudSync() {
   const [status, setStatus] = useState<CloudSyncStatus>('checking');
-  const [accountName, setAccountName] = useState<string | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -69,28 +69,19 @@ export function useWorkspaceCloudSync() {
     let syncTimer: ReturnType<typeof setTimeout> | undefined;
 
     void (async () => {
-      if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        const urlToken = params.get('token');
-        if (urlToken) {
-          window.localStorage.setItem('better-auth_token', urlToken);
-          params.delete('token');
-          const newSearch = params.toString() ? `?${params.toString()}` : '';
-          window.history.replaceState({}, '', `${window.location.pathname}${newSearch}`);
-        }
-      }
+      // Capture the one-time OAuth redirect handoff before validating the session.
+      // Both the legacy query-string form and the fragment form are accepted.
+      consumeAuthRedirectToken();
 
-      const platform = await loadPlatformConfig(controller.signal);
-      if (!platform.auth.enabled || controller.signal.aborted) {
+      // fetchSession() uses GET /api/auth/get-session with Authorization: Bearer <token>.
+      // This is the only reliable method for cross-origin session validation —
+      // authClient.getSession() relies on cookies which are blocked cross-origin.
+      const user = await fetchSession(controller.signal);
+      if (!user || controller.signal.aborted) {
         setStatus('guest');
         return;
       }
-      const session = await authClient.getSession();
-      if (!session.data?.user || controller.signal.aborted) {
-        setStatus('guest');
-        return;
-      }
-      setAccountName(session.data.user.name || session.data.user.email);
+      setUser(user);
 
       const scheduleSync = () => {
         if (syncTimer) clearTimeout(syncTimer);
@@ -119,5 +110,5 @@ export function useWorkspaceCloudSync() {
     };
   }, []);
 
-  return { status, accountName };
+  return { status, user, accountName: user?.name || user?.email || null };
 }

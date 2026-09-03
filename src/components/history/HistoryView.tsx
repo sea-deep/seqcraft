@@ -13,7 +13,7 @@ export function HistoryView({ document }: { document: SequenceDocument }) {
   return (
     <div className="h-full overflow-auto bg-[var(--bg)] font-ui text-[12px]">
       <div className="border-b border-[var(--border)] bg-[var(--panel)] px-3 py-3">
-        <div className="font-semibold">Document history</div>
+        <h2 className="font-semibold">Document history</h2>
         <div className="text-[11px] text-[var(--text-muted)]">Local changes made during this browser session · version {document.version || 1}</div>
       </div>
       <div className="divide-y divide-[var(--border)]">

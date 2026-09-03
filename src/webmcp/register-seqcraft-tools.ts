@@ -1080,7 +1080,7 @@ export const seqcraftScreenBiosecurityTool = {
   annotations: { readOnlyHint: true, untrustedContentHint: true },
   execute: wrapToolExecute(
     'seqcraft_screen_biosecurity',
-    () => 'Screen DNA construct for biosecurity compliance',
+    () => 'Run local biosecurity motif pre-screen',
     async () => {
       const doc = getActiveDocument();
       if (!doc) return createError('NO_ACTIVE_DOCUMENT', 'No active DNA document is open.');

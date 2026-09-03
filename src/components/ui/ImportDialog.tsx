@@ -4,7 +4,7 @@ import { handleImportDocument } from '../../workflows/import-document';
 import { importLargeFasta, type ImportProgress } from '../../workflows/import-large-fasta';
 import { FileUp, FileText, X } from 'lucide-react';
 
-export function ImportDialog({ children, open: controlledOpen, onOpenChange }: { children?: React.ReactNode; open?: boolean; onOpenChange?: (open: boolean) => void }) {
+export function ImportDialog({ children, open: controlledOpen, onOpenChange }: { children?: React.ReactElement; open?: boolean; onOpenChange?: (open: boolean) => void }) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen;
   const setOpen = onOpenChange || setUncontrolledOpen;
@@ -82,13 +82,7 @@ export function ImportDialog({ children, open: controlledOpen, onOpenChange }: {
       if (!o && importing) return; // Prevent closing while importing
       setOpen(o);
     }}>
-      {children && (
-        <DialogTrigger>
-          <div className="w-full text-left outline-none block">
-            {children}
-          </div>
-        </DialogTrigger>
-      )}
+      {children && <DialogTrigger render={children} />}
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Import Sequence</DialogTitle>

@@ -43,8 +43,18 @@ export function AppShell() {
   });
 
   // Keyboard Shortcuts
-  useHotkeys('alt+b', (e) => { e.preventDefault(); setSidebarOpen(!sidebarOpen); }, [sidebarOpen]);
-  useHotkeys('alt+i', (e) => { e.preventDefault(); setInspectorOpen(!inspectorOpen); }, [inspectorOpen]);
+  useHotkeys('alt+b', (e) => {
+    e.preventDefault();
+    const next = !sidebarOpen;
+    if (next && window.innerWidth < 760) setInspectorOpen(false);
+    setSidebarOpen(next);
+  }, [inspectorOpen, sidebarOpen]);
+  useHotkeys('alt+i', (e) => {
+    e.preventDefault();
+    const next = !inspectorOpen;
+    if (next && window.innerWidth < 760) setSidebarOpen(false);
+    setInspectorOpen(next);
+  }, [inspectorOpen, sidebarOpen]);
   useHotkeys('alt+w', (e) => { 
     e.preventDefault(); 
     if (activeDocumentId) closeDocumentTab(activeDocumentId);
@@ -55,6 +65,25 @@ export function AppShell() {
   useHotkeys('3', () => setActiveView('features'));
   useHotkeys('4', () => setActiveView('primers'));
   useHotkeys('5', () => setActiveView('enzymes'));
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+
+    const compact = window.matchMedia('(max-width: 999px)');
+    const narrow = window.matchMedia('(max-width: 759px)');
+    const enforceResponsivePanels = () => {
+      if (compact.matches) setInspectorOpen(false);
+      if (narrow.matches) setSidebarOpen(false);
+    };
+
+    enforceResponsivePanels();
+    compact.addEventListener('change', enforceResponsivePanels);
+    narrow.addEventListener('change', enforceResponsivePanels);
+    return () => {
+      compact.removeEventListener('change', enforceResponsivePanels);
+      narrow.removeEventListener('change', enforceResponsivePanels);
+    };
+  }, [setInspectorOpen, setSidebarOpen]);
 
   useEffect(() => {
     applyThemePreference(themePreference);
@@ -106,6 +135,7 @@ export function AppShell() {
                   <button 
                     className="p-1 hover:bg-[var(--panel)] rounded text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
                     onClick={() => setInspectorOpen(false)}
+                    aria-label="Close inspector"
                   >
                     <X size={14} />
                   </button>

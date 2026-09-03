@@ -51,7 +51,19 @@ export function FeaturesView({ document }: { document: SequenceDocument }) {
             const end0Exclusive = Math.max(...feature.segments.map(segment => segment.end0Exclusive));
             const selected = selectedFeatureId === feature.id;
             return (
-              <tr key={feature.id} onClick={() => selectDocumentFeature(document.id, feature.id)} className={`cursor-pointer border-b border-[var(--border)] hover:bg-[var(--panel-muted)] ${selected ? 'bg-[var(--accent-soft)]' : ''}`}>
+              <tr
+                key={feature.id}
+                tabIndex={0}
+                aria-selected={selected}
+                onClick={() => selectDocumentFeature(document.id, feature.id)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    selectDocumentFeature(document.id, feature.id);
+                  }
+                }}
+                className={`cursor-pointer border-b border-[var(--border)] outline-none hover:bg-[var(--panel-muted)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)] ${selected ? 'bg-[var(--accent-soft)]' : ''}`}
+              >
                 <td className="px-3 py-2 font-medium"><span className="mr-2 inline-block h-2 w-2 rounded-sm" style={{ backgroundColor: getFeatureColor(feature.type) }} />{feature.name}</td>
                 <td className="px-3 py-2 text-[var(--text-secondary)]">{feature.type}</td>
                 <td className="px-3 py-2 font-mono">{start0 + 1}–{end0Exclusive}</td>

@@ -98,7 +98,7 @@ export function ProjectSidebar() {
 
       <div className="shrink-0 border-t border-[var(--border)] p-3">
         <ImportDialog>
-          <div className="flex h-7 w-full cursor-pointer items-center justify-center gap-2 rounded border border-[var(--border)] bg-[var(--bg)] text-[12px] text-[var(--text)] transition-colors hover:bg-[var(--panel)]"><FileUp size={14} />Import sequence</div>
+          <button type="button" className="flex h-7 w-full cursor-pointer items-center justify-center gap-2 rounded border border-[var(--border)] bg-[var(--bg)] text-[12px] text-[var(--text)] transition-colors hover:bg-[var(--panel)]"><FileUp size={14} />Import sequence</button>
         </ImportDialog>
       </div>
     </div>

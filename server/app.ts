@@ -1,5 +1,6 @@
 import cors from 'cors';
 import express, { type ErrorRequestHandler, type Request, type RequestHandler } from 'express';
+import type { ServerResponse } from 'node:http';
 import path from 'node:path';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
@@ -20,6 +21,45 @@ type AppDependencies = {
 
 const requestUserId = Symbol('requestUserId');
 type AuthenticatedRequest = Request & { [requestUserId]?: string };
+
+export function appendAuthTokenToRedirect(
+  location: string,
+  sessionToken: string,
+  baseOrigin: string,
+  allowedOrigins: ReadonlySet<string>,
+): string {
+  try {
+    const parsed = new URL(location, location.startsWith('/') ? baseOrigin : undefined);
+    if (!allowedOrigins.has(parsed.origin)) return location;
+
+    const rawHash = parsed.hash.startsWith('#') ? parsed.hash.slice(1) : parsed.hash;
+    const separatorIndex = rawHash.indexOf('?');
+    const route = separatorIndex >= 0 ? rawHash.slice(0, separatorIndex) : rawHash || '/dashboard';
+    const hashParams = new URLSearchParams(separatorIndex >= 0 ? rawHash.slice(separatorIndex + 1) : '');
+    hashParams.set('auth_token', sessionToken);
+    parsed.hash = `${route}?${hashParams.toString()}`;
+
+    return location.startsWith('/')
+      ? `${parsed.pathname}${parsed.search}${parsed.hash}`
+      : parsed.toString();
+  } catch {
+    return location;
+  }
+}
+
+type ResponseHeaderValue = Parameters<ServerResponse['setHeader']>[1];
+
+function readResponseHeaderValues(value: ResponseHeaderValue): string[] {
+  return Array.isArray(value) ? value.map(String) : [String(value)];
+}
+
+function readSessionTokenCookie(value: ResponseHeaderValue): string | undefined {
+  for (const cookie of readResponseHeaderValues(value)) {
+    const match = cookie.match(/(?:better-auth\.|__Secure-better-auth\.)session_token=([^;]+)/);
+    if (match?.[1]) return match[1];
+  }
+  return undefined;
+}
 
 export function createApp({ config, projects, auth, resolveUserId, staticDir }: AppDependencies) {
   const app = express();
@@ -62,6 +102,7 @@ export function createApp({ config, projects, auth, resolveUserId, staticDir }: 
       }
     },
     credentials: true,
+    exposedHeaders: ['set-auth-token'],
     methods: ['GET', 'PUT', 'DELETE', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'Origin', 'Accept', 'X-Requested-With'],
   }));
@@ -71,35 +112,33 @@ export function createApp({ config, projects, auth, resolveUserId, staticDir }: 
     const authHandler = toNodeHandler(auth);
     app.all('/api/auth/{*path}', rateLimit({ windowMs: 10 * 60_000, limit: 60 }), (req, res, next) => {
       const originalSetHeader = res.setHeader.bind(res);
-      const appendToken = (loc: string): string => {
-        try {
-          const cookieHeader = res.getHeader('set-cookie');
-          let sessionToken: string | undefined;
-          const cookies = Array.isArray(cookieHeader) ? cookieHeader : (cookieHeader ? [String(cookieHeader)] : []);
-          for (const c of cookies) {
-            const match = c.match(/(?:better-auth\.|__Secure-better-auth\.)session_token=([^;]+)/);
-            if (match) {
-              sessionToken = match[1];
-              break;
-            }
-          }
-          if (sessionToken && (loc.includes('onrender.com') || loc.startsWith('/'))) {
-            const baseOrigin = loc.startsWith('/') ? config.APP_ORIGIN : undefined;
-            const parsed = new URL(loc, baseOrigin);
-            parsed.searchParams.set('token', sessionToken);
-            return loc.startsWith('/') ? `${parsed.pathname}${parsed.search}` : parsed.toString();
-          }
-        } catch {
-          // Keep original location on error
-        }
-        return loc;
+      let redirectLocation: string | undefined;
+      let sessionToken: string | undefined;
+
+      const updateRedirect = () => {
+        if (!redirectLocation || !sessionToken || res.headersSent) return;
+        const location = appendAuthTokenToRedirect(
+          redirectLocation,
+          sessionToken,
+          config.APP_ORIGIN,
+          allowedOrigins,
+        );
+        originalSetHeader('location', location);
       };
 
-      res.setHeader = function (name: string, value: any) {
-        if (name.toLowerCase() === 'location' && typeof value === 'string') {
-          value = appendToken(value);
+      res.setHeader = function (name: string, value: ResponseHeaderValue) {
+        const normalizedName = name.toLowerCase();
+        if (normalizedName === 'location' && typeof value === 'string') {
+          redirectLocation = value;
+        } else if (normalizedName === 'set-auth-token') {
+          sessionToken = readResponseHeaderValues(value)[0] || sessionToken;
+        } else if (normalizedName === 'set-cookie' && !sessionToken) {
+          sessionToken = readSessionTokenCookie(value) || sessionToken;
         }
-        return originalSetHeader(name, value);
+
+        const result = originalSetHeader(name, value);
+        updateRedirect();
+        return result;
       };
 
       void authHandler(req, res).catch(next);

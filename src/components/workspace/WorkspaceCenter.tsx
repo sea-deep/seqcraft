@@ -9,6 +9,7 @@ import { CompareView } from '../compare/CompareView';
 import { ImportDialog } from '../ui/ImportDialog';
 import { DocumentTabs } from '../shell/DocumentTabs';
 import { getDocumentCapabilities } from '../../domain/document';
+import { loadDemoWorkspace } from '../../data/demo-workspace';
 
 export function WorkspaceCenter() {
   const activeDocumentId = useWorkspaceStore(s => s.activeDocumentId);
@@ -23,13 +24,18 @@ export function WorkspaceCenter() {
       <div className="absolute inset-0 flex flex-col bg-[var(--bg)]">
         <DocumentTabs />
         <div className="flex-1 flex items-center justify-center text-center text-[var(--text-muted)]">
-          <div>
+          <div className="px-4">
             <p className="mb-4 text-[13px]">No sequence loaded</p>
-            <ImportDialog>
-              <div className="cursor-pointer bg-[var(--panel)] border border-[var(--border)] hover:bg-[var(--panel-muted)] text-[var(--text)] px-4 py-2 rounded-md text-[12px] font-medium inline-block">
-                Import FASTA/GenBank
-              </div>
-            </ImportDialog>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <ImportDialog>
+                <button type="button" className="cursor-pointer bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] px-4 py-2 rounded-md text-[12px] font-semibold">
+                  Import sequence
+                </button>
+              </ImportDialog>
+              <button type="button" onClick={loadDemoWorkspace} className="cursor-pointer bg-[var(--panel)] border border-[var(--border)] hover:bg-[var(--panel-muted)] text-[var(--text)] px-4 py-2 rounded-md text-[12px] font-medium">
+                Open demo workspace
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -56,15 +62,20 @@ export function WorkspaceCenter() {
   return (
     <div className="absolute inset-0 flex flex-col bg-[var(--bg)]">
       <DocumentTabs />
+      <h1 className="sr-only">{activeDoc.name} — {views.find(view => view.id === activeView)?.label}</h1>
       
       {/* View Tabs */}
       <div className="h-[36px] flex-none border-b border-[var(--border)] bg-[var(--panel)] flex items-end px-4 overflow-x-auto scrollbar-none">
-        <div className="flex gap-2">
+        <div className="flex gap-2" role="tablist" aria-label="Sequence workspace views">
           {views.map(view => {
             const isActive = activeView === view.id;
             return (
               <button
                 key={view.id}
+                id={`workspace-tab-${view.id}`}
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`workspace-panel-${view.id}`}
                 onClick={() => !unsupported(view.id) && setActiveView(view.id)}
                 disabled={unsupported(view.id)}
                 title={unsupported(view.id) ? 'Unavailable for chunked large-reference documents' : undefined}
@@ -84,7 +95,7 @@ export function WorkspaceCenter() {
       </div>
 
       {/* Workspace Content */}
-      <div className="flex-1 min-h-0 min-w-0 relative bg-[var(--bg)]">
+      <div id={`workspace-panel-${activeView}`} role="tabpanel" aria-labelledby={`workspace-tab-${activeView}`} className="flex-1 min-h-0 min-w-0 relative bg-[var(--bg)]">
         {activeView === 'sequence' && (
           <SequenceViewer document={activeDoc} />
         )}

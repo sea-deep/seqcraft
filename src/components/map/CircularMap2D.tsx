@@ -233,7 +233,7 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
             const radius = backboneRadius - 22 - lane * 18;
             const selected = selectedFeatureId === feature.id;
             const ribbonWidth = selected ? 14 : 10;
-            return <g key={feature.id} role="button" tabIndex={0} onClick={() => selectDocumentFeature(document.id, feature.id)} className="cursor-pointer" aria-label={`${feature.name}, ${feature.type}, ${feature.strand === 1 ? 'forward' : 'reverse'} strand`}>
+            return <g key={feature.id} role="button" tabIndex={0} onClick={() => selectDocumentFeature(document.id, feature.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectDocumentFeature(document.id, feature.id); } }} className="cursor-pointer" aria-label={`${feature.name}, ${feature.type}, ${feature.strand === 1 ? 'forward' : 'reverse'} strand`}>
               {feature.segments.map((_segment, index) => {
                 const geometry = createDirectionalCircularArcGeometry(feature, index, document.length, radius, ribbonWidth);
                 return <g key={index} opacity={selected ? 1 : 0.86}><path d={circularArcPath(geometry.bodyInterval, document.length, radius)} fill="none" stroke={featureColor(feature)} strokeWidth={ribbonWidth} strokeLinecap="butt" />{geometry.arrowPoints && <polygon points={geometry.arrowPoints.map(point => `${point.x},${point.y}`).join(' ')} fill={featureColor(feature)} />}</g>;
@@ -271,7 +271,11 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
             return (
               <g 
                 key={`${primer.id}:${binding.start0}:${binding.orientation}`} 
+                role="button"
+                tabIndex={0}
+                aria-label={`${primer.name}, ${binding.orientation} primer`}
                 onClick={() => { setSelection(document.id, binding.start0, binding.end0Exclusive); selectPrimer(primer.id); }} 
+                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelection(document.id, binding.start0, binding.end0Exclusive); selectPrimer(primer.id); } }}
                 className="cursor-pointer"
               >
                 <title>{`${primer.name} · ${binding.orientation} primer`}</title>
@@ -329,7 +333,7 @@ export function CircularMap2D({ document }: { document: SequenceDocument }) {
             const inner = circularPoint(cluster.coordinate0, document.length, backboneRadius + 6);
             const outer = circularPoint(cluster.coordinate0, document.length, backboneRadius + 16);
             const title = cluster.sites.map(site => `${site.enzymeName} ${site.forwardCut0 + 1}`).join(' · ');
-            return <g key={cluster.sites.map(site => site.id).join(':')} className="cursor-pointer" onClick={() => selectRestrictionSite(representative.id)}><title>{title}</title><line x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} stroke={selected ? 'var(--accent)' : 'var(--text-muted)'} strokeWidth={selected ? 2.5 : 1.5} />{cluster.sites.length > 1 ? <><circle cx={outer.x} cy={outer.y} r="7" fill="var(--panel)" stroke={selected ? 'var(--accent)' : 'var(--border-strong)'} /><text x={outer.x} y={outer.y} textAnchor="middle" dominantBaseline="middle" className="pointer-events-none fill-[var(--text-secondary)] font-mono text-[11px]">{cluster.sites.length}</text></> : <circle cx={outer.x} cy={outer.y} r="2.5" fill={selected ? 'var(--accent)' : 'var(--text-muted)'} />}</g>;
+            return <g key={cluster.sites.map(site => site.id).join(':')} role="button" tabIndex={0} aria-label={`Show restriction site ${title}`} className="cursor-pointer" onClick={() => selectRestrictionSite(representative.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectRestrictionSite(representative.id); } }}><title>{title}</title><line x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} stroke={selected ? 'var(--accent)' : 'var(--text-muted)'} strokeWidth={selected ? 2.5 : 1.5} />{cluster.sites.length > 1 ? <><circle cx={outer.x} cy={outer.y} r="7" fill="var(--panel)" stroke={selected ? 'var(--accent)' : 'var(--border-strong)'} /><text x={outer.x} y={outer.y} textAnchor="middle" dominantBaseline="middle" className="pointer-events-none fill-[var(--text-secondary)] font-mono text-[11px]">{cluster.sites.length}</text></> : <circle cx={outer.x} cy={outer.y} r="2.5" fill={selected ? 'var(--accent)' : 'var(--text-muted)'} />}</g>;
           })}
 
           {/* Feature Labels with localized radial leader lines */}

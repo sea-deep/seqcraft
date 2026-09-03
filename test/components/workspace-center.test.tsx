@@ -20,8 +20,9 @@ describe('WorkspaceCenter View Switching', () => {
 
   it('renders sequence viewer by default', () => {
     render(<WorkspaceCenter />);
-    expect(screen.getByText('Map')).toBeDefined();
-    expect(screen.getByText('Sequence')).toBeDefined();
+    expect(screen.getByRole('heading', { level: 1, name: 'doc1 — Sequence' })).toBeDefined();
+    expect(screen.getByRole('tab', { name: 'Map' })).toBeDefined();
+    expect(screen.getByRole('tab', { name: 'Sequence' }).getAttribute('aria-selected')).toBe('true');
   });
 
   it('switches views when tabs are clicked', () => {
@@ -33,5 +34,14 @@ describe('WorkspaceCenter View Switching', () => {
     // Click map
     fireEvent.click(screen.getByText('Map'));
     expect(useWorkspaceStore.getState().activeView).toBe('map');
+    expect(screen.getByRole('tab', { name: 'Map' }).getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('offers explicit import and demo paths when no document is loaded', () => {
+    useWorkspaceStore.setState({ documents: [], activeDocumentId: null, openDocumentIds: [] });
+    render(<WorkspaceCenter />);
+
+    expect(screen.getByRole('button', { name: 'Import sequence' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Open demo workspace' })).toBeDefined();
   });
 });

@@ -152,10 +152,10 @@ During UI phases, implement only the atomic task explicitly requested by the use
   - Directional multi-fragment scarless assembly (BsaI, BsmBI, BbsI, PaqCI, SapI) with 4nt overhang junction verification and visual error diagnostics.
   - Domestication optimizer eliminates internal recognition sites via synonymous/silent codon mutations that preserve 100% of the amino acid sequence.
   - WebMCP tools: `seqcraft_simulate_golden_gate`, `seqcraft_domesticate_sequence`.
-- **Dual-Use Select Agent Biosecurity Screener**:
+- **Local Biosecurity Motif Pre-Screen**:
   - `src/scientific/biosecurity.ts`, `BiosecurityDialog.tsx`
-  - 100% private, client-side pre-order compliance screener against HHS/USDA Select Agents (42 CFR Part 73), Australia Group Common Control List, and IGSC standards.
-  - Generates JSON compliance audit certificates for submission to commercial gene synthesis providers (Twist, IDT, GenScript).
+  - Private, client-side diagnostic comparison against 17 curated k-mer examples; explicitly not a regulatory compliance determination.
+  - Generates a JSON diagnostic report with coverage and limitation disclosures; commercial-provider and institutional screening remains required.
   - WebMCP tool: `seqcraft_screen_biosecurity`.
 - **Active In-Place Sequence Manipulation Suite**:
   - `src/scientific/sequence-editing.ts`, `SequenceMutatorDialog.tsx`, `workspace-store.ts` (`mutateDocumentSequence`).
@@ -166,6 +166,13 @@ During UI phases, implement only the atomic task explicitly requested by the use
 - **WebMCP Ecosystem**:
   - Expanded to 24 scientific and agentic tools registered via `window.document.modelContext`.
   - Verified across real browser and unit/integration test suites.
+
+## Interaction & Navigation Hardening
+- Cross-route and seven-view editor navigation verified in a real browser at desktop and 390 px widths.
+- Dashboard and editor command bars no longer overflow narrow viewports; project and inspector panels collapse at the documented breakpoints and remain mutually exclusive on narrow screens.
+- Workspace/document navigation uses semantic, stateful tabs; dashboard documents and 2D map entities are keyboard-operable with accessible names and visible focus.
+- Empty dashboard/editor states expose both import and deterministic demo-workspace paths.
+- Editor commands are separated into analysis tools and construct workflows, with confirmation for irreversible in-place sequence actions.
 
 ## Deployment Notes
 - Production deployments must serve `Origin-Agent-Cluster: ?1` and `Permissions-Policy: tools=(self)` to comply with WebMCP isolation requirements.

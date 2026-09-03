@@ -104,6 +104,8 @@ export class OPFSBackend {
   }
 
   async clearAllSequences(): Promise<void> {
+    // If OPFS is unavailable, no OPFS-backed sequence could have been stored.
+    if (!navigator.storage?.getDirectory) return;
     try {
       const root = await this.getDirectory();
       await root.removeEntry(SEQUENCE_DIRECTORY, { recursive: true });

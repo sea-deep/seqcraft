@@ -32,8 +32,10 @@ describe('MoleculeMap', () => {
 
     expect(screen.getByTestId('circular-map-2d').textContent).toBe('circular document');
     expect(screen.queryByTestId('circular-map')).toBeNull();
+    expect(screen.getByRole('button', { name: /2D map/i }).getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(screen.getByRole('button', { name: /3D view/i }));
     expect((await screen.findByTestId('circular-map')).textContent).toBe('circular document');
+    expect(screen.getByRole('button', { name: /3D view/i }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByTestId('linear-map')).toBeNull();
   });
 });

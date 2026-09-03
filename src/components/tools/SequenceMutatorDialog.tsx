@@ -116,14 +116,16 @@ export function SequenceMutatorDialog({
 
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {/* Mode Switcher Tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-[var(--panel-muted)] rounded-lg border border-[var(--border)] text-xs font-medium">
+          <div role="group" aria-label="Sequence edit mode" className="flex items-center gap-1.5 p-1 bg-[var(--panel-muted)] rounded-lg border border-[var(--border)] text-xs font-medium">
             <button
+              aria-pressed={mode === "insert"}
               onClick={() => { setMode("insert"); setErrorMsg(null); }}
               className={"flex-1 py-1.5 rounded-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer " + (mode === "insert" ? "bg-[var(--panel)] text-[var(--text)] shadow-xs font-semibold" : "text-[var(--text-muted)] hover:text-[var(--text)]")}
             >
               <PlusCircle size={14} /> Insert Bases
             </button>
             <button
+              aria-pressed={mode === "replace"}
               onClick={() => { setMode("replace"); setErrorMsg(null); }}
               className={"flex-1 py-1.5 rounded-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer " + (mode === "replace" ? "bg-[var(--panel)] text-[var(--text)] shadow-xs font-semibold" : "text-[var(--text-muted)] hover:text-[var(--text)]")}
             >
@@ -131,6 +133,7 @@ export function SequenceMutatorDialog({
             </button>
             {document.topology === "circular" && (
               <button
+                aria-pressed={mode === "rotate_origin"}
                 onClick={() => { setMode("rotate_origin"); setErrorMsg(null); }}
                 className={"flex-1 py-1.5 rounded-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer " + (mode === "rotate_origin" ? "bg-[var(--panel)] text-[var(--text)] shadow-xs font-semibold" : "text-[var(--text-muted)] hover:text-[var(--text)]")}
               >

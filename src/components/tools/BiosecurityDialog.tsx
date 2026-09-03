@@ -33,31 +33,28 @@ export function BiosecurityDialog({
     return screenBiosecurity(raw, document.topology);
   }, [document]);
 
-  const handleExportCertificate = () => {
-    const cert = {
-      seqcraftBiosecurityAudit: {
+  const handleExportReport = () => {
+    const diagnostic = {
+      seqcraftLocalBiosecurityScreen: {
         timestamp: new Date().toISOString(),
         documentName: document.name,
         sequenceLengthBp: document.length,
         topology: document.topology,
-        complianceStatus: report.status,
-        isCompliant: report.isCompliant,
+        screeningStatus: report.status,
+        hasLocalReferenceMatch: !report.isCompliant,
         matchCount: report.matchCount,
-        frameworksScreened: [
-          "US HHS / USDA Select Agent Program (42 CFR Part 73)",
-          "Australia Group Common Control List (Biological Agents & Toxins)",
-          "International Gene Synthesis Consortium (IGSC) Harmonized Protocol v2"
-        ],
+        referenceCoverage: "17 curated diagnostic k-mers associated with selected controlled-agent examples",
+        disclaimer: "This local motif pre-screen is not a regulatory compliance determination and does not replace provider or institutional screening.",
         matches: report.matches,
         recommendation: report.recommendation
       }
     };
 
-    const blob = new Blob([JSON.stringify(cert, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(diagnostic, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = window.document.createElement("a");
     link.href = url;
-    link.download = document.name + "-biosecurity-certificate.json";
+    link.download = document.name + "-biosecurity-local-screen.json";
     window.document.body.appendChild(link);
     link.click();
     window.document.body.removeChild(link);
@@ -65,7 +62,7 @@ export function BiosecurityDialog({
   };
 
   const handleCopyReport = async () => {
-    const text = "SeqCraft Biosecurity Compliance Report\n" +
+    const text = "SeqCraft Local Biosecurity Motif Pre-Screen\n" +
       "Document: " + document.name + " (" + document.length + " bp)\n" +
       "Status: " + report.status + "\n" +
       "Summary: " + report.summary + "\n" +
@@ -79,22 +76,22 @@ export function BiosecurityDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[740px] max-h-[85vh] flex flex-col p-0 overflow-hidden bg-[var(--panel)] border-[var(--border)]">
         <DialogHeader className="px-6 py-4 border-b border-[var(--border)] shrink-0 bg-[var(--bg)]">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex items-center gap-2.5">
               <div className={"w-8 h-8 rounded-lg flex items-center justify-center " + (report.isCompliant ? "bg-[var(--success)]/15 text-[var(--success)]" : "bg-[var(--danger)]/15 text-[var(--danger)]")}>
                 {report.isCompliant ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
               </div>
               <div>
                 <DialogTitle className="text-base font-semibold text-[var(--text)] flex items-center gap-2">
-                  Dual-Use & Select Agent Compliance Screener
+                  Local Biosecurity Motif Pre-Screen
                 </DialogTitle>
                 <DialogDescription className="text-xs text-[var(--text-muted)]">
-                  In-browser pre-order screening against HHS/USDA 42 CFR 73.3, Australia Group, and IGSC standards.
+                  Checks 17 curated diagnostic k-mers locally. It is not a regulatory or synthesis-provider compliance determination.
                 </DialogDescription>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 self-end sm:self-start">
               <Button
                 variant="outline"
                 size="sm"
@@ -106,10 +103,10 @@ export function BiosecurityDialog({
               </Button>
               <Button
                 size="sm"
-                onClick={handleExportCertificate}
+                onClick={handleExportReport}
                 className="h-8 px-3 text-xs gap-1.5 bg-[var(--accent)] text-[var(--accent-foreground)] font-semibold hover:bg-[var(--accent-hover)]"
               >
-                <Download size={14} /> Export Certificate
+                <Download size={14} /> Export Report
               </Button>
             </div>
           </div>
@@ -139,14 +136,12 @@ export function BiosecurityDialog({
             </div>
           </div>
 
-          {/* Screening Standards Audited */}
+          {/* Local reference coverage */}
           <div className="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--panel-muted)] text-xs space-y-2">
-            <span className="font-semibold text-[var(--text)] block">Regulatory Frameworks Evaluated:</span>
-            <ul className="list-disc pl-4 space-y-1 text-[var(--text-muted)] text-[11px]">
-              <li><strong>HHS / USDA Select Agent Program (42 CFR Part 73)</strong>: Tier 1 Filoviruses, Poxviruses, Anthrax, Botulinum.</li>
-              <li><strong>Australia Group Common Control List</strong>: Biological Agent equipment & dual-use genetic elements.</li>
-              <li><strong>IGSC Harmonized Screening Protocol v2</strong>: Commercial synthesis order screening compliance.</li>
-            </ul>
+            <span className="font-semibold text-[var(--text)] block">Local diagnostic coverage:</span>
+            <p className="text-[11px] leading-relaxed text-[var(--text-muted)]">
+              The browser compares nucleotide sequence against 17 curated k-mer examples associated with selected controlled agents and toxins. A match is a review signal; no match is not clearance. Commercial providers and institutions use broader nucleotide, translated-protein, customer, and end-use screening.
+            </p>
           </div>
 
           {/* Flagged Sequences Table if any */}

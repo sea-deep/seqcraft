@@ -1,14 +1,15 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  Dna, Plus, Search, FileUp, Circle, Minus, BookOpen, Trash2, 
+import {
+  Plus, Search, FileUp, Circle, Minus, BookOpen, Trash2,
   CheckSquare, Square, Cloud, CloudOff, RefreshCw, X, ArrowUpRight,
   Filter
 } from 'lucide-react';
+import { SeqCraftLogo } from '../components/ui/SeqCraftLogo';
+import { AccountMenu } from '../components/account/AccountMenu';
 import { useWorkspaceStore } from '../state/workspace-store';
 import { ImportDialog } from '../components/ui/ImportDialog';
 import { useWorkspaceCloudSync } from '../platform/workspace-sync';
-import { authClient } from '../platform/client';
 import { DocumentCardSkeleton } from '../components/ui/skeleton';
 import {
   Dialog,
@@ -19,6 +20,7 @@ import {
   DialogFooter,
 } from '../components/ui/dialog';
 import { Button } from '../components/ui/button';
+import { loadDemoWorkspace } from '../data/demo-workspace';
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -100,40 +102,31 @@ export function DashboardPage() {
   return (
     <div className="min-h-screen bg-[var(--bg)] flex flex-col font-sans text-[var(--text)]">
       {/* Top Navigation */}
-      <nav className="flex items-center justify-between px-6 py-3 border-b border-[var(--border)] bg-[var(--panel)]">
+      <nav className="flex items-center justify-between gap-3 px-3 sm:px-6 py-3 border-b border-[var(--border)] bg-[var(--panel)]">
         <div className="flex items-center gap-2.5 font-semibold text-[15px]">
-          <div className="w-8 h-8 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center border border-[var(--accent)]/20">
-            <Dna size={18} />
+          <div className="w-8 h-8 rounded-md bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20">
+            <SeqCraftLogo size={20} />
           </div>
           <span className="tracking-tight">SeqCraft</span>
-          <span className="text-[11px] font-mono uppercase px-1.5 py-0.5 rounded bg-[var(--panel-muted)] text-[var(--text-muted)] border border-[var(--border)]">
+          <span className="hidden sm:inline text-[11px] font-mono uppercase px-1.5 py-0.5 rounded bg-[var(--panel-muted)] text-[var(--text-muted)] border border-[var(--border)]">
             Workspace
           </span>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-muted)]" title={cloud.accountName ?? 'Sequences remain private in this browser'}>
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+          <div className="flex shrink-0 items-center gap-1.5 text-[12px] text-[var(--text-muted)]" title={cloud.accountName ?? 'Sequences remain private in this browser'} aria-label={cloud.status === 'synced' ? 'Metadata synced' : cloud.status === 'syncing' ? 'Syncing metadata' : cloud.status === 'error' ? 'Sync unavailable' : 'Sequences remain private in this browser'}>
             {cloud.status === 'syncing' ? <RefreshCw size={14} className="animate-spin text-[var(--accent)]" /> : cloud.status === 'synced' ? <Cloud size={14} className="text-[var(--success)]" /> : <CloudOff size={14} />}
-            {cloud.status === 'synced' ? 'Metadata synced' : cloud.status === 'syncing' ? 'Syncing metadata' : cloud.status === 'error' ? 'Sync unavailable' : 'Private local'}
+            <span className="hidden sm:inline">{cloud.status === 'synced' ? 'Metadata synced' : cloud.status === 'syncing' ? 'Syncing metadata' : cloud.status === 'error' ? 'Sync unavailable' : 'Private local'}</span>
           </div>
-          <Link to="/docs" className="text-[13px] text-[var(--text-muted)] hover:text-[var(--text)] flex items-center gap-1.5 transition-colors">
-            <BookOpen size={14} /> Documentation
+          <Link to="/docs" aria-label="Documentation" className="shrink-0 text-[13px] text-[var(--text-muted)] hover:text-[var(--text)] flex items-center gap-1.5 transition-colors">
+            <BookOpen size={14} /> <span className="hidden md:inline">Documentation</span>
           </Link>
-          {cloud.accountName ? (
-            <div className="flex items-center gap-2 border-l border-[var(--border)] pl-4">
-              <span className="text-[12px] font-medium text-[var(--text-secondary)]">{cloud.accountName}</span>
-              <button
-                onClick={async () => {
-                  if (typeof window !== 'undefined') {
-                    window.localStorage.removeItem('better-auth_token');
-                  }
-                  await authClient.signOut();
-                  window.location.reload();
-                }}
-                className="text-[11px] text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors cursor-pointer"
-              >
-                Sign out
-              </button>
+          {cloud.user ? (
+            <div className="flex shrink-0 items-center gap-2 border-l border-[var(--border)] pl-2 sm:pl-4">
+              <span className="hidden max-w-48 truncate text-[12px] font-medium text-[var(--text-secondary)] lg:inline">{cloud.accountName}</span>
+              <AccountMenu user={cloud.user} />
             </div>
+          ) : cloud.status === 'checking' ? (
+            <div className="size-8 shrink-0 animate-pulse rounded-full border border-[var(--border)] bg-[var(--panel-muted)]" aria-label="Checking account" />
           ) : (
             <Link to="/auth" className="text-[12px] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors border-l border-[var(--border)] pl-4">
               Sign in
@@ -142,22 +135,23 @@ export function DashboardPage() {
           {documents.length > 0 && (
             <Link 
               to="/editor" 
-              className="h-8 px-3 text-[12px] font-medium rounded bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
+              aria-label="Open Editor"
+              className="h-8 px-2 sm:px-3 text-[12px] font-medium rounded bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
             >
-              Open Editor <ArrowUpRight size={13} />
+              <span className="hidden sm:inline">Open Editor</span><ArrowUpRight size={13} />
             </Link>
           )}
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-8">
         {/* Header and Contextual Toolbar */}
         <div className="mb-6">
           {isSelectMode ? (
             /* Contextual Selection Action Bar */
-            <div className="flex items-center justify-between bg-[var(--panel)] border border-[var(--accent)]/40 rounded-lg px-4 py-3 shadow-sm animate-in fade-in-50 duration-150">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between bg-[var(--panel)] border border-[var(--accent)]/40 rounded-lg px-4 py-3 shadow-sm animate-in fade-in-50 duration-150">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="size-8 rounded-md bg-[var(--accent)]/15 text-[var(--accent)] flex items-center justify-center">
                   <CheckSquare size={17} />
                 </div>
@@ -169,7 +163,7 @@ export function DashboardPage() {
                     Click sequences to toggle selection
                   </div>
                 </div>
-                <div className="w-px h-6 bg-[var(--border)] mx-1" />
+                <div className="hidden sm:block w-px h-6 bg-[var(--border)] mx-1" />
                 <button 
                   onClick={handleSelectAllToggle}
                   className="text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text)] px-2.5 py-1.5 rounded hover:bg-[var(--panel-muted)] flex items-center gap-1.5 transition-colors"
@@ -186,7 +180,7 @@ export function DashboardPage() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 {selectedIds.size > 0 && (
                   <button 
                     onClick={() => setConfirmBulkDeleteOpen(true)}
@@ -216,24 +210,25 @@ export function DashboardPage() {
                 )}
               </div>
 
-              <div className="flex items-center gap-2.5">
+              <div className="flex flex-wrap items-center gap-2.5">
                 {documents.length > 0 && (
                   <>
                     {/* Live Search Filter */}
-                    <div className="relative">
+                    <div className="relative w-full sm:w-auto">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] w-3.5 h-3.5" />
                       <input 
                         type="text" 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search sequences..." 
-                        className="pl-8 pr-7 py-1.5 text-[13px] rounded-md border border-[var(--border)] bg-[var(--panel)] outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] w-52 transition-all placeholder:text-[var(--text-muted)]"
+                        className="pl-8 pr-7 py-1.5 text-[13px] rounded-md border border-[var(--border)] bg-[var(--panel)] outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] w-full sm:w-52 transition-all placeholder:text-[var(--text-muted)]"
                       />
                       {searchQuery && (
                         <button 
                           onClick={() => setSearchQuery('')}
                           className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] p-0.5 rounded"
                           title="Clear search"
+                          aria-label="Clear search"
                         >
                           <X size={12} />
                         </button>
@@ -275,15 +270,20 @@ export function DashboardPage() {
             <div className="w-14 h-14 bg-[var(--panel-muted)] border border-[var(--border)] rounded-full flex items-center justify-center mb-4 text-[var(--accent)]">
               <FileUp size={24} />
             </div>
-            <h3 className="text-lg font-semibold mb-1.5">No sequences in workspace</h3>
+            <h2 className="text-lg font-semibold mb-1.5">No sequences in workspace</h2>
             <p className="text-[var(--text-muted)] text-[14px] max-w-sm mb-6 leading-relaxed">
               Import a GenBank, FASTA, or raw nucleotide sequence to begin inspecting, annotating, and designing.
             </p>
-            <ImportDialog>
-              <button className="h-10 px-5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] rounded-md text-[13px] font-semibold flex items-center gap-2 transition-colors shadow-sm cursor-pointer">
-                <FileUp size={15} /> Import FASTA / GenBank
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <ImportDialog>
+                <button className="h-10 px-5 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--accent-foreground)] rounded-md text-[13px] font-semibold flex items-center gap-2 transition-colors shadow-sm cursor-pointer">
+                  <FileUp size={15} /> Import sequence
+                </button>
+              </ImportDialog>
+              <button type="button" onClick={loadDemoWorkspace} className="h-10 px-5 border border-[var(--border)] bg-[var(--panel)] hover:bg-[var(--panel-muted)] text-[var(--text)] rounded-md text-[13px] font-semibold transition-colors cursor-pointer">
+                Open demo workspace
               </button>
-            </ImportDialog>
+            </div>
           </div>
         ) : filteredDocuments.length === 0 ? (
           /* Search Empty State */
@@ -304,16 +304,22 @@ export function DashboardPage() {
             {filteredDocuments.map(doc => {
               const isSelected = selectedIds.has(doc.id);
               return (
-                <div 
+                <article
                   key={doc.id}
-                  onClick={() => handleCardClick(doc.id)}
-                  className={`group relative border rounded-lg p-5 cursor-pointer transition-all flex flex-col justify-between h-44 ${
+                  className={`group relative border rounded-lg p-5 transition-all flex flex-col justify-between h-44 ${
                     isSelected 
                       ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/30 bg-[var(--accent)]/5' 
                       : 'border-[var(--border)] bg-[var(--panel)] hover:border-[var(--accent)]/50 hover:shadow-sm'
                   }`}
                 >
-                  <div>
+                  <button
+                    type="button"
+                    aria-label={isSelectMode ? `${isSelected ? 'Deselect' : 'Select'} ${doc.name}` : `Open ${doc.name}`}
+                    aria-pressed={isSelectMode ? isSelected : undefined}
+                    onClick={() => handleCardClick(doc.id)}
+                    className="absolute inset-0 z-0 cursor-pointer rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2"
+                  />
+                  <div className="pointer-events-none relative z-[1]">
                     {/* Top Row: Checkbox / Name / Delete */}
                     <div className="flex items-start gap-2.5 mb-2">
                       {isSelectMode && (
@@ -326,22 +332,10 @@ export function DashboardPage() {
                         </div>
                       )}
                       <div className="flex-1 overflow-hidden pr-6">
-                        <h3 className="font-semibold text-[15px] truncate text-[var(--text)] group-hover:text-[var(--accent)] transition-colors" title={doc.name}>
+                        <h2 className="font-semibold text-[15px] truncate text-[var(--text)] group-hover:text-[var(--accent)] transition-colors" title={doc.name}>
                           {doc.name}
-                        </h3>
+                        </h2>
                       </div>
-                      {!isSelectMode && (
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDocToDelete({ id: doc.id, name: doc.name });
-                          }}
-                          className="absolute top-3.5 right-3.5 text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 opacity-0 group-hover:opacity-100 transition-all p-1.5 rounded"
-                          title={`Delete ${doc.name}`}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
                     </div>
 
                     {/* Features Preview */}
@@ -365,7 +359,7 @@ export function DashboardPage() {
                   </div>
                   
                   {/* Bottom Row: Metadata Badges */}
-                  <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)] border-t border-[var(--border)] pt-2.5 mt-2">
+                  <div className="pointer-events-none relative z-[1] flex items-center justify-between text-[11px] text-[var(--text-muted)] border-t border-[var(--border)] pt-2.5 mt-2">
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center gap-1 font-medium text-[var(--text-secondary)]">
                         {doc.topology === 'circular' ? (
@@ -383,7 +377,18 @@ export function DashboardPage() {
                       {doc.features.length} {doc.features.length === 1 ? 'feature' : 'features'}
                     </span>
                   </div>
-                </div>
+                  {!isSelectMode && (
+                    <button
+                      type="button"
+                      onClick={() => setDocToDelete({ id: doc.id, name: doc.name })}
+                      className="absolute top-3.5 right-3.5 z-10 text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all p-1.5 rounded outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]"
+                      title={`Delete ${doc.name}`}
+                      aria-label={`Delete ${doc.name}`}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </article>
               );
             })}
           </div>

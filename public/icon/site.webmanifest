@@ -1,0 +1,15 @@
+{
+  "name": "SeqCraft",
+  "short_name": "SeqCraft",
+  "description": "Agent-native molecular biology workbench",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0D1514",
+  "theme_color": "#0F766E",
+  "icons": [
+    { "src": "/icon/icon-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon/icon-512x512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon/icon-192x192.webp", "sizes": "192x192", "type": "image/webp" },
+    { "src": "/icon/icon-512x512.webp", "sizes": "512x512", "type": "image/webp" }
+  ]
+}

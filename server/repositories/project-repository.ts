@@ -5,6 +5,7 @@ export interface ProjectRepository {
   list(userId: string): Promise<ProjectMetadata[]>;
   upsert(userId: string, projectId: string, input: ProjectMetadataInput): Promise<ProjectMetadata>;
   delete(userId: string, projectId: string): Promise<boolean>;
+  deleteAll(userId: string): Promise<number>;
 }
 
 export class InMemoryProjectRepository implements ProjectRepository {
@@ -33,6 +34,16 @@ export class InMemoryProjectRepository implements ProjectRepository {
 
   async delete(userId: string, projectId: string) {
     return this.#projects.delete(`${userId}:${projectId}`);
+  }
+
+  async deleteAll(userId: string) {
+    let deletedCount = 0;
+    for (const [key, project] of this.#projects) {
+      if (project.userId !== userId) continue;
+      this.#projects.delete(key);
+      deletedCount += 1;
+    }
+    return deletedCount;
   }
 }
 
@@ -78,5 +89,10 @@ export class MongoProjectRepository implements ProjectRepository {
   async delete(userId: string, projectId: string) {
     const result = await this.#collection.deleteOne({ _id: `${userId}:${projectId}`, userId });
     return result.deletedCount === 1;
+  }
+
+  async deleteAll(userId: string) {
+    const result = await this.#collection.deleteMany({ userId });
+    return result.deletedCount;
   }
 }

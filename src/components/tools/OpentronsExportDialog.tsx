@@ -150,20 +150,23 @@ export function OpentronsExportDialog({
               className="w-16 h-7 px-2 rounded border border-[var(--border)] bg-[var(--panel)] font-mono text-center"
             />
           </div>
-          <div className="flex-1 flex justify-end gap-1">
+          <div role="group" aria-label="Protocol export view" className="flex-1 flex justify-end gap-1">
             <button
+              aria-pressed={activeTab === "code"}
               onClick={() => setActiveTab("code")}
               className={"px-2.5 py-1 rounded text-xs font-medium transition-colors " + (activeTab === "code" ? "bg-[var(--panel)] shadow-sm text-[var(--accent)] font-semibold" : "text-[var(--text-muted)] hover:text-[var(--text)]")}
             >
               <FileCode size={13} className="inline mr-1" /> Python Code
             </button>
             <button
+              aria-pressed={activeTab === "bom"}
               onClick={() => setActiveTab("bom")}
               className={"px-2.5 py-1 rounded text-xs font-medium transition-colors " + (activeTab === "bom" ? "bg-[var(--panel)] shadow-sm text-[var(--accent)] font-semibold" : "text-[var(--text-muted)] hover:text-[var(--text)]")}
             >
               <ListChecks size={13} className="inline mr-1" /> Reagents & BOM
             </button>
             <button
+              aria-pressed={activeTab === "layout"}
               onClick={() => setActiveTab("layout")}
               className={"px-2.5 py-1 rounded text-xs font-medium transition-colors " + (activeTab === "layout" ? "bg-[var(--panel)] shadow-sm text-[var(--accent)] font-semibold" : "text-[var(--text-muted)] hover:text-[var(--text)]")}
             >
@@ -213,9 +216,9 @@ export function OpentronsExportDialog({
           {activeTab === "layout" && (
             <div className="space-y-6">
               <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2 flex items-center gap-1.5">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2 flex items-center gap-1.5">
                   <Beaker size={14} className="text-[var(--accent)]" /> 24-Tube Reagent Rack (Slot 6)
-                </h4>
+                </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-xs">
                   {Object.entries(protocolResult.tubeRackMap).map(([tube, reagent]) => (
                     <div key={tube} className="p-2 rounded border border-[var(--border)] bg-[var(--panel-muted)]">
@@ -229,9 +232,9 @@ export function OpentronsExportDialog({
               </div>
 
               <div>
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2 flex items-center gap-1.5">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2 flex items-center gap-1.5">
                   <Layers size={14} className="text-[var(--accent)]" /> 96-Well Reaction Plate (Slot 7)
-                </h4>
+                </h3>
                 <div className="p-3 rounded border border-[var(--border)] bg-[var(--panel-muted)] text-xs text-[var(--text-muted)]">
                   {Object.keys(protocolResult.reagentPlateMap).length} reaction well(s) allocated:{" "}
                   <span className="font-mono font-semibold text-[var(--text)]">

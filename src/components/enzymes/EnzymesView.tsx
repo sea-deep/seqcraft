@@ -64,6 +64,7 @@ export function EnzymesView({ document }: { document: SequenceDocument }) {
             <button 
               key={value} 
               onClick={() => setFilter(value)} 
+              aria-pressed={filter === value}
               className={`h-[25px] rounded px-2.5 text-[12px] capitalize transition-colors cursor-pointer ${filter === value ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-medium' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
             >
               {value === 'double' ? '2 cutters' : value}
@@ -121,6 +122,7 @@ export function EnzymesView({ document }: { document: SequenceDocument }) {
                       <button 
                         key={site.id} 
                         onClick={() => { selectRestrictionSite(site.id); setActiveView('sequence'); }} 
+                        aria-label={`Show ${enzyme.name} cut at position ${site.forwardCut0 + 1} in sequence view`}
                         className={`rounded border px-1.5 py-0.5 font-mono text-[11px] cursor-pointer transition-colors ${selectedRestrictionSiteId === site.id ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)] font-semibold' : 'border-[var(--border)] bg-[var(--panel)] text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--text)]'}`}
                       >
                         {site.forwardCut0 + 1}

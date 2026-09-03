@@ -3,8 +3,14 @@ import { mongodbAdapter } from 'better-auth/adapters/mongodb';
 import { bearer } from 'better-auth/plugins';
 import type { Db, MongoClient } from 'mongodb';
 import type { ServerConfig } from './config.js';
+import type { ProjectRepository } from './repositories/project-repository.js';
 
-export function createSeqCraftAuth(config: ServerConfig, db: Db, client: MongoClient) {
+export function createSeqCraftAuth(
+  config: ServerConfig,
+  db: Db,
+  client: MongoClient,
+  projects: ProjectRepository,
+) {
   if (!config.authEnabled || !config.BETTER_AUTH_SECRET) {
     throw new Error('Better Auth requires MongoDB and BETTER_AUTH_SECRET.');
   }
@@ -29,6 +35,14 @@ export function createSeqCraftAuth(config: ServerConfig, db: Db, client: MongoCl
       bearer(),
     ],
     emailAndPassword: { enabled: true },
+    user: {
+      deleteUser: {
+        enabled: true,
+        beforeDelete: async user => {
+          await projects.deleteAll(user.id);
+        },
+      },
+    },
     socialProviders: config.googleEnabled && config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET
       ? {
           google: {
@@ -37,6 +51,16 @@ export function createSeqCraftAuth(config: ServerConfig, db: Db, client: MongoCl
           },
         }
       : {},
+    session: {
+      // Keep users logged in for 30 days of inactivity.
+      // The session is silently refreshed if the user is active within 1 day of expiry.
+      expiresIn: 60 * 60 * 24 * 30,  // 30 days in seconds
+      updateAge: 60 * 60 * 24,        // refresh window: 1 day in seconds
+      cookieCache: {
+        enabled: true,
+        maxAge: 60 * 5, // cache the session cookie for 5 min to reduce DB round-trips
+      },
+    },
     account: {
       storeStateStrategy: 'database',
       skipStateCookieCheck: true,

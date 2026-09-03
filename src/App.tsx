@@ -1,6 +1,7 @@
 
 import { lazy, Suspense, useEffect, type ComponentType } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { SeqCraftLogo } from './components/ui/SeqCraftLogo';
 import { initializeDocumentPersistence, hydrateWorkspaceFromStorage } from './storage/document-persistence';
 
 function lazyWithRetry<T extends ComponentType<any>>(
@@ -46,7 +47,7 @@ export default function App() {
   }, []);
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Suspense fallback={<AppLoading />}>
         <Routes>
           <Route path="/" element={<MarketingPage />} />
@@ -58,14 +59,17 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
 function AppLoading() {
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text-muted)] grid place-items-center">
-      <div className="font-mono text-[12px] tracking-[0.12em] uppercase">Loading SeqCraft…</div>
+      <div className="flex flex-col items-center gap-4">
+        <SeqCraftLogo size={32} />
+        <div className="font-mono text-[12px] tracking-[0.12em] uppercase">Loading SeqCraft…</div>
+      </div>
     </div>
   );
 }

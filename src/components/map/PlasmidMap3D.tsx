@@ -238,7 +238,7 @@ export function PlasmidMap3D({ document }: { document: SequenceDocument }) {
 
         <Html center className="pointer-events-none select-none">
           <div className="text-center font-ui flex flex-col items-center">
-            <h1 className="text-[20px] font-semibold text-[var(--text-primary)] whitespace-nowrap">{document.name}</h1>
+            <h2 className="text-[20px] font-semibold text-[var(--text-primary)] whitespace-nowrap">{document.name}</h2>
             <p className="text-[13px] text-[var(--text-secondary)] whitespace-nowrap">{formatLen} bp</p>
           </div>
         </Html>

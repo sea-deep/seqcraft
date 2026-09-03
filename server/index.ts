@@ -18,7 +18,7 @@ if (config.authEnabled) {
   const mongoProjects = new MongoProjectRepository(db);
   await mongoProjects.ensureIndexes();
   projects = mongoProjects;
-  auth = createSeqCraftAuth(config, db, client);
+  auth = createSeqCraftAuth(config, db, client, projects);
 }
 
 const serveStatic = process.env.API_ONLY !== 'true';

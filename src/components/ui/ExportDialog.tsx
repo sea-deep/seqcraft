@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import type { SequenceDocument } from '../../domain/document';
 import { downloadFile, serializeToFasta, serializeToSeqCraft } from '../../export/export-document';
 
-export function ExportDialog({ document, children }: { document: SequenceDocument; children: React.ReactNode }) {
+export function ExportDialog({ document, children }: { document: SequenceDocument; children: React.ReactElement }) {
   const [open, setOpen] = useState(false);
   const [format, setFormat] = useState<'seqcraft' | 'fasta'>('seqcraft');
 
@@ -21,7 +21,7 @@ export function ExportDialog({ document, children }: { document: SequenceDocumen
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>{children}</DialogTrigger>
+      <DialogTrigger render={children} />
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Export {document.name}</DialogTitle>

@@ -1,18 +1,30 @@
 
 import { Link } from 'react-router-dom';
-import { BookOpen, FileUp, Download, Eye, TestTube, Cpu, ArrowLeft, Layers, MousePointer2, Code2, ExternalLink, Terminal } from 'lucide-react';
+import { FileUp, Download, Eye, TestTube, Cpu, ArrowLeft, Layers, MousePointer2, Code2, ExternalLink, Terminal } from 'lucide-react';
+import { SeqCraftLogo } from '../components/ui/SeqCraftLogo';
+import { AccountMenu } from '../components/account/AccountMenu';
+import { useAuthenticatedUser } from '../platform/use-authenticated-user';
 
 export function DocsPage() {
+  const auth = useAuthenticatedUser();
+
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans flex flex-col">
       <nav className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2 font-bold text-lg">
-          <BookOpen size={20} className="text-[var(--accent)]" />
+          <SeqCraftLogo size={20} />
           SeqCraft Documentation
         </div>
-        <Link to="/dashboard" className="text-[13px] font-medium flex items-center gap-2 hover:text-[var(--accent)] transition-colors">
-          <ArrowLeft size={16} /> Back to Dashboard
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link to="/dashboard" className="text-[13px] font-medium flex items-center gap-2 hover:text-[var(--accent)] transition-colors">
+            <ArrowLeft size={16} /> Back to Dashboard
+          </Link>
+          {auth.user ? (
+            <AccountMenu user={auth.user} />
+          ) : auth.status === 'checking' ? (
+            <div className="size-8 animate-pulse rounded-full border border-[var(--border)] bg-[var(--panel-muted)]" aria-label="Checking account" />
+          ) : null}
+        </div>
       </nav>
 
       <main className="flex-1 max-w-4xl mx-auto w-full p-8 md:p-12">
@@ -102,7 +114,7 @@ export function DocsPage() {
               <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-xl space-y-3">
                 <h3 className="text-[var(--text)] font-semibold text-lg">Restriction Digest</h3>
                 <p>Navigate to <strong>Tools &rarr; Restriction Analysis</strong>.</p>
-                <p>SeqCraft bundles hundreds of standard restriction enzymes (EcoRI, BamHI, etc.). The engine automatically calculates cut sites on linear or circular DNA, handles IUPAC ambiguities, and displays sticky/blunt overhang structures.</p>
+                <p>SeqCraft currently bundles 11 commonly used restriction enzymes (including EcoRI and BamHI). The engine calculates cut sites on linear or circular DNA, handles IUPAC ambiguities, and displays sticky/blunt overhang structures.</p>
               </div>
 
               <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-xl space-y-3">
@@ -113,7 +125,7 @@ export function DocsPage() {
 
               <div className="bg-[var(--panel)] border border-[var(--border)] p-6 rounded-xl space-y-3 md:col-span-2">
                 <h3 className="text-[var(--text)] font-semibold text-lg">In Silico Cloning Planner</h3>
-                <p>Go to <strong>Tools &rarr; Restriction Cloning</strong> (available in the Action dropdown).</p>
+                <p>Go to <strong>Workflows &rarr; Restriction Cloning</strong>.</p>
                 <p>This is a human-in-the-loop workflow for generating recombinant DNA. Select a Vector and an Insert from your workspace, pick the restriction enzymes for each, and SeqCraft will validate the sticky ends. If compatible, it calculates the correct insertion orientation and transfers all sequence features into the new circular vector map.</p>
               </div>
 
@@ -166,36 +178,36 @@ export function DocsPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
-                  <h4 className="text-[var(--text)] font-semibold flex items-center gap-2">
+                  <h3 className="text-[var(--text)] font-semibold flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[var(--accent)]" /> IUPAC Alphabet Rigor
-                  </h4>
+                  </h3>
                   <p className="text-[13px] leading-relaxed">
                     Full enforcement of IUPAC nucleotide specifications for both DNA and RNA (<code className="text-[var(--accent)] font-mono">A, C, G, T, U, R, Y, S, W, K, M, B, D, H, V, N</code>). Degenerate IUPAC consensus matches are calculated without lossy regex conversions.
                   </p>
                 </div>
 
                 <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
-                  <h4 className="text-[var(--text)] font-semibold flex items-center gap-2">
+                  <h3 className="text-[var(--text)] font-semibold flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[var(--bio-cds)]" /> 6-Frame Translation & ORFs
-                  </h4>
+                  </h3>
                   <p className="text-[13px] leading-relaxed">
                     Instantaneous amino acid translation across forward frames (+1, +2, +3) and reverse complement frames (-1, -2, -3). Dynamic ORF scanning identifies start/stop codons with customizable minimum length thresholds.
                   </p>
                 </div>
 
                 <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
-                  <h4 className="text-[var(--text)] font-semibold flex items-center gap-2">
+                  <h3 className="text-[var(--text)] font-semibold flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[var(--bio-promoter)]" /> Thermodynamics & Primer Chemistry
-                  </h4>
+                  </h3>
                   <p className="text-[13px] leading-relaxed">
                     Provides nearest-neighbor melting temperature (Tm) estimation, precise GC% profiling, and exact directional primer binding checks on both linear and circular templates.
                   </p>
                 </div>
 
                 <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
-                  <h4 className="text-[var(--text)] font-semibold flex items-center gap-2">
+                  <h3 className="text-[var(--text)] font-semibold flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[var(--warning)]" /> Protein Consequence Modeling
-                  </h4>
+                  </h3>
                   <p className="text-[13px] leading-relaxed">
                     Codon-aware mutation impact evaluation: automatically classifies biological mutations into missense, nonsense (premature stop), silent (synonymous), and frameshift alterations within annotated CDS features.
                   </p>
@@ -226,15 +238,15 @@ export function DocsPage() {
               <span className="text-[var(--accent)]">6.</span> Next-Generation Capabilities & WebMCP Extensions
             </h2>
             <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-              SeqCraft bridges computational in-silico genetic engineering with physical bench robotics and regulatory compliance through its native 24-tool WebMCP architecture:
+              SeqCraft connects in-silico genetic engineering, bench-protocol drafting, and local diagnostic screening through its native 24-tool WebMCP architecture:
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2 col-span-1 md:col-span-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
+                  <h3 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-purple-500" /> Active In-Place Sequence Manipulation Suite
-                  </h4>
+                  </h3>
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-500/15 text-purple-400 font-bold">Coordinate-Aware Engine</span>
                 </div>
                 <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
@@ -245,9 +257,9 @@ export function DocsPage() {
 
               <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
+                  <h3 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[var(--accent)]" /> Opentrons Robotics Protocol Compiler
-                  </h4>
+                  </h3>
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--accent-soft)] text-[var(--accent)] font-bold">OT-2 & Flex</span>
                 </div>
                 <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
@@ -258,9 +270,9 @@ export function DocsPage() {
 
               <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
+                  <h3 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[var(--success)]" /> CRISPR Radar & MMEJ Forecaster
-                  </h4>
+                  </h3>
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--success)]/15 text-[var(--success)] font-bold">SpCas9 / MMEJ</span>
                 </div>
                 <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
@@ -271,9 +283,9 @@ export function DocsPage() {
 
               <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
+                  <h3 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[var(--bio-promoter)]" /> Golden Gate Assembly & Domestication
-                  </h4>
+                  </h3>
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--bio-promoter)]/15 text-[var(--bio-promoter)] font-bold">Type IIS</span>
                 </div>
                 <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
@@ -284,13 +296,13 @@ export function DocsPage() {
 
               <div className="bg-[var(--panel)] border border-[var(--border)] p-4 rounded-xl space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-[var(--warning)]" /> Dual-Use Biosecurity Screener
-                  </h4>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--warning)]/15 text-[var(--warning)] font-bold">HHS 42 CFR 73.3</span>
+                  <h3 className="text-[var(--text)] font-semibold text-sm flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[var(--warning)]" /> Local Biosecurity Motif Pre-Screen
+                  </h3>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--warning)]/15 text-[var(--warning)] font-bold">Diagnostic Only</span>
                 </div>
                 <p className="text-[12px] leading-relaxed text-[var(--text-secondary)]">
-                  100% private, client-side pre-order compliance checking against HHS/USDA Select Agents, Australia Group Common Control List, and IGSC standards. Prevents synthesis shipment holds at commercial gene foundries (Twist, IDT, GenScript).
+                  A private, client-side comparison against 17 curated diagnostic k-mers associated with selected controlled-agent examples. It can flag motifs for review, but it is not a regulatory compliance decision and does not replace commercial-provider or institutional screening.
                 </p>
                 <div className="text-[11px] font-mono text-[var(--text-muted)]">WebMCP: seqcraft_screen_biosecurity</div>
               </div>

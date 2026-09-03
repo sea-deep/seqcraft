@@ -143,6 +143,7 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
         <button
           type="button"
           onClick={() => setShowRestrictionSites(s => !s)}
+          aria-pressed={showRestrictionSites}
           className={`h-7 px-2.5 rounded text-[11px] font-medium transition-colors ${showRestrictionSites ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-semibold' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
         >
           Sites ({restrictionSites.length})
@@ -150,6 +151,7 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
         <button
           type="button"
           onClick={() => setShowPrimers(s => !s)}
+          aria-pressed={showPrimers}
           className={`h-7 px-2.5 rounded text-[11px] font-medium transition-colors ${showPrimers ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-semibold' : 'text-[var(--text-muted)] hover:text-[var(--text)]'}`}
         >
           Primers ({primerBindings.length})
@@ -231,10 +233,19 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
           return (
             <g
               key={`${feature.id}-${segmentIndex}`}
+              role="button"
+              tabIndex={0}
+              aria-label={`${feature.name}, ${feature.type}, positions ${segment.start0 + 1} to ${segment.end0Exclusive}`}
               className="cursor-pointer"
               onClick={event => {
                 event.stopPropagation();
                 selectDocumentFeature(document.id, feature.id);
+              }}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  selectDocumentFeature(document.id, feature.id);
+                }
               }}
             >
               <title>{`${feature.name} · ${feature.type} · ${segment.start0 + 1}–${segment.end0Exclusive}`}</title>
@@ -264,10 +275,19 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
           return (
             <g
               key={cluster.sites.map(s => s.id).join(':')}
+              role="button"
+              tabIndex={0}
+              aria-label={`Show restriction site ${title}`}
               className="cursor-pointer"
               onClick={event => {
                 event.stopPropagation();
                 selectRestrictionSite(representative.id);
+              }}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  selectRestrictionSite(representative.id);
+                }
               }}
             >
               <title>{title}</title>
@@ -331,8 +351,18 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
           return (
             <g 
               key={`${primer.id}-${bindingIndex}-${segmentIndex}`} 
+              role="button"
+              tabIndex={0}
+              aria-label={`${primer.name}, ${binding.orientation} primer, positions ${segment.start0 + 1} to ${segment.end0Exclusive}`}
               className="cursor-pointer" 
               onClick={() => { setSelection(document.id, binding.start0, binding.end0Exclusive); selectPrimer(primer.id); }}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  setSelection(document.id, binding.start0, binding.end0Exclusive);
+                  selectPrimer(primer.id);
+                }
+              }}
             >
               <title>{`${primer.name} · ${binding.orientation} primer`}</title>
               <polygon 

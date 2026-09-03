@@ -94,17 +94,17 @@ export function SequenceDiffReport({ result, onSelectDifference }: { result: Seq
     <div className="mx-auto max-w-5xl space-y-5">
       <header>
         <div className="text-[12px] font-medium text-[var(--text-muted)]">Comparison summary</div>
-        <h1 className="mt-1 flex flex-wrap items-center gap-2 text-[18px] font-semibold tracking-tight text-[var(--text)]">
+        <h2 className="mt-1 flex flex-wrap items-center gap-2 text-[18px] font-semibold tracking-tight text-[var(--text)]">
           <span>{result.reference.name}</span>
           <ArrowRight size={16} className="text-[var(--text-muted)]" />
           <span>{result.query.name}</span>
-        </h1>
+        </h2>
       </header>
 
       <section className={`flex items-start gap-3 rounded-xl border p-4 ${verdictStyle}`}>
         <VerdictIcon size={20} className={`mt-0.5 shrink-0 ${verdict.tone === 'success' ? 'text-[var(--success)]' : verdict.tone === 'warning' ? 'text-[var(--warning)]' : 'text-[var(--info)]'}`} />
         <div>
-          <h2 className={`text-[14px] font-semibold ${verdict.tone === 'success' ? 'text-[var(--success)]' : verdict.tone === 'warning' ? 'text-[var(--warning)]' : 'text-[var(--info)]'}`}>{verdict.title}</h2>
+          <h3 className={`text-[14px] font-semibold ${verdict.tone === 'success' ? 'text-[var(--success)]' : verdict.tone === 'warning' ? 'text-[var(--warning)]' : 'text-[var(--info)]'}`}>{verdict.title}</h3>
           <p className="mt-1 max-w-3xl text-[13px] leading-relaxed text-[var(--text-secondary)]">{verdict.description}</p>
         </div>
       </section>
@@ -119,7 +119,7 @@ export function SequenceDiffReport({ result, onSelectDifference }: { result: Seq
       <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--panel)]">
         <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--panel-muted)] px-4 py-3">
           <GitCommitHorizontal size={15} className="text-[var(--accent)]" />
-          <h2 className="text-[13px] font-semibold text-[var(--text)]">Sequence changes</h2>
+          <h3 className="text-[13px] font-semibold text-[var(--text)]">Sequence changes</h3>
           <span className="ml-auto font-mono text-[11px] text-[var(--text-muted)]">{result.differences.length} total events</span>
         </div>
         {result.differences.length === 0 ? <div className="flex items-center gap-2 p-4 text-[var(--success)]"><Check size={14} />No base changes after normalization.</div> : <>
@@ -128,7 +128,7 @@ export function SequenceDiffReport({ result, onSelectDifference }: { result: Seq
             <ChangeStat label="Insertions" operations={insertions.length} bases={sumBases(insertions, 'query')} color="var(--success)" />
             <ChangeStat label="Deletions" operations={deletions.length} bases={sumBases(deletions, 'reference')} color="var(--danger)" />
           </div>
-          <button onClick={() => setShowEdits(value => !value)} className="flex w-full items-center justify-between border-t border-[var(--border)] px-4 py-3 text-left hover:bg-[var(--panel-muted)] transition-colors cursor-pointer">
+          <button aria-expanded={showEdits} onClick={() => setShowEdits(value => !value)} className="flex w-full items-center justify-between border-t border-[var(--border)] px-4 py-3 text-left hover:bg-[var(--panel-muted)] transition-colors cursor-pointer">
             <span>
               <span className="text-[12px] font-medium text-[var(--text-secondary)]">Review individual edits</span>
               <span className="ml-2 text-[11px] text-[var(--text-muted)]">opens exact coordinates</span>
@@ -143,7 +143,7 @@ export function SequenceDiffReport({ result, onSelectDifference }: { result: Seq
         <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--panel)]">
           <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--panel-muted)] px-4 py-3">
             <Tags size={15} className="text-[var(--accent)]" />
-            <h2 className="text-[13px] font-semibold text-[var(--text)]">Annotations</h2>
+            <h3 className="text-[13px] font-semibold text-[var(--text)]">Annotations</h3>
             <span className="ml-auto font-mono text-[11px] text-[var(--text-muted)]">{changedFeatures.length} changed · {unchangedFeatures.length} unchanged</span>
           </div>
           {changedFeatures.length === 0 && unchangedFeatures.length === 0 ? (
@@ -175,7 +175,7 @@ export function SequenceDiffReport({ result, onSelectDifference }: { result: Seq
         <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--panel)]">
           <div className="flex items-center gap-2 border-b border-[var(--border)] bg-[var(--panel-muted)] px-4 py-3">
             <Code2 size={15} className="text-[var(--accent)]" />
-            <h2 className="text-[13px] font-semibold text-[var(--text)]">Coding impact</h2>
+            <h3 className="text-[13px] font-semibold text-[var(--text)]">Coding impact</h3>
             <span className="ml-auto font-mono text-[11px] text-[var(--text-muted)]">{result.proteinConsequences.length} affected CDS</span>
           </div>
           {result.proteinConsequences.length === 0 ? (

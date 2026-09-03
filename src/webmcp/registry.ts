@@ -18,6 +18,7 @@ import { multidocTools } from './tools/multidoc';
 import { historyTools } from './tools/history';
 import { ioTools } from './tools/io';
 import { automationTools } from './tools/automation';
+import { databaseTools } from './tools/database';
 
 export const ALL_SEQCRAFT_TOOLS: SeqCraftToolDefinition[] = [
   ...contextTools,
@@ -31,6 +32,7 @@ export const ALL_SEQCRAFT_TOOLS: SeqCraftToolDefinition[] = [
   ...multidocTools,
   ...historyTools,
   ...ioTools,
+  ...databaseTools,
   ...automationTools
 ];
 

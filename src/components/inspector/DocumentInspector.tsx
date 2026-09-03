@@ -3,7 +3,7 @@ import type { SequenceDocument } from '../../domain/document';
 import { useState } from 'react';
 import { DocumentSettingsDialog } from '../documents/DocumentSettingsDialog';
 import { Button } from '../ui/button';
-import { Settings } from 'lucide-react';
+import { Settings, ExternalLink } from 'lucide-react';
 
 export function DocumentInspector({ document }: { document: SequenceDocument }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -45,6 +45,53 @@ export function DocumentInspector({ document }: { document: SequenceDocument }) 
         <div className="text-[var(--text-muted)]">Features</div>
         <div className="text-[var(--text-secondary)]">{document.features.length} annotations</div>
       </div>
+
+      {document.provenance && (
+        <div className="border-t border-[var(--border)] pt-3 space-y-1.5">
+          <div className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Provenance</div>
+          <div className="grid grid-cols-[80px_minmax(0,1fr)] gap-y-1.5 text-[11px]">
+            <div className="text-[var(--text-muted)]">Source</div>
+            <div className="text-[var(--text)] font-medium capitalize">{document.provenance.provider}</div>
+
+            <div className="text-[var(--text-muted)]">Accession</div>
+            <div className="truncate">
+              {document.provenance.sourceUrl ? (
+                <a
+                  href={document.provenance.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[var(--accent)] hover:underline font-mono inline-flex items-center gap-1"
+                  title={`View ${document.provenance.accession} on external repository`}
+                >
+                  {document.provenance.accession}
+                  <ExternalLink size={10} />
+                </a>
+              ) : (
+                <span className="font-mono text-[var(--text)]">{document.provenance.accession}</span>
+              )}
+            </div>
+
+            {document.provenance.organism && (
+              <>
+                <div className="text-[var(--text-muted)]">Organism</div>
+                <div className="text-[var(--text-secondary)] italic truncate" title={document.provenance.organism}>
+                  {document.provenance.organism}
+                </div>
+              </>
+            )}
+
+            <div className="text-[var(--text-muted)]">Fetched</div>
+            <div className="text-[var(--text-muted)] font-mono text-[10px]">
+              {new Date(document.provenance.fetchedAt).toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="border-t border-[var(--border)] pt-3">
         <Button 
           variant="outline" 

@@ -2,10 +2,10 @@
 
 SeqCraft is a browser-native DNA engineering workbench with deterministic sequence analysis and a structured WebMCP interface that lets browser agents inspect, analyze, navigate, and propose changes to the same molecular model a human is working on.
 
-[![Tests](https://img.shields.io/badge/tests-401%20passed-brightgreen.svg)](test)
-[![Test Suites](https://img.shields.io/badge/test%20suites-65%20passed-brightgreen.svg)](test)
+[![Tests](https://img.shields.io/badge/tests-418%20passed-brightgreen.svg)](test)
+[![Test Suites](https://img.shields.io/badge/test%20suites-67%20passed-brightgreen.svg)](test)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](tsconfig.json)
-[![WebMCP](https://img.shields.io/badge/WebMCP-55%20tools-teal.svg)](src/webmcp/registry.ts)
+[![WebMCP](https://img.shields.io/badge/WebMCP-57%20tools-teal.svg)](src/webmcp/registry.ts)
 [![Frontend](https://img.shields.io/badge/live%20app-Render-0F766E.svg)](https://seqcraft.onrender.com)
 [![Backend](https://img.shields.io/badge/api-Railway-darkblue.svg)](https://seqcraft.up.railway.app/api/health)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -219,6 +219,8 @@ SeqCraft registers 50 tools via `window.document.modelContext.registerTool` orga
 | Tool Name | EffectClass | Description |
 | :--- | :--- | :--- |
 | `seqcraft_import_sequence_text` | `document_destructive` | Parses and imports FASTA, GenBank, or raw sequence text into the workspace. |
+| `seqcraft_search_sequence_database` | `read` | Searches public biological sequence databases (NCBI GenBank/RefSeq, ENA, Addgene) for accessions, constructs, or genes. |
+| `seqcraft_import_from_database` | `workspace_ephemeral` | Fetches and imports authoritative biological records by accession ID (e.g. J01749.1, NC_001416.1, OQ870305.1). |
 | `seqcraft_export_document` | `export` | Serializes and exports construct to NCBI GenBank (.gb), FASTA (.fasta), or `.seqcraft` JSON. |
 | `seqcraft_generate_opentrons_protocol` | `export` | Compiles Python protocol scripts (API v2.15) for Opentrons OT-2 and Flex liquid handlers. |
 | `seqcraft_execute_actions` | `sequence_mutation` | Executes an atomic batch list of sequence and annotation actions. |

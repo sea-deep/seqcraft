@@ -11,4 +11,5 @@ export * from './tools/analysis';
 export * from './tools/multidoc';
 export * from './tools/history';
 export * from './tools/io';
+export * from './tools/database';
 export * from './tools/automation';

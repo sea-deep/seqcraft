@@ -5,7 +5,7 @@ import type { Primer } from './primer';
 export const TOPOLOGIES = ['linear', 'circular'] as const;
 export type Topology = typeof TOPOLOGIES[number];
 
-export const DOCUMENT_SOURCES = ['fasta', 'genbank', 'raw', 'demo', 'pcr_product', 'cloning_preview'] as const;
+export const DOCUMENT_SOURCES = ['fasta', 'genbank', 'raw', 'demo', 'pcr_product', 'cloning_preview', 'database'] as const;
 export type DocumentSource = typeof DOCUMENT_SOURCES[number];
 
 export const STORAGE_MODES = ['memory', 'chunked'] as const;
@@ -13,6 +13,16 @@ export type StorageMode = typeof STORAGE_MODES[number];
 
 export const ALPHABETS = ['DNA', 'RNA', 'MIXED', 'UNKNOWN'] as const;
 export type Alphabet = typeof ALPHABETS[number];
+
+export interface DocumentProvenance {
+  provider: 'ncbi' | 'ncbi-refseq' | 'ena' | 'addgene' | string;
+  accession: string;
+  fetchedAt: string;
+  sourceUrl: string;
+  definition?: string;
+  organism?: string;
+  format?: 'genbank' | 'fasta';
+}
 
 export interface DocumentCapabilities {
   sequenceView: true;
@@ -43,6 +53,7 @@ export interface SequenceDocument {
   primers: Primer[];
   source: DocumentSource;
   version: number;
+  provenance?: DocumentProvenance;
 }
 
 export function getDocumentCapabilities(document: Pick<SequenceDocument, 'storageMode'>): DocumentCapabilities {

@@ -29,9 +29,13 @@ export function importDocument(data: string, name?: string): SequenceDocument[] 
   }
 
   if (trimmed.startsWith('LOCUS')) {
-    return importGenBank(data);
+    const docs = importGenBank(data, name);
+    if (name && docs.length === 1 && (docs[0].name.startsWith('SYN') || docs[0].name === 'GenBank Sequence')) {
+      docs[0].name = name;
+    }
+    return docs;
   } else if (trimmed.startsWith('>')) {
-    return importFasta(data);
+    return importFasta(data, name);
   } else {
     // Raw DNA sequence
     return [importRawSequence(data, name)];

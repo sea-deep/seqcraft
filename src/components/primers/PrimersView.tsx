@@ -11,6 +11,7 @@ import { useWorkspaceStore } from '../../state/workspace-store';
 import { generateId } from '../../utils/id';
 import { PrimerDialog } from './PrimerDialog';
 import { OpentronsExportDialog } from '../tools/OpentronsExportDialog';
+import { ConfirmationDialog } from '../ui/ConfirmationDialog';
 
 export function PrimersView({ document }: { document: SequenceDocument }) {
   const primers = useMemo(() => document.primers ?? [], [document.primers]);
@@ -22,6 +23,7 @@ export function PrimersView({ document }: { document: SequenceDocument }) {
   const [pcrResult, setPcrResult] = useState<PCRResult | null>(null);
   const [pcrMessage, setPcrMessage] = useState<string | null>(null);
   const [opentronsOpen, setOpentronsOpen] = useState(false);
+  const [primerToDelete, setPrimerToDelete] = useState<{ id: string; name: string } | null>(null);
   const selection = useWorkspaceStore(state => state.selection);
   const selectedPrimerId = useWorkspaceStore(state => state.selectedPrimerId);
   const selectPrimer = useWorkspaceStore(state => state.selectPrimer);
@@ -38,6 +40,14 @@ export function PrimersView({ document }: { document: SequenceDocument }) {
   }, [primers, query]);
 
   const isMemory = document.storageMode === 'memory' && Boolean(document.sequence);
+  const effectiveForwardPrimerId = primers.some(primer => primer.id === forwardPrimerId)
+    ? forwardPrimerId
+    : primers[0]?.id ?? '';
+  const effectiveReversePrimerId = primers.some(
+    primer => primer.id === reversePrimerId && primer.id !== effectiveForwardPrimerId
+  )
+    ? reversePrimerId
+    : primers.find(primer => primer.id !== effectiveForwardPrimerId)?.id ?? effectiveForwardPrimerId;
 
   const runPCR = () => {
     if (!isMemory) {
@@ -45,8 +55,8 @@ export function PrimersView({ document }: { document: SequenceDocument }) {
       setPcrResult(null);
       return;
     }
-    const forwardPrimer = primers.find(primer => primer.id === forwardPrimerId);
-    const reversePrimer = primers.find(primer => primer.id === reversePrimerId);
+    const forwardPrimer = primers.find(primer => primer.id === effectiveForwardPrimerId);
+    const reversePrimer = primers.find(primer => primer.id === effectiveReversePrimerId);
     if (!forwardPrimer || !reversePrimer || forwardPrimer.id === reversePrimer.id) {
       setPcrMessage('Choose two different primers.');
       setPcrResult(null);
@@ -76,10 +86,18 @@ export function PrimersView({ document }: { document: SequenceDocument }) {
   return (
     <div className="h-full overflow-auto bg-[var(--bg)] font-ui text-[12px]">
       <div className="sticky top-0 z-10 flex h-[44px] items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)] px-3">
-        <div className="relative max-w-[360px] flex-1"><Search className="absolute left-2 top-2 h-3.5 w-3.5 text-[var(--text-muted)]" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Filter primers" className="h-[30px] w-full rounded-md border border-[var(--border)] bg-[var(--bg)] pl-7 pr-2 outline-none focus:border-[var(--accent)]" /></div>
+        {primers.length > 0 && <div className="relative max-w-[360px] flex-1"><Search className="absolute left-2 top-2 h-3.5 w-3.5 text-[var(--text-muted)]" /><input aria-label="Filter primers" value={query} onChange={event => setQuery(event.target.value)} placeholder="Filter primers" className="h-[30px] w-full rounded-md border border-[var(--border)] bg-[var(--bg)] pl-7 pr-2 outline-none focus:border-[var(--accent)]" /></div>}
         <button onClick={() => setCreating(true)} className="ml-auto flex h-[30px] items-center gap-1.5 rounded-md bg-[var(--accent)] px-3 text-[12px] font-semibold text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] shadow-sm transition-colors cursor-pointer"><Plus size={14} />{activeSelection ? 'Create from selection' : 'Add primer'}</button>
       </div>
-      <table className="w-full border-collapse">
+      {primers.length === 0 ? (
+        <div className="mx-auto flex max-w-md flex-col items-center px-6 py-16 text-center">
+          <h2 className="text-[14px] font-semibold text-[var(--text)]">No primers yet</h2>
+          <p className="mt-1 text-[12px] leading-5 text-[var(--text-muted)]">
+            Select bases to create a primer from the sequence, or add a 5′→3′ sequence manually.
+          </p>
+        </div>
+      ) : <>
+        <table className="w-full border-collapse">
         <thead className="bg-[var(--panel-muted)] text-left text-[11px] text-[var(--text-muted)]"><tr><th className="px-3 py-2 font-medium">Name</th><th className="px-3 py-2 font-medium">Sequence 5′→3′</th><th className="px-3 py-2 font-medium">Length</th><th className="px-3 py-2 font-medium">GC</th><th className="px-3 py-2 font-medium">Tm</th><th className="px-3 py-2 font-medium">Bindings</th><th className="w-[76px]" /></tr></thead>
         <tbody>{filtered.map(primer => {
           const properties = analyzePrimerProperties(primer.sequence);
@@ -100,18 +118,20 @@ export function PrimersView({ document }: { document: SequenceDocument }) {
               className={`cursor-pointer border-b border-[var(--border)] outline-none hover:bg-[var(--panel-muted)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)] ${selectedPrimerId === primer.id ? 'bg-[var(--accent-soft)]' : ''}`}
             >
               <td className="px-3 py-2 font-medium">{primer.name}</td><td className="max-w-[260px] truncate px-3 py-2 font-mono" title={primer.sequence}>{primer.sequence}</td><td className="px-3 py-2 font-mono">{properties.length}</td><td className="px-3 py-2">{properties.gcPercent.toFixed(1)}%</td><td className="px-3 py-2">{properties.meltingTemperature.toFixed(1)}°C</td><td className="px-3 py-2">{bindings.length}</td>
-              <td className="px-2"><div className="flex"><button aria-label={`Edit ${primer.name}`} onClick={event => { event.stopPropagation(); setEditingPrimerId(primer.id); }} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text)]"><Edit3 size={14} /></button><button aria-label={`Delete ${primer.name}`} onClick={event => { event.stopPropagation(); if (window.confirm(`Delete primer “${primer.name}”?`)) deletePrimer(document.id, primer.id); }} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)]"><Trash2 size={14} /></button></div></td>
+              <td className="px-2"><div className="flex"><button aria-label={`Edit ${primer.name}`} onClick={event => { event.stopPropagation(); setEditingPrimerId(primer.id); }} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text)]"><Edit3 size={14} /></button><button aria-label={`Delete ${primer.name}`} onClick={event => { event.stopPropagation(); setPrimerToDelete({ id: primer.id, name: primer.name }); }} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)]"><Trash2 size={14} /></button></div></td>
             </tr>
           );
         })}</tbody>
       </table>
-      {primers.length === 0 && <div className="p-6 text-center text-[var(--text-muted)]">No primers yet. Select bases or add a primer sequence manually.</div>}
+      {filtered.length === 0 && (
+        <div className="p-8 text-center text-[var(--text-muted)]">No primers match “{query.trim()}”.</div>
+      )}
 
-      <section className="m-3 border border-[var(--border)] bg-[var(--panel)]">
+      {primers.length >= 2 ? <section className="m-3 border border-[var(--border)] bg-[var(--panel)]">
         <div className="border-b border-[var(--border)] px-3 py-2 font-semibold">PCR simulation</div>
         <div className="grid grid-cols-[1fr_1fr_auto] gap-2 p-3">
-          <select value={forwardPrimerId} onChange={event => setForwardPrimerId(event.target.value)} className="h-[34px] rounded-md border border-[var(--border)] bg-[var(--bg)] px-2"><option value="">Forward primer</option>{primers.map(primer => <option key={primer.id} value={primer.id}>{primer.name}</option>)}</select>
-          <select value={reversePrimerId} onChange={event => setReversePrimerId(event.target.value)} className="h-[34px] rounded-md border border-[var(--border)] bg-[var(--bg)] px-2"><option value="">Reverse primer</option>{primers.map(primer => <option key={primer.id} value={primer.id}>{primer.name}</option>)}</select>
+          <select aria-label="Forward primer" value={effectiveForwardPrimerId} onChange={event => setForwardPrimerId(event.target.value)} className="h-[34px] rounded-md border border-[var(--border)] bg-[var(--bg)] px-2"><option value="">Forward primer</option>{primers.map(primer => <option key={primer.id} value={primer.id}>{primer.name}</option>)}</select>
+          <select aria-label="Reverse primer" value={effectiveReversePrimerId} onChange={event => setReversePrimerId(event.target.value)} className="h-[34px] rounded-md border border-[var(--border)] bg-[var(--bg)] px-2"><option value="">Reverse primer</option>{primers.map(primer => <option key={primer.id} value={primer.id} disabled={primer.id === effectiveForwardPrimerId}>{primer.name}</option>)}</select>
           <button onClick={runPCR} className="h-[34px] rounded-md bg-[var(--accent)] px-3 text-[12px] font-semibold text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] shadow-sm transition-colors cursor-pointer">Simulate PCR</button>
         </div>
         {pcrMessage && <div className="px-3 pb-3 text-[var(--text-secondary)]">{pcrMessage}</div>}
@@ -141,7 +161,12 @@ export function PrimersView({ document }: { document: SequenceDocument }) {
             </div>
           );
         })}
-      </section>
+      </section> : (
+        <div className="m-3 rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-[var(--text-muted)]">
+          Add one more primer to simulate PCR.
+        </div>
+      )}
+      </>}
 
       {creating && <PrimerDialog document={document} selection={activeSelection ?? undefined} open onOpenChange={setCreating} />}
       {editingPrimer && editingPrimerId && <PrimerDialog document={document} primer={editingPrimer} open onOpenChange={open => !open && setEditingPrimerId(null)} />}
@@ -160,6 +185,17 @@ export function PrimersView({ document }: { document: SequenceDocument }) {
           }}
         />
       )}
+      <ConfirmationDialog
+        open={Boolean(primerToDelete)}
+        onOpenChange={open => !open && setPrimerToDelete(null)}
+        title="Delete primer?"
+        description={`Delete “${primerToDelete?.name ?? ''}” from this sequence? This cannot be undone.`}
+        confirmLabel="Delete primer"
+        onConfirm={() => {
+          if (primerToDelete) deletePrimer(document.id, primerToDelete.id);
+          setPrimerToDelete(null);
+        }}
+      />
     </div>
   );
 }

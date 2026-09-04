@@ -258,7 +258,9 @@ export function CircularMap2D({
     panDragRef.current = { startX: event.clientX, startY: event.clientY, initialPan: { ...pan } };
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {}
+    } catch {
+      // Pointer capture is an enhancement; panning still works from window events when unavailable.
+    }
   };
 
   const movePan = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -330,7 +332,7 @@ export function CircularMap2D({
       {/* Top Navigation & Scientific Layers Header */}
       <div className="flex h-10 w-full shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--panel)]/95 px-3 backdrop-blur-sm z-20 gap-2">
         {/* Left: Scientific Controls */}
-        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
         {/* Zoom Controls */}
         <div className="flex items-center rounded border border-[var(--border)] bg-[var(--bg)] p-0.5 shrink-0">
           <button
@@ -382,6 +384,7 @@ export function CircularMap2D({
             <>
               {/* Cutter count filter */}
               <select
+                aria-label="Restriction site frequency"
                 value={cutterFilter}
                 onChange={e => setCutterFilter(e.target.value as CutterFilter)}
                 className="h-6 rounded border border-[var(--border)] bg-[var(--bg)] px-1.5 text-[10px] text-[var(--text)] font-medium outline-none focus:border-[var(--accent)] shrink-0"
@@ -394,6 +397,7 @@ export function CircularMap2D({
 
               {/* Enzyme category filter */}
               <select
+                aria-label="Restriction enzyme class"
                 value={categoryFilter}
                 onChange={e => setCategoryFilter(e.target.value as EnzymeCategoryFilter)}
                 className="h-6 rounded border border-[var(--border)] bg-[var(--bg)] px-1.5 text-[10px] text-[var(--text)] font-medium outline-none focus:border-[var(--accent)] shrink-0"
@@ -413,6 +417,7 @@ export function CircularMap2D({
 
         {/* Feature Category Filter */}
         <select
+          aria-label="Feature category"
           value={featureCatFilter}
           onChange={e => setFeatureCatFilter(e.target.value as any)}
           className="h-6 rounded border border-[var(--border)] bg-[var(--bg)] px-1.5 text-[10px] text-[var(--text)] font-medium outline-none focus:border-[var(--accent)] shrink-0 max-w-[130px]"
@@ -1016,14 +1021,11 @@ export function CircularMap2D({
               >
                 <title>{document.name}</title>
                 {titleLines.map((line, idx) => {
-                  let y = 345;
-                  if (hoveredFeature) {
-                    y = titleLines.length === 1 ? 324 : 316 + idx * 15;
-                  } else {
-                    if (titleLines.length === 1) y = 345;
-                    else if (titleLines.length === 2) y = 336 + idx * 16;
-                    else y = 327 + idx * 16;
-                  }
+                  const y = hoveredFeature
+                    ? titleLines.length === 1 ? 324 : 316 + idx * 15
+                    : titleLines.length === 1 ? 345
+                    : titleLines.length === 2 ? 336 + idx * 16
+                    : 327 + idx * 16;
                   return (
                     <tspan key={idx} x="360" y={y}>
                       {line}

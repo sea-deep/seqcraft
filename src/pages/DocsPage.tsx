@@ -4,6 +4,7 @@ import { ArrowLeft, ExternalLink, Copy, Check } from 'lucide-react';
 import { SeqCraftLogo } from '../components/ui/SeqCraftLogo';
 import { AccountMenu } from '../components/account/AccountMenu';
 import { useAuthenticatedUser } from '../platform/use-authenticated-user';
+import { useWebMCPToolCount } from '../webmcp/use-webmcp-status';
 
 interface SectionLink {
   id: string;
@@ -26,6 +27,7 @@ const SECTIONS: SectionLink[] = [
 
 export function DocsPage() {
   const auth = useAuthenticatedUser();
+  const toolCount = useWebMCPToolCount();
   const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
 
   const scrollToSection = (id: string) => {
@@ -378,7 +380,7 @@ export function DocsPage() {
               10. WebMCP Tool Reference
             </h2>
             <p>
-              SeqCraft exposes 50 structured biological and workspace tools to browser-connected AI agents via <code className="font-mono text-[12px]">window.document.modelContext</code>.
+              SeqCraft exposes {toolCount} structured biological and workspace tools to browser-connected AI agents via <code className="font-mono text-[12px]">window.document.modelContext</code>.
             </p>
 
             <div className="overflow-x-auto border border-[var(--border)] rounded font-mono text-[11px]">

@@ -159,7 +159,14 @@ export function ImportDialog({
           <div className="flex flex-col gap-4 py-6">
             <h3 className="font-semibold text-[14px]">Importing large sequence...</h3>
 
-            <div className="h-2 w-full bg-[var(--border)] rounded-full overflow-hidden">
+            <div
+              className="h-2 w-full bg-[var(--border)] rounded-full overflow-hidden"
+              role="progressbar"
+              aria-label="Sequence import progress"
+              aria-valuemin={0}
+              aria-valuemax={progress.totalBytes}
+              aria-valuenow={progress.bytesRead}
+            >
               <div
                 className="h-full bg-[var(--accent)] transition-all duration-300"
                 style={{ width: `${(progress.bytesRead / progress.totalBytes) * 100}%` }}
@@ -181,7 +188,7 @@ export function ImportDialog({
         ) : (
           <div className="flex flex-col gap-4 py-2">
             {/* 3-Tab Selector */}
-            <div className="flex items-center gap-1 p-1 bg-[var(--panel-muted)] rounded-lg text-xs font-medium border border-[var(--border)]">
+            <div role="group" aria-label="Import method" className="flex items-center gap-1 p-1 bg-[var(--panel-muted)] rounded-lg text-xs font-medium border border-[var(--border)]">
               <button
                 type="button"
                 onClick={() => { setActiveTab('upload'); setError(null); }}
@@ -238,6 +245,7 @@ export function ImportDialog({
             {activeTab === 'paste' && (
               <div className="flex flex-col gap-2 py-2">
                 <textarea
+                  aria-label="Sequence text"
                   className="w-full h-[140px] bg-[var(--bg)] border border-[var(--border)] rounded-md p-3 text-[12px] font-mono focus:outline-none focus:border-[var(--accent)] resize-none"
                   placeholder="Paste raw sequence, FASTA, or GenBank text here..."
                   value={pastedText}
@@ -263,6 +271,7 @@ export function ImportDialog({
                     <div className="grid grid-cols-[90px_minmax(0,1fr)] items-center gap-2 text-xs">
                       <span className="text-[var(--text-muted)] font-medium">Source</span>
                       <select
+                        aria-label="Sequence database source"
                         value={selectedProvider}
                         onChange={e => setSelectedProvider(e.target.value)}
                         className="h-8 rounded border border-[var(--border)] bg-[var(--bg)] px-2.5 text-xs text-[var(--text)] font-medium outline-none focus:border-[var(--accent)]"
@@ -279,6 +288,7 @@ export function ImportDialog({
                       <span className="text-[var(--text-muted)] font-medium">Accession</span>
                       <input
                         type="text"
+                        aria-label="Database accession"
                         placeholder="e.g. J01749.1, NC_001416.1, OQ870305.1"
                         value={accession}
                         onChange={e => setAccession(e.target.value)}
@@ -355,6 +365,7 @@ export function ImportDialog({
                         rel="noreferrer"
                         className="text-[var(--text-muted)] hover:text-[var(--accent)] p-1 transition-colors"
                         title="Open external database record"
+                        aria-label={`Open ${dbPreview.resolved.accession} in the source database`}
                       >
                         <ExternalLink size={14} />
                       </a>
@@ -418,7 +429,7 @@ export function ImportDialog({
             )}
 
             {error && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs">
+              <div role="alert" className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs">
                 {error}
               </div>
             )}

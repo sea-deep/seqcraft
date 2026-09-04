@@ -93,6 +93,7 @@ export function EnzymesView({ document }: { document: SequenceDocument }) {
         <div className="relative flex-1 max-w-[320px] min-w-[200px]">
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" />
           <input
+            aria-label="Search restriction enzymes"
             value={query}
             onChange={event => setQuery(event.target.value)}
             placeholder="Search 75+ enzymes, aliases, motifs..."
@@ -101,45 +102,56 @@ export function EnzymesView({ document }: { document: SequenceDocument }) {
         </div>
 
         {/* Category Filter */}
-        <div className="flex rounded-md border border-[var(--border)] bg-[var(--bg)] p-0.5">
-          {[
-            { id: 'all', label: 'All' },
-            { id: 'common_cloning', label: 'Common' },
-            { id: 'type_iis', label: 'Type IIS' },
-            { id: 'rare_cutter', label: '8-Cutters' },
-            { id: 'diagnostic_4cutter', label: '4-Cutters' }
-          ].map(item => (
-            <button
-              key={item.id}
-              onClick={() => setCategory(item.id as CategoryFilter)}
-              aria-pressed={category === item.id}
-              className={`h-[25px] rounded px-2 text-[11px] font-medium transition-colors cursor-pointer ${
-                category === item.id
-                  ? 'bg-[var(--accent)] text-[var(--accent-foreground)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-1" role="group" aria-label="Enzyme class">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Class</span>
+          <div className="flex rounded-md border border-[var(--border)] bg-[var(--bg)] p-0.5">
+            {[
+              { id: 'all', label: 'Any' },
+              { id: 'common_cloning', label: 'Common' },
+              { id: 'type_iis', label: 'Type IIS' },
+              { id: 'rare_cutter', label: '8-Cutters' },
+              { id: 'diagnostic_4cutter', label: '4-Cutters' }
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => setCategory(item.id as CategoryFilter)}
+                aria-pressed={category === item.id}
+                className={`h-[25px] rounded px-2 text-[11px] font-medium transition-colors cursor-pointer ${
+                  category === item.id
+                    ? 'bg-[var(--accent)] text-[var(--accent-foreground)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Cutter Count Filter */}
-        <div className="flex rounded-md border border-[var(--border)] bg-[var(--bg)] p-0.5">
-          {(['all', 'unique', 'double', 'noncutters'] as CutterFilter[]).map(value => (
-            <button
-              key={value}
-              onClick={() => setFilter(value)}
-              aria-pressed={filter === value}
-              className={`h-[25px] rounded px-2 text-[11px] capitalize transition-colors cursor-pointer ${
-                filter === value
-                  ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-semibold'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-              }`}
-            >
-              {value === 'double' ? '2 cutters' : value}
-            </button>
-          ))}
+        <div className="flex items-center gap-1" role="group" aria-label="Recognition site count">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Sites</span>
+          <div className="flex rounded-md border border-[var(--border)] bg-[var(--bg)] p-0.5">
+            {([
+              { id: 'all', label: 'Any' },
+              { id: 'unique', label: 'One' },
+              { id: 'double', label: 'Two' },
+              { id: 'noncutters', label: 'None' }
+            ] as Array<{ id: CutterFilter; label: string }>).map(item => (
+              <button
+                key={item.id}
+                onClick={() => setFilter(item.id)}
+                aria-pressed={filter === item.id}
+                className={`h-[25px] rounded px-2 text-[11px] transition-colors cursor-pointer ${
+                  filter === item.id
+                    ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-semibold'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <button

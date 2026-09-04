@@ -162,6 +162,7 @@ export function CrisprDialog({ document, open, onOpenChange, selection }: Crispr
             <div className="flex items-center gap-2">
               <span className="text-[var(--text-muted)] font-medium">Nuclease:</span>
               <select
+                aria-label="CRISPR nuclease"
                 value={nucleaseId}
                 onChange={e => setNucleaseId(e.target.value as CasNucleaseId)}
                 className="h-8 rounded border border-[var(--border)] bg-[var(--bg)] px-2.5 text-xs text-[var(--text)] font-medium outline-none focus:border-[var(--accent)]"
@@ -179,6 +180,7 @@ export function CrisprDialog({ document, open, onOpenChange, selection }: Crispr
                 <span className="text-[var(--text-muted)]">Min Quality:</span>
                 <input
                   type="range"
+                  aria-label="Minimum target quality"
                   min={0}
                   max={90}
                   step={10}

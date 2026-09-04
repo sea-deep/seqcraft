@@ -2,7 +2,7 @@ import { getMemorySequence } from '../../utils/document-utils';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { ImportDialog } from '../ui/ImportDialog';
 import { ExportDialog } from '../ui/ExportDialog';
-import { PanelLeft, PanelRight, Download, ArrowLeft, ShieldCheck, Bot } from 'lucide-react';
+import { PanelLeft, PanelRight, Download, ArrowLeft, Bot } from 'lucide-react';
 import { useActivityStore } from '../../state/activity-store';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -30,11 +30,18 @@ import { reverseComplementIupac } from '../../scientific/restriction-analysis';
 import { ScientificSequence } from '../../scientific/nucleotide';
 import { generateId } from '../../utils/id';
 import type { SequenceDocument } from '../../domain/document';
-import { SeqCraftLogo } from '../ui/SeqCraftLogo';
 import { AccountMenu } from '../account/AccountMenu';
 import { useAuthenticatedUser } from '../../platform/use-authenticated-user';
+import { ConfirmationDialog } from '../ui/ConfirmationDialog';
 
 import { useState } from 'react';
+
+interface PendingConfirmation {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  action: () => void | Promise<void>;
+}
 
 export function AppCommandBar() {
   const navigate = useNavigate();
@@ -64,6 +71,7 @@ export function AppCommandBar() {
   const [goldenGateOpen, setGoldenGateOpen] = useState(false);
   const [biosecurityOpen, setBiosecurityOpen] = useState(false);
   const [mutatorOpen, setMutatorOpen] = useState(false);
+  const [confirmation, setConfirmation] = useState<PendingConfirmation | null>(null);
   const [mutatorMode, setMutatorMode] = useState<"insert" | "replace" | "rotate_origin">("insert");
   const mutateDocumentSequence = useWorkspaceStore(s => s.mutateDocumentSequence);
   const undo = useWorkspaceStore(s => s.undo);
@@ -125,13 +133,9 @@ export function AppCommandBar() {
           aria-label="Back to Dashboard"
         >
           <ArrowLeft size={14} />
-          <span className="text-[12px] font-medium hidden sm:inline">Dashboard</span>
+          <span className="text-[12px] font-medium hidden sm:inline">Workspace</span>
         </Link>
         <div className="hidden h-3.5 w-px bg-[var(--border)] md:block" />
-        <div className="hidden items-center gap-1.5 md:flex">
-          <SeqCraftLogo size={18} />
-          <span className="font-semibold text-[14px]">SeqCraft</span>
-        </div>
         
         <nav aria-label="Editor commands" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto scrollbar-none">
           <DropdownMenu>
@@ -148,12 +152,15 @@ export function AppCommandBar() {
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                onClick={async () => { 
-                  if (window.confirm('Are you sure you want to delete all sequences, history, and workspace data? This cannot be undone.')) {
+                onClick={() => setConfirmation({
+                  title: 'Clear local workspace?',
+                  description: 'Delete every sequence, annotation, primer, and history entry stored by SeqCraft in this browser? Your account will remain active. This cannot be undone.',
+                  confirmLabel: 'Clear workspace',
+                  action: async () => {
                     await clearAllWorkspaceStorage();
-                    useWorkspaceStore.getState().clearWorkspace(); 
+                    useWorkspaceStore.getState().clearWorkspace();
                   }
-                }}
+                })}
                 className="text-[var(--danger)] focus:bg-[var(--danger)]/10 focus:text-[var(--danger)]"
               >
                 Clear Workspace Data...
@@ -199,13 +206,30 @@ export function AppCommandBar() {
                         const length = activeSelection.end0Exclusive >= activeSelection.start0
                           ? activeSelection.end0Exclusive - activeSelection.start0
                           : activeDocument.length - activeSelection.start0 + activeSelection.end0Exclusive;
-                        if (window.confirm(`Delete ${length.toLocaleString()} selected base${length === 1 ? '' : 's'}? This sequence edit cannot be undone.`)) {
-                          mutateDocumentSequence(activeDocument.id, {
-                            type: 'delete',
-                            start0: activeSelection.start0,
-                            end0Exclusive: activeSelection.end0Exclusive
-                          });
-                        }
+                        const displayedRange = activeSelection.end0Exclusive >= activeSelection.start0
+                          ? `${activeSelection.start0 + 1}–${activeSelection.end0Exclusive}`
+                          : [
+                              activeSelection.start0 + 1 === activeDocument.length
+                                ? `${activeDocument.length}`
+                                : `${activeSelection.start0 + 1}–${activeDocument.length}`,
+                              activeSelection.end0Exclusive > 0
+                                ? activeSelection.end0Exclusive === 1
+                                  ? '1'
+                                  : `1–${activeSelection.end0Exclusive}`
+                                : null
+                            ].filter(Boolean).join(' and ') + ' (across the origin)';
+                        setConfirmation({
+                          title: `Delete ${length.toLocaleString()} selected base${length === 1 ? '' : 's'}?`,
+                          description: `Remove positions ${displayedRange} from “${activeDocument.name}”. Affected feature coordinates will be updated. You can undo this sequence edit.`,
+                          confirmLabel: 'Delete selected bases',
+                          action: () => {
+                            mutateDocumentSequence(activeDocument.id, {
+                              type: 'delete',
+                              start0: activeSelection.start0,
+                              end0Exclusive: activeSelection.end0Exclusive
+                            });
+                          }
+                        });
                       }
                     }}
                     className="text-[var(--danger)] focus:bg-[var(--danger)]/10 focus:text-[var(--danger)]"
@@ -215,13 +239,18 @@ export function AppCommandBar() {
                   <DropdownMenuItem 
                     onClick={() => {
                       if (activeDocument && activeSelection) {
-                        if (window.confirm('Reverse-complement the selected bases in place? This sequence edit cannot be undone.')) {
-                          mutateDocumentSequence(activeDocument.id, {
-                            type: 'reverse_complement',
-                            start0: activeSelection.start0,
-                            end0Exclusive: activeSelection.end0Exclusive
-                          });
-                        }
+                        setConfirmation({
+                          title: 'Reverse-complement selected bases?',
+                          description: `Replace the selected region in “${activeDocument.name}” with its reverse complement. You can undo this sequence edit.`,
+                          confirmLabel: 'Reverse complement',
+                          action: () => {
+                            mutateDocumentSequence(activeDocument.id, {
+                              type: 'reverse_complement',
+                              start0: activeSelection.start0,
+                              end0Exclusive: activeSelection.end0Exclusive
+                            });
+                          }
+                        });
                       }
                     }}
                   >
@@ -231,10 +260,17 @@ export function AppCommandBar() {
                   {activeDocument?.topology === 'circular' && (
                     <DropdownMenuItem 
                       onClick={() => {
-                        if (activeDocument && activeSelection && window.confirm(`Set displayed position 1 to the current selection start (${activeSelection.start0 + 1})? Sequence and feature coordinates will be re-indexed.`)) {
-                          mutateDocumentSequence(activeDocument.id, {
-                            type: 'rotate_origin',
-                            newOrigin0: activeSelection.start0
+                        if (activeDocument && activeSelection) {
+                          setConfirmation({
+                            title: `Set position ${activeSelection.start0 + 1} as the new origin?`,
+                            description: `Rotate “${activeDocument.name}” so the selected base becomes position 1. Sequence and feature coordinates will be re-indexed. You can undo this sequence edit.`,
+                            confirmLabel: 'Set new origin',
+                            action: () => {
+                              mutateDocumentSequence(activeDocument.id, {
+                                type: 'rotate_origin',
+                                newOrigin0: activeSelection.start0
+                              });
+                            }
                           });
                         }
                       }}
@@ -249,19 +285,19 @@ export function AppCommandBar() {
                 <DropdownMenuItem disabled>Select bases to edit</DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => activeDocumentId && setSelection(activeDocumentId, 0, activeDocument?.length ?? 0)}>Select All<DropdownMenuShortcut>Ctrl/Cmd+A</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuItem disabled={!activeDocument} onClick={() => activeDocumentId && setSelection(activeDocumentId, 0, activeDocument?.length ?? 0)}>Select All<DropdownMenuShortcut>Ctrl/Cmd+A</DropdownMenuShortcut></DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger className="px-2 py-1 rounded hover:bg-[var(--panel-muted)] outline-none data-[state=open]:bg-[var(--panel-muted)] cursor-default">View</DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => setActiveView('map')}>Map<DropdownMenuShortcut>1</DropdownMenuShortcut></DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveView('sequence')}>Sequence<DropdownMenuShortcut>2</DropdownMenuShortcut></DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveView('features')}>Features<DropdownMenuShortcut>3</DropdownMenuShortcut></DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveView('primers')}>Primers<DropdownMenuShortcut>4</DropdownMenuShortcut></DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveView('enzymes')}>Enzymes<DropdownMenuShortcut>5</DropdownMenuShortcut></DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveView('history')}>History</DropdownMenuItem>
+              <DropdownMenuItem disabled={!activeDocument} onClick={() => setActiveView('map')}>Map<DropdownMenuShortcut>1</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuItem disabled={!activeDocument} onClick={() => setActiveView('sequence')}>Sequence<DropdownMenuShortcut>2</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuItem disabled={!activeDocument} onClick={() => setActiveView('features')}>Features<DropdownMenuShortcut>3</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuItem disabled={!activeDocument} onClick={() => setActiveView('primers')}>Primers<DropdownMenuShortcut>4</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuItem disabled={!activeDocument} onClick={() => setActiveView('enzymes')}>Enzymes<DropdownMenuShortcut>5</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuItem disabled={!activeDocument} onClick={() => setActiveView('history')}>History</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={toggleSidebar}>Toggle Project Panel<DropdownMenuShortcut>Alt+B</DropdownMenuShortcut></DropdownMenuItem>
               <DropdownMenuItem onClick={toggleInspector}>Toggle Inspector<DropdownMenuShortcut>Alt+I</DropdownMenuShortcut></DropdownMenuItem>
@@ -292,18 +328,16 @@ export function AppCommandBar() {
           <DropdownMenu>
             <DropdownMenuTrigger className="px-2 py-1 rounded hover:bg-[var(--panel-muted)] outline-none data-[state=open]:bg-[var(--panel-muted)] cursor-default">Tools</DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              {activeSelection && <DropdownMenuItem onClick={() => setTranslationOpen(true)}>Translate Selection</DropdownMenuItem>}
-              {!activeSelection && activeDocument && <DropdownMenuItem onClick={() => setActiveView('sequence')}>Select Bases to Translate</DropdownMenuItem>}
-              <DropdownMenuItem onClick={() => setActiveView('primers')}>Primer Analysis...</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveView('enzymes')}>Restriction Analysis...</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveView('compare')}>Compare Sequences...</DropdownMenuItem>
               {activeDocument && (
                 <>
-                  <DropdownMenuSeparator />
+                  {activeSelection
+                    ? <DropdownMenuItem onClick={() => setTranslationOpen(true)}>Translate Selection...</DropdownMenuItem>
+                    : <DropdownMenuItem onClick={() => setActiveView('sequence')}>Select Bases to Translate</DropdownMenuItem>}
                   <DropdownMenuItem onClick={() => setCrisprOpen(true)}>CRISPR Target Radar & MMEJ...</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setBiosecurityOpen(true)}>Local Biosecurity Motif Pre-Screen...</DropdownMenuItem>
                 </>
               )}
+              {!activeDocument && <DropdownMenuItem disabled>Open a sequence to use tools</DropdownMenuItem>}
             </DropdownMenuContent>
           </DropdownMenu>
           
@@ -355,15 +389,6 @@ export function AppCommandBar() {
         {activeDocument && (
           <>
             <div className="w-px h-4 bg-[var(--border)] mx-1" />
-            <button
-              onClick={() => setBiosecurityOpen(true)}
-              aria-label="Open local biosecurity motif pre-screen"
-              className="cursor-pointer bg-[var(--panel-muted)] hover:bg-[var(--border)] text-[var(--text)] px-2.5 py-1 rounded-md text-[12px] font-medium inline-flex items-center gap-1.5 transition-colors border border-[var(--border)] shadow-xs"
-              title="Local biosecurity motif pre-screen (not a regulatory compliance determination)"
-            >
-              <ShieldCheck size={13} className="text-[var(--success)]" />
-              <span className="hidden sm:inline">Biosecurity</span>
-            </button>
             <ExportDialog document={activeDocument}>
               <button type="button" aria-label={`Export ${activeDocument.name}`} className="cursor-pointer bg-[var(--panel-muted)] hover:bg-[var(--border)] text-[var(--text)] px-2 sm:px-3 py-1 rounded-md text-[12px] font-medium inline-flex items-center gap-1.5 transition-colors">
                 <Download size={14} />
@@ -398,6 +423,14 @@ export function AppCommandBar() {
           onOpenChange={setMutatorOpen}
         />
       )}
+      <ConfirmationDialog
+        open={Boolean(confirmation)}
+        onOpenChange={open => !open && setConfirmation(null)}
+        title={confirmation?.title ?? 'Confirm action'}
+        description={confirmation?.description ?? ''}
+        confirmLabel={confirmation?.confirmLabel ?? 'Confirm'}
+        onConfirm={() => confirmation?.action()}
+      />
     </header>
   );
 }

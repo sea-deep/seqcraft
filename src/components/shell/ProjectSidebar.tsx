@@ -4,9 +4,11 @@ import { searchWorkspace, type WorkspaceSearchResult } from '../../application/w
 import { BUILTIN_ENZYMES } from '../../data/restriction-enzymes';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { ImportDialog } from '../ui/ImportDialog';
+import { ConfirmationDialog } from '../ui/ConfirmationDialog';
 
 export function ProjectSidebar() {
   const [query, setQuery] = useState('');
+  const [documentToDelete, setDocumentToDelete] = useState<{ id: string; name: string } | null>(null);
   const documents = useWorkspaceStore(state => state.documents);
   const activeDocumentId = useWorkspaceStore(state => state.activeDocumentId);
   const setActiveDocument = useWorkspaceStore(state => state.setActiveDocument);
@@ -46,7 +48,7 @@ export function ProjectSidebar() {
         <div className="relative">
           <Search className="absolute left-2 top-1.5 h-3.5 w-3.5 text-[var(--text-muted)]" />
           <input
-            type="search" value={query} onChange={event => setQuery(event.target.value)}
+            type="search" aria-label="Search project" value={query} onChange={event => setQuery(event.target.value)}
             placeholder="Search or go to coordinate"
             className="flex h-7 w-full rounded border border-[var(--border)] bg-[var(--bg)] pl-7 pr-7 text-[12px] text-[var(--text)] outline-none focus:border-[var(--accent)]"
           />
@@ -83,7 +85,7 @@ export function ProjectSidebar() {
                   </button>
                   <button 
                     className="p-1.5 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--danger)] transition-all hover:bg-[var(--bg)] hover:text-[var(--danger)] text-[var(--text-muted)] shrink-0 cursor-pointer" 
-                    onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete document "${document.name}"?`)) useWorkspaceStore.getState().removeDocument(document.id); }}
+                    onClick={(e) => { e.stopPropagation(); setDocumentToDelete({ id: document.id, name: document.name }); }}
                     title={`Delete ${document.name}`}
                     aria-label={`Delete document ${document.name}`}
                   >
@@ -101,6 +103,17 @@ export function ProjectSidebar() {
           <button type="button" className="flex h-7 w-full cursor-pointer items-center justify-center gap-2 rounded border border-[var(--border)] bg-[var(--bg)] text-[12px] text-[var(--text)] transition-colors hover:bg-[var(--panel)]"><FileUp size={14} />Import sequence</button>
         </ImportDialog>
       </div>
+      <ConfirmationDialog
+        open={Boolean(documentToDelete)}
+        onOpenChange={open => !open && setDocumentToDelete(null)}
+        title="Delete sequence?"
+        description={`Delete “${documentToDelete?.name ?? ''}” and its annotations, primers, and local history? This cannot be undone.`}
+        confirmLabel="Delete sequence"
+        onConfirm={() => {
+          if (documentToDelete) useWorkspaceStore.getState().removeDocument(documentToDelete.id);
+          setDocumentToDelete(null);
+        }}
+      />
     </div>
   );
 }

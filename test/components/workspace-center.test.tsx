@@ -37,6 +37,28 @@ describe('WorkspaceCenter View Switching', () => {
     expect(screen.getByRole('tab', { name: 'Map' }).getAttribute('aria-selected')).toBe('true');
   });
 
+  it('keeps the empty primer view focused on the next available action', () => {
+    render(<WorkspaceCenter />);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Primers' }));
+
+    expect(screen.getByRole('heading', { name: 'No primers yet' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Add primer' })).toBeDefined();
+    expect(screen.queryByRole('columnheader', { name: 'Name' })).toBeNull();
+    expect(screen.queryByText('PCR simulation')).toBeNull();
+  });
+
+  it('labels enzyme filters by class and site count without duplicate all controls', () => {
+    render(<WorkspaceCenter />);
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Enzymes' }));
+
+    expect(screen.getByRole('group', { name: 'Enzyme class' })).toBeDefined();
+    expect(screen.getByRole('group', { name: 'Recognition site count' })).toBeDefined();
+    expect(screen.getAllByRole('button', { name: 'Any' })).toHaveLength(2);
+    expect(screen.queryByRole('button', { name: 'All' })).toBeNull();
+  });
+
   it('offers clean import path when no document is loaded', () => {
     useWorkspaceStore.setState({ documents: [], activeDocumentId: null, openDocumentIds: [] });
     render(<WorkspaceCenter />);

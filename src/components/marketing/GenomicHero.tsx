@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Compass } from 'lucide-react';
+import { ArrowDown, ArrowRight } from 'lucide-react';
 import { HeroPlasmidMap, PUC19_LOCI, type PlasmidLocus } from './HeroPlasmidMap';
 import { HeroSequenceStrip } from './HeroSequenceStrip';
+import { useWebMCPToolCount } from '../../webmcp/use-webmcp-status';
 
 export function GenomicHero() {
   const [selectedLocus, setSelectedLocus] = useState<PlasmidLocus>(PUC19_LOCI[4]); // default to MCS
+  const toolCount = useWebMCPToolCount();
 
   return (
     <section className="relative overflow-hidden border-b border-[var(--border)] bg-[var(--bg)] text-[var(--text)] selection:bg-[var(--accent)] selection:text-[var(--accent-foreground)]">
@@ -32,17 +34,18 @@ export function GenomicHero() {
               >
                 Launch SeqCraft <ArrowRight size={16} />
               </Link>
-              <Link
-                to="/dashboard"
+              <button
+                type="button"
+                onClick={() => document.getElementById('product-demonstrations')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                 className="h-11 inline-flex items-center gap-2 px-5 rounded-md border border-[var(--border)] bg-[var(--panel)] text-[14px] font-medium text-[var(--text)] hover:bg-[var(--panel-muted)] transition-colors cursor-pointer"
               >
-                <Compass size={16} className="text-[var(--accent)]" /> Explore pUC19
-              </Link>
+                See how it works <ArrowDown size={16} className="text-[var(--accent)]" />
+              </button>
             </div>
 
             {/* Quiet, factual note */}
             <div className="mt-7 font-mono text-[11px] text-[var(--text-muted)]">
-              Local OPFS storage · Standard 1-based biological coordinates · 57 WebMCP tools
+              Local OPFS storage · Standard 1-based biological coordinates · {toolCount} WebMCP tools
             </div>
           </div>
 

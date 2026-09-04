@@ -6,6 +6,7 @@ import { reverseComplementIupac } from '../../scientific/restriction-analysis';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { generateId } from '../../utils/id';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { ConfirmationDialog } from '../ui/ConfirmationDialog';
 
 interface PrimerDialogProps {
   document: SequenceDocument;
@@ -23,6 +24,7 @@ function selectedSequence(document: SequenceDocument, selection?: { start0: numb
 }
 
 export function PrimerDialog({ document, primer, selection, open, onOpenChange }: PrimerDialogProps) {
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const addPrimer = useWorkspaceStore(state => state.addPrimer);
   const updatePrimer = useWorkspaceStore(state => state.updatePrimer);
   const deletePrimer = useWorkspaceStore(state => state.deletePrimer);
@@ -47,6 +49,7 @@ export function PrimerDialog({ document, primer, selection, open, onOpenChange }
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] p-5 gap-4">
         <DialogHeader><DialogTitle>{primer ? 'Edit primer' : 'Create primer'}</DialogTitle></DialogHeader>
@@ -60,11 +63,26 @@ export function PrimerDialog({ document, primer, selection, open, onOpenChange }
           <label className="grid gap-1.5"><span className="text-[var(--text-secondary)]">Description</span><input value={description} onChange={event => setDescription(event.target.value)} className="h-[34px] rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 outline-none focus:border-[var(--accent)]" /></label>
         </div>
         <DialogFooter className="items-center">
-          {primer && <button onClick={() => { if (window.confirm(`Delete primer “${primer.name}”?`)) { deletePrimer(document.id, primer.id); onOpenChange(false); } }} className="mr-auto h-[34px] rounded-md px-3 text-[var(--danger)] hover:bg-[var(--panel-muted)]">Delete</button>}
+          {primer && <button onClick={() => setConfirmDeleteOpen(true)} className="mr-auto h-[34px] rounded-md px-3 text-[var(--danger)] hover:bg-[var(--panel-muted)]">Delete</button>}
           <button onClick={() => onOpenChange(false)} className="h-[34px] rounded-md border border-[var(--border)] px-3 hover:bg-[var(--panel-muted)] cursor-pointer">Cancel</button>
           <button onClick={save} className="h-[34px] rounded-md bg-[var(--accent)] px-3 text-[13px] font-semibold text-[var(--accent-foreground)] hover:bg-[var(--accent-hover)] shadow-sm transition-colors cursor-pointer">Save primer</button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    {primer && (
+      <ConfirmationDialog
+        open={confirmDeleteOpen}
+        onOpenChange={setConfirmDeleteOpen}
+        title="Delete primer?"
+        description={`Delete “${primer.name}” from this sequence? This cannot be undone.`}
+        confirmLabel="Delete primer"
+        onConfirm={() => {
+          deletePrimer(document.id, primer.id);
+          setConfirmDeleteOpen(false);
+          onOpenChange(false);
+        }}
+      />
+    )}
+    </>
   );
 }

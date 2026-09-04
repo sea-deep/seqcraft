@@ -142,7 +142,7 @@ export function AppShell() {
             </>
           )}
 
-          <Panel id="center" className="bg-[var(--bg)] relative">
+          <Panel id="center" minSize={520} className="bg-[var(--bg)] relative">
             <WorkspaceCenter />
           </Panel>
 

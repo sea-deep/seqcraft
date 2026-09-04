@@ -216,7 +216,7 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
     <div className="flex h-full w-full flex-col overflow-hidden bg-[var(--bg-editor)]">
       {/* Top Scientific Layers Toolbar */}
       <div className="flex h-10 w-full shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--panel)]/95 px-3 backdrop-blur-sm z-20 gap-2">
-        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
         {/* Restriction Site Layers & Filters */}
         <div className="flex items-center gap-1">
           <button
@@ -237,6 +237,7 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
           {showRestrictionSites && (
             <>
               <select
+                aria-label="Restriction site frequency"
                 value={cutterFilter}
                 onChange={e => setCutterFilter(e.target.value as CutterFilter)}
                 className="h-6 rounded border border-[var(--border)] bg-[var(--bg)] px-1.5 text-[10px] text-[var(--text)] font-medium outline-none focus:border-[var(--accent)]"
@@ -248,6 +249,7 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
               </select>
 
               <select
+                aria-label="Restriction enzyme class"
                 value={categoryFilter}
                 onChange={e => setCategoryFilter(e.target.value as EnzymeCategoryFilter)}
                 className="h-6 rounded border border-[var(--border)] bg-[var(--bg)] px-1.5 text-[10px] text-[var(--text)] font-medium outline-none focus:border-[var(--accent)]"
@@ -267,6 +269,7 @@ export function LinearMap({ document }: { document: SequenceDocument }) {
 
         {/* Feature Category Filter */}
         <select
+          aria-label="Feature category"
           value={featureCatFilter}
           onChange={e => setFeatureCatFilter(e.target.value as any)}
           className="h-6 rounded border border-[var(--border)] bg-[var(--bg)] px-1.5 text-[10px] text-[var(--text)] font-medium outline-none focus:border-[var(--accent)]"

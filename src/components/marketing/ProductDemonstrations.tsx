@@ -7,6 +7,7 @@ import {
   Check,
   X,
 } from 'lucide-react';
+import { useWebMCPToolCount } from '../../webmcp/use-webmcp-status';
 
 interface DigestFragment {
   name: string;
@@ -16,8 +17,10 @@ interface DigestFragment {
 }
 
 export function ProductDemonstrations() {
+  const toolCount = useWebMCPToolCount();
+
   return (
-    <div className="w-full bg-[var(--bg)] text-[var(--text)] selection:bg-[var(--accent)] selection:text-[var(--accent-foreground)]">
+    <div id="product-demonstrations" className="w-full scroll-mt-16 bg-[var(--bg)] text-[var(--text)] selection:bg-[var(--accent)] selection:text-[var(--accent-foreground)]">
       {/* Demonstration 1: Restriction Digest Engine */}
       <section className="border-t border-[var(--border)] py-20 lg:py-28">
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-[1fr_1.15fr] gap-12 lg:gap-16 items-center">
@@ -72,7 +75,7 @@ export function ProductDemonstrations() {
               An agent that proposes edits—and waits for your stamp.
             </h2>
             <p className="mt-5 text-[16px] leading-7 text-[var(--text-secondary)]">
-              SeqCraft exposes 50 biological tools directly to AI models via WebMCP. Instead of
+              SeqCraft exposes {toolCount} biological tools directly to AI models via WebMCP. Instead of
               silently mutating your plasmid, changes are staged for review: coordinate shifts,
               junction scar checks, and feature splits are fully auditable.
             </p>

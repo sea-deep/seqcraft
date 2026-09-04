@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { ALL_SEQCRAFT_TOOLS } from './registry';
 
 export function useWebMCPToolCount(): number {
-  const [toolCount, setToolCount] = useState<number>(50);
+  const [toolCount, setToolCount] = useState<number>(ALL_SEQCRAFT_TOOLS.length);
 
   useEffect(() => {
     let mounted = true;

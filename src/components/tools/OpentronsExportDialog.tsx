@@ -132,6 +132,7 @@ export function OpentronsExportDialog({
             <span className="text-[var(--text-muted)]">Reaction Count:</span>
             <input 
               type="number" 
+              aria-label="Reaction count"
               min={1} 
               max={96} 
               value={numReactions} 
@@ -143,6 +144,7 @@ export function OpentronsExportDialog({
             <span className="text-[var(--text-muted)]">Reaction Vol (uL):</span>
             <input 
               type="number" 
+              aria-label="Reaction volume in microliters"
               min={10} 
               max={100} 
               value={reactionVolumeUl} 

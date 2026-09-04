@@ -217,6 +217,7 @@ export function DashboardPage() {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] w-3.5 h-3.5" />
                       <input 
                         type="text" 
+                        aria-label="Search sequences"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search sequences..." 

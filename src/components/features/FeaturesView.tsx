@@ -6,12 +6,14 @@ import { getFeatureColor } from '../../domain/feature-colors';
 import { useWorkspaceStore } from '../../state/workspace-store';
 import { FeatureDialog } from './FeatureDialog';
 import { KnownFeatureDialog } from './KnownFeatureDialog';
+import { ConfirmationDialog } from '../ui/ConfirmationDialog';
 
 export function FeaturesView({ document }: { document: SequenceDocument }) {
   const [query, setQuery] = useState('');
   const [dialogFeatureId, setDialogFeatureId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [featureToDelete, setFeatureToDelete] = useState<{ id: string; name: string } | null>(null);
   const selection = useWorkspaceStore(state => state.selection);
   const selectedFeatureId = useWorkspaceStore(state => state.selectedFeatureId);
   const selectDocumentFeature = useWorkspaceStore(state => state.selectDocumentFeature);
@@ -31,7 +33,7 @@ export function FeaturesView({ document }: { document: SequenceDocument }) {
       <div className="sticky top-0 z-10 flex h-[44px] items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)] px-3">
         <div className="relative min-w-[180px] flex-1 max-w-[360px]">
           <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-[var(--text-muted)]" />
-          <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Filter features" className="h-[30px] w-full rounded-md border border-[var(--border)] bg-[var(--bg)] pl-7 pr-2 outline-none focus:border-[var(--accent)]" />
+          <input aria-label="Filter features" value={query} onChange={event => setQuery(event.target.value)} placeholder="Filter features" className="h-[30px] w-full rounded-md border border-[var(--border)] bg-[var(--bg)] pl-7 pr-2 outline-none focus:border-[var(--accent)]" />
         </div>
         <button onClick={() => setScanning(true)} className="ml-auto flex h-[30px] items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 font-medium hover:bg-[var(--panel-muted)]"><ScanSearch size={14} />Scan known</button>
         {activeSelection ? (
@@ -72,7 +74,7 @@ export function FeaturesView({ document }: { document: SequenceDocument }) {
                 <td className="px-2 py-1">
                   <div className="flex justify-end">
                     <button aria-label={`Edit ${feature.name}`} onClick={event => { event.stopPropagation(); setDialogFeatureId(feature.id); }} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text)]"><Edit3 size={14} /></button>
-                    <button aria-label={`Delete ${feature.name}`} onClick={event => { event.stopPropagation(); if (window.confirm(`Delete feature “${feature.name}”?`)) deleteFeature(document.id, feature.id); }} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)]"><Trash2 size={14} /></button>
+                    <button aria-label={`Delete ${feature.name}`} onClick={event => { event.stopPropagation(); setFeatureToDelete({ id: feature.id, name: feature.name }); }} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--danger)]"><Trash2 size={14} /></button>
                   </div>
                 </td>
               </tr>
@@ -85,6 +87,17 @@ export function FeaturesView({ document }: { document: SequenceDocument }) {
       {activeSelection && creating && <FeatureDialog document={document} selection={activeSelection} open onOpenChange={setCreating} />}
       {dialogFeature && dialogFeatureId && <FeatureDialog document={document} feature={dialogFeature} open onOpenChange={open => !open && setDialogFeatureId(null)} />}
       {scanning && <KnownFeatureDialog document={document} onClose={() => setScanning(false)} />}
+      <ConfirmationDialog
+        open={Boolean(featureToDelete)}
+        onOpenChange={open => !open && setFeatureToDelete(null)}
+        title="Delete feature?"
+        description={`Delete the “${featureToDelete?.name ?? ''}” annotation? The underlying sequence will not change. This cannot be undone.`}
+        confirmLabel="Delete feature"
+        onConfirm={() => {
+          if (featureToDelete) deleteFeature(document.id, featureToDelete.id);
+          setFeatureToDelete(null);
+        }}
+      />
     </div>
   );
 }

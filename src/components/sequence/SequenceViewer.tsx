@@ -30,6 +30,10 @@ export function SequenceViewer({ document }: SequenceViewerProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const measureCharRef = useRef<HTMLSpanElement>(null);
   const [charWidthPx, setCharWidthPx] = useState<number>(10);
+  const [showFeatures, setShowFeatures] = useState(true);
+  const [showRestrictionSites, setShowRestrictionSites] = useState(false);
+  const [showPrimers, setShowPrimers] = useState(true);
+  const [showOrfs, setShowOrfs] = useState(false);
   
   // Selection/Feature State
   const setSelection = useWorkspaceStore(s => s.setSelection);
@@ -59,15 +63,16 @@ export function SequenceViewer({ document }: SequenceViewerProps) {
   const rowCount = Math.ceil(seqLength / BASES_PER_LINE);
 
   const restrictionSites = useMemo(() => {
-    return canAnalyzeInline ? analyzeRestrictionSites(rawSeq!, document.topology, BUILTIN_ENZYMES) : [];
-  }, [canAnalyzeInline, rawSeq, document.topology]);
+    return canAnalyzeInline && showRestrictionSites ? analyzeRestrictionSites(rawSeq!, document.topology, BUILTIN_ENZYMES) : [];
+  }, [canAnalyzeInline, rawSeq, document.topology, showRestrictionSites]);
 
   const primers = useMemo(() => document.primers ?? [], [document.primers]);
-  const primerBindings = useMemo(() => canAnalyzeInline ? primers.flatMap(primer => analyzePrimerBindings(rawSeq!, document.topology, primer)) : [], [canAnalyzeInline, rawSeq, document.topology, primers]);
+  const primerLayerVisible = showPrimers && primers.length > 0 && canAnalyzeInline;
+  const primerBindings = useMemo(() => canAnalyzeInline && showPrimers ? primers.flatMap(primer => analyzePrimerBindings(rawSeq!, document.topology, primer)) : [], [canAnalyzeInline, rawSeq, document.topology, primers, showPrimers]);
   
   const orfs = useMemo(() => {
-    return canAnalyzeInline ? findORFs(rawSeq!, document.topology, 30) : [];
-  }, [canAnalyzeInline, rawSeq, document.topology]);
+    return canAnalyzeInline && showOrfs ? findORFs(rawSeq!, document.topology, 30) : [];
+  }, [canAnalyzeInline, rawSeq, document.topology, showOrfs]);
 
   const rowVirtualizer = useVirtualizer({
     count: rowCount,
@@ -181,12 +186,25 @@ export function SequenceViewer({ document }: SequenceViewerProps) {
     }
   }, [isDragging, handleGlobalMouseUp]);
 
+  const layerButton = 'h-7 rounded-md border px-2.5 text-[12px] font-medium transition-colors';
+
   return (
-    <div 
-      ref={parentRef} 
-      className="h-full w-full overflow-auto bg-[var(--bg)] font-mono text-[14px]"
-      style={{ WebkitFontSmoothing: 'antialiased' }}
-    >
+    <div className="flex h-full w-full min-w-0 flex-col bg-[var(--bg)]">
+      <div className="flex h-10 shrink-0 items-center gap-2 border-b border-[var(--border)] bg-[var(--panel)] px-3 font-ui">
+        <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Layers</span>
+        <div className="flex items-center gap-1.5" role="group" aria-label="Sequence display layers">
+          <button type="button" aria-pressed={showFeatures} onClick={() => setShowFeatures(value => !value)} className={`${layerButton} ${showFeatures ? 'border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]'}`}>Features</button>
+          <button type="button" aria-pressed={showRestrictionSites} onClick={() => setShowRestrictionSites(value => !value)} disabled={!canAnalyzeInline} className={`${layerButton} ${showRestrictionSites ? 'border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]'} disabled:cursor-not-allowed disabled:opacity-40`}>Cut sites</button>
+          <button type="button" aria-pressed={primerLayerVisible} onClick={() => setShowPrimers(value => !value)} disabled={primers.length === 0 || !canAnalyzeInline} className={`${layerButton} ${primerLayerVisible ? 'border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]'} disabled:cursor-not-allowed disabled:opacity-40`}>Primers</button>
+          <button type="button" aria-pressed={showOrfs} onClick={() => setShowOrfs(value => !value)} disabled={!canAnalyzeInline} className={`${layerButton} ${showOrfs ? 'border-[var(--accent)]/40 bg-[var(--accent-soft)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]'} disabled:cursor-not-allowed disabled:opacity-40`}>ORFs</button>
+        </div>
+        {!canAnalyzeInline && <span className="ml-auto text-[11px] text-[var(--text-muted)]">Analysis layers are unavailable for large chunked sequences.</span>}
+      </div>
+      <div
+        ref={parentRef}
+        className="min-h-0 flex-1 overflow-auto font-mono text-[14px]"
+        style={{ WebkitFontSmoothing: 'antialiased' }}
+      >
       <span ref={measureCharRef} className="absolute opacity-0 pointer-events-none">MMMMMMMMMM</span>
       
       <div
@@ -210,9 +228,9 @@ export function SequenceViewer({ document }: SequenceViewerProps) {
             }
           }
 
-          const allRowFeatures = document.features.filter(f => f.type !== "source" &&
+          const allRowFeatures = showFeatures ? document.features.filter(f => f.type !== "source" &&
             f.segments.some(seg => seg.start0 < endIndex && seg.end0Exclusive > startIndex)
-          );
+          ) : [];
           const rowFeatures = deduplicateFeaturesForDisplay(allRowFeatures);
 
           const sitesOnLine = restrictionSites.filter(s => s.forwardCut0 >= startIndex && s.forwardCut0 < endIndex);
@@ -274,6 +292,7 @@ export function SequenceViewer({ document }: SequenceViewerProps) {
           );
         })}
       </div>
+    </div>
     </div>
   );
 }

@@ -72,7 +72,7 @@ export function ProductDemonstrations() {
               03 // WEBMCP AGENT STAGING
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[var(--text)] text-balance">
-              An agent that proposes edits—and waits for your stamp.
+              An agent that proposes edits and waits for your approval.
             </h2>
             <p className="mt-5 text-[16px] leading-7 text-[var(--text-secondary)]">
               SeqCraft exposes {toolCount} biological tools directly to AI models via WebMCP. Instead of
@@ -93,7 +93,7 @@ export function ProductDemonstrations() {
             Private by Architecture
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[var(--text)] text-balance">
-            Your proprietary sequences stay on your machine.
+            Your sequences stay on your computer.
           </h2>
           <p className="mt-5 text-[16px] sm:text-[17px] leading-7 text-[var(--text-secondary)] max-w-2xl mx-auto">
             Raw sequences are parsed in background web workers and stored in your browser&apos;s
@@ -104,23 +104,23 @@ export function ProductDemonstrations() {
           <div className="mt-10 grid sm:grid-cols-3 gap-4 text-left font-mono text-[12px]">
             <div className="p-4 border border-[var(--border)] rounded bg-[var(--bg)]">
               <div className="text-[var(--accent)] font-bold text-[18px] mb-1">0 bytes</div>
-              <div className="text-[var(--text)] font-semibold mb-1">Network Transmission</div>
+              <div className="text-[var(--text)] font-semibold mb-1">Network Uploads</div>
               <div className="text-[var(--text-muted)] text-[11px] leading-5">
-                FASTA and GenBank parsing execute entirely in browser workers.
+                FASTA and GenBank parsing runs entirely inside your browser.
               </div>
             </div>
             <div className="p-4 border border-[var(--border)] rounded bg-[var(--bg)]">
-              <div className="text-[var(--accent)] font-bold text-[18px] mb-1">100M+ bp</div>
-              <div className="text-[var(--text)] font-semibold mb-1">OPFS Chunking</div>
+              <div className="text-[var(--accent)] font-bold text-[18px] mb-1">Local Storage</div>
+              <div className="text-[var(--text)] font-semibold mb-1">Browser Filesystem</div>
               <div className="text-[var(--text-muted)] text-[11px] leading-5">
-                Handle bacterial and fungal genomes with sub-millisecond scrolling.
+                Sequences save directly to your browser without cloud storage limits.
               </div>
             </div>
             <div className="p-4 border border-[var(--border)] rounded bg-[var(--bg)]">
-              <div className="text-[var(--accent)] font-bold text-[18px] mb-1">Zero AI Leak</div>
-              <div className="text-[var(--text)] font-semibold mb-1">Local Sandboxing</div>
+              <div className="text-[var(--accent)] font-bold text-[18px] mb-1">Scoped Access</div>
+              <div className="text-[var(--text)] font-semibold mb-1">Local Agent Runs</div>
               <div className="text-[var(--text-muted)] text-[11px] leading-5">
-                Models receive only the explicit coordinates and loci you stage.
+                Agents only see the exact regions and coordinates you select.
               </div>
             </div>
           </div>

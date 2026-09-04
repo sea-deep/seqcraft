@@ -92,7 +92,7 @@ export function AuthPage() {
           <SeqCraftLogo size={24} /> SeqCraft
         </Link>
         <div className="max-w-xl">
-          <p className="font-mono text-[12px] tracking-[0.16em] uppercase text-[var(--accent)] mb-5">Local scientific data plane</p>
+          <p className="font-mono text-[12px] tracking-[0.16em] uppercase text-[var(--accent)] mb-5">Local workspace</p>
           <h2 className="text-4xl xl:text-5xl font-semibold tracking-[-0.035em] leading-[1.08] mb-6">
             Your sequence stays here. Your workspace travels with you.
           </h2>
@@ -100,12 +100,12 @@ export function AuthPage() {
             Accounts sync preferences and sequence-free project metadata. Raw bases, files, selections, and derived constructs remain in browser storage.
           </p>
           <div className="grid gap-3 mt-9 text-[14px]">
-            {['Raw sequence bytes never enter MongoDB', 'Scientific analysis remains deterministic and local', 'Agent changes require human approval'].map(item => (
+            {['Sequences stay in your browser', 'Calculations run locally on your machine', 'Agent edits require your approval'].map(item => (
               <div key={item} className="flex items-center gap-3"><Check size={16} className="text-[var(--success)]" />{item}</div>
             ))}
           </div>
         </div>
-        <div className="font-mono text-[11px] text-[var(--text-muted)]">Standard 1-based biological coordinates in UI · Zero sequence cloud exposure</div>
+        <div className="font-mono text-[11px] text-[var(--text-muted)]">1-based biological coordinates · Local sequence storage</div>
       </section>
 
       <main className="flex items-center justify-center px-6 py-12 bg-[var(--panel)]">
@@ -115,7 +115,7 @@ export function AuthPage() {
             <div className="size-10 rounded-md bg-[var(--accent-soft)] text-[var(--accent)] grid place-items-center"><LockKeyhole size={19} /></div>
             <div>
               <h1 className="text-xl font-semibold tracking-[-0.015em]">{mode === 'sign-in' ? 'Sign in to SeqCraft' : 'Create your account'}</h1>
-              <p className="text-[13px] text-[var(--text-muted)]">Cloud identity, local sequences.</p>
+              <p className="text-[13px] text-[var(--text-muted)]">Sign in to sync your project settings.</p>
             </div>
           </div>
 

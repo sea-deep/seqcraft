@@ -2,8 +2,8 @@
 
 SeqCraft is a browser-native DNA engineering workbench with deterministic sequence analysis and a structured WebMCP interface that lets browser agents inspect, analyze, navigate, and propose changes to the same molecular model a human is working on.
 
-[![Tests](https://img.shields.io/badge/tests-418%20passed-brightgreen.svg)](test)
-[![Test Suites](https://img.shields.io/badge/test%20suites-67%20passed-brightgreen.svg)](test)
+[![Tests](https://img.shields.io/badge/tests-427%20passed-brightgreen.svg)](test)
+[![Test Suites](https://img.shields.io/badge/test%20suites-68%20passed-brightgreen.svg)](test)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](tsconfig.json)
 [![WebMCP](https://img.shields.io/badge/WebMCP-57%20tools-teal.svg)](src/webmcp/registry.ts)
 [![Frontend](https://img.shields.io/badge/live%20app-Render-0F766E.svg)](https://seqcraft.onrender.com)
@@ -23,7 +23,23 @@ SeqCraft is a browser-native DNA engineering workbench with deterministic sequen
 * **Bio-CAD Interoperability**: Full export to NCBI GenBank flat-file format (`LOCUS`, `FEATURES`, `join()`, `complement()`, and grouped `ORIGIN` lines) for seamless import into Benchling and SnapGene, alongside FASTA and native `.seqcraft` JSON.
 * **In-Place Mutation History & Undo/Redo**: 50-step snapshot sequence transaction stack with global keyboard shortcuts (`Ctrl/Cmd+Z`, `Ctrl/Cmd+Y`, `Ctrl/Cmd+Shift+Z`) and programmatic WebMCP tools (`seqcraft_undo`, `seqcraft_redo`).
 * **Local-First Privacy Architecture**: All raw sequence bytes, annotations, and derived constructs remain strictly inside the browser runtime (IndexedDB and OPFS). The cloud control plane receives only sequence-free metadata descriptors.
-* **Complete WebMCP Semantic Actuation Surface**: 50 structured tools registered via `window.document.modelContext` across 12 biological modules with explicit mutation risk classification (`EffectClass`) and revision-locked pre-commit sequence transactions.
+* **Complete WebMCP Semantic Actuation Surface**: 57 structured tools registered via `window.document.modelContext` across 12 biological modules with explicit mutation risk classification (`EffectClass`) and revision-locked pre-commit sequence transactions.
+
+---
+
+## Screenshots
+
+### Circular Plasmid Map (pBR322)
+![Circular Plasmid Map](docs/assets/pbr322-circular-map.png)
+
+### WebMCP Agent Run & Transaction Approval
+![WebMCP Agent Run](docs/assets/agent-run-transaction-approval.png)
+
+### Restriction Digest & Opentrons Export
+![Restriction Digest](docs/assets/restriction-digest-analysis.png)
+
+### CRISPR Guide Designer & MMEJ Scoring
+![CRISPR Designer](docs/assets/crispr-mmej-scanner.png)
 
 ---
 
@@ -39,7 +55,7 @@ Instead of clicking pixels or parsing screen text, an agent calls typed, develop
 
 ## WebMCP Integration
 
-SeqCraft exposes 50 structured tools through the emerging WebMCP browser standard across 12 biological actuation families. Tools declare typed input schemas, execution constraints, and behavioral annotations (`readOnlyHint`, `untrustedContentHint`).
+SeqCraft exposes 57 structured tools through the emerging WebMCP browser standard across 12 biological actuation families. Tools declare typed input schemas, execution constraints, and behavioral annotations (`readOnlyHint`, `untrustedContentHint`).
 
 ### Example Agent Trajectory
 
@@ -129,9 +145,9 @@ Stale transaction: Sequence changed after this proposal was analysed. Re-analysi
 
 ---
 
-## WebMCP Tool Reference (50 Tools)
+## WebMCP Tool Reference (57 Tools)
 
-SeqCraft registers 50 tools via `window.document.modelContext.registerTool` organized across 12 domain modules:
+SeqCraft registers 57 tools via `window.document.modelContext.registerTool` organized across 12 domain modules:
 
 ### 1. Context & Capabilities
 | Tool Name | EffectClass | Description |
@@ -373,7 +389,7 @@ SeqCraft registers tools via `window.document.modelContext`.
 await window.__SEQCRAFT_WEBMCP__.status();
 // Returns: { available: true, registered: true, secureContext: true, modelContextAvailable: true }
 
-// List all 50 registered SeqCraft tools and schemas
+// List all 57 registered SeqCraft tools and schemas
 await window.__SEQCRAFT_WEBMCP__.listTools();
 
 // Or access document.modelContext directly
@@ -385,7 +401,7 @@ await document.modelContext.getTools();
 ## Development
 
 ```bash
-# Run unit and integration tests (64 test files, 389 tests)
+# Run unit and integration tests (68 test files, 427 tests)
 npm test
 
 # Build client and server bundles
@@ -421,7 +437,7 @@ seqcraft/
 │   │   ├── restriction-enzymes.ts   # 80+ enzymes: Type II, Type IIS, rare cutters
 │   │   └── known-features.ts        # 50+ curated biological parts library
 │   ├── export/           # Serializers: FASTA, native .seqcraft, and NCBI GenBank (.gb)
-│   ├── webmcp/           # 50 WebMCP tools organized across 12 domain modules
+│   ├── webmcp/           # 57 WebMCP tools organized across 12 domain modules
 │   │   ├── tools/        # context, workspace, documents, features, primers, cloning,
 │   │   │                 # sequence, analysis, history, io, automation, batch
 │   │   ├── registry.ts   # Central tool registration, execution, and provenance logging
@@ -441,7 +457,7 @@ seqcraft/
 │   ├── FEATURES.md       # Functional scope & scientific contracts
 │   ├── DESIGN.md         # Design system, tokens, and UX guidelines
 │   └── IMPLEMENTATION.md # Architecture, state flow, and coordinate models
-├── test/                 # Test suite (64 test files, 389 tests)
+├── test/                 # Test suite (68 test files, 427 tests)
 ├── SECURITY.md           # Data boundary & disclosure policy
 └── package.json          # Dependencies and scripts
 ```

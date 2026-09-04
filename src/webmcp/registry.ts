@@ -132,7 +132,11 @@ export async function executeToolInternal(
   } catch (err: any) {
     console.error('[WebMCP Tool Exception]', toolName, err);
     status = 'error';
-    result = createError('INTERNAL_ERROR', err?.message || 'Tool execution threw an uncaught error');
+    result = createError(
+      'INTERNAL_ERROR',
+      err?.message || 'Tool execution threw an uncaught error',
+      'Inspect tool arguments against the published schema using seqcraft_get_capabilities, or verify active workspace state with seqcraft_get_workspace_context.'
+    );
     resultSummary = err?.message || 'Error';
   }
 

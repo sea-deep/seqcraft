@@ -97,7 +97,11 @@ export const seqcraftEditSequenceTool: SeqCraftToolDefinition = {
       : ctx.workspace.documents.find(d => d.id === ctx.workspace.activeDocumentId);
 
     if (!doc) {
-      return createError(input.documentId ? 'DOCUMENT_NOT_FOUND' : 'NO_ACTIVE_DOCUMENT', 'Target document not found for sequence editing.');
+      return createError(
+        input.documentId ? 'DOCUMENT_NOT_FOUND' : 'NO_ACTIVE_DOCUMENT',
+        'Target document not found for sequence editing.',
+        'Use seqcraft_list_documents to find open document IDs, or import a sequence first.'
+      );
     }
 
     const rawSeq = doc.sequence ? getMemorySequence(doc).raw : '';
@@ -226,11 +230,19 @@ export const seqcraftReverseComplementRegionTool: SeqCraftToolDefinition = {
       : ctx.workspace.documents.find(d => d.id === ctx.workspace.activeDocumentId);
 
     if (!doc) {
-      return createError(input.documentId ? 'DOCUMENT_NOT_FOUND' : 'NO_ACTIVE_DOCUMENT', 'Document not found.');
+      return createError(
+        input.documentId ? 'DOCUMENT_NOT_FOUND' : 'NO_ACTIVE_DOCUMENT',
+        'Document not found.',
+        'Use seqcraft_list_documents to find open document IDs, or import a sequence first.'
+      );
     }
 
     if (ctx.activity.pendingTransaction) {
-      return createError('HUMAN_APPROVAL_REQUIRED', 'A sequence transaction is already pending human approval. Commit or reject it before staging another sequence mutation.');
+      return createError(
+        'HUMAN_APPROVAL_REQUIRED',
+        'A sequence transaction is already pending human approval. Commit or reject it before staging another sequence mutation.',
+        'Wait for human approval in the UI, or check transaction status with seqcraft_get_transaction_status.'
+      );
     }
 
     const rawSeq = doc.sequence ? getMemorySequence(doc).raw : '';
@@ -314,11 +326,19 @@ export const seqcraftRotateOriginTool: SeqCraftToolDefinition = {
       : ctx.workspace.documents.find(d => d.id === ctx.workspace.activeDocumentId);
 
     if (!doc) {
-      return createError(input.documentId ? 'DOCUMENT_NOT_FOUND' : 'NO_ACTIVE_DOCUMENT', 'Target document not found.');
+      return createError(
+        input.documentId ? 'DOCUMENT_NOT_FOUND' : 'NO_ACTIVE_DOCUMENT',
+        'Target document not found.',
+        'Use seqcraft_list_documents to find open document IDs, or import a sequence first.'
+      );
     }
 
     if (ctx.activity.pendingTransaction) {
-      return createError('HUMAN_APPROVAL_REQUIRED', 'A sequence transaction is already pending human approval. Commit or reject it before staging another sequence mutation.');
+      return createError(
+        'HUMAN_APPROVAL_REQUIRED',
+        'A sequence transaction is already pending human approval. Commit or reject it before staging another sequence mutation.',
+        'Wait for human approval in the UI, or check transaction status with seqcraft_get_transaction_status.'
+      );
     }
 
     if (doc.topology !== 'circular') {

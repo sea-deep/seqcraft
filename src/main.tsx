@@ -19,6 +19,21 @@ if (typeof window !== 'undefined') {
   window.addEventListener('vite:preloadError', () => {
     window.location.reload();
   });
+
+  (window as any).__SEQCRAFT_WEBMCP__ = {
+    status: async () => ({
+      available: true,
+      registered: true,
+      secureContext: window.isSecureContext,
+      modelContextAvailable: Boolean((document as any).modelContext)
+    }),
+    listTools: async () => {
+      if ((document as any).modelContext) {
+        return await (document as any).modelContext.getTools();
+      }
+      return [];
+    }
+  };
 }
 
 import { StrictMode } from 'react'

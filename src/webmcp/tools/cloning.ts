@@ -150,7 +150,7 @@ export const seqcraftShowRestrictionSiteTool: SeqCraftToolDefinition = {
       : ctx.workspace.documents.find(d => d.id === ctx.workspace.activeDocumentId);
 
     if (!doc) {
-      return createError('NO_ACTIVE_DOCUMENT', 'Target document not found.');
+      return createError('NO_ACTIVE_DOCUMENT', 'Target document not found.', 'Use seqcraft_list_documents to inspect available documents.');
     }
 
     const enzymeQuery = input.enzymeName || (input as any).enzyme;
@@ -585,7 +585,11 @@ export const seqcraftStageDomesticationCandidateTool: SeqCraftToolDefinition = {
 
     // Stale check: revision or hash mismatch
     if (doc.version !== candidate.baseRevision || currentHash !== candidate.baseSequenceHash) {
-      return createError('STALE_CANDIDATE', `Candidate is stale. Document was modified (v${candidate.baseRevision} -> v${doc.version}). Please re-run seqcraft_domesticate_sequence.`);
+      return createError(
+        'STALE_CANDIDATE',
+        `Candidate is stale. Document was modified (v${candidate.baseRevision} -> v${doc.version}).`,
+        'Re-run the analysis against the current revision.'
+      );
     }
 
     const domainAction: SequenceEditAction = {

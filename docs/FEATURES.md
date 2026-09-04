@@ -11,7 +11,7 @@ SeqCraft is a hybrid local-first application:
 - Raw nucleotide/amino-acid sequence bytes, imported files, derived constructs, and base-level selections remain in browser-owned storage and memory.
 - A Node.js API may store identity, profile, project metadata, preferences, redacted agent activity, and document descriptors that contain no sequence content.
 - MongoDB Atlas is metadata-only. Sequence text, sequence chunks, file blobs, feature qualifier values that may contain sequence, and analysis payloads derived closely enough to reconstruct a sequence are forbidden.
-- Authentication is optional for the deterministic demo and local scientific workspace. Accounts unlock cross-device preferences and metadata sync; they are not a prerequisite for judging or basic use.
+- Authentication is optional for the local scientific workspace. Accounts unlock cross-device preferences and metadata sync; they are not a prerequisite for local analysis or basic use.
 - Google sign-in is supported when server credentials are configured. Missing secrets must produce an honest disabled/configuration state, never simulated production auth.
 - Scientific work runs locally by default in deterministic browser workers. Server-side jobs are allowed only for bounded non-sequence work or an explicit future opt-in workflow with a separate privacy review.
 - Every persistent agent-authored scientific change remains staged for human approval.
@@ -284,9 +284,9 @@ Persistent sequence-modifying operations (`sequence_mutation`) stage a `Sequence
 
 ---
 
-## 13. Demo Content
+## 13. Sample Content & Built-In Sequences
 
-Ship with a deterministic demo workspace containing:
+Ship with deterministic sample sequences containing:
 
 - a circular plasmid containing common annotated features
 - a replaceable coding feature such as GFP
@@ -295,7 +295,7 @@ Ship with a deterministic demo workspace containing:
 - example primers
 - at least one construct comparison
 
-The demo data must support the complete headline workflow without external services.
+The sample data supports local offline exploration without external services.
 
 ---
 

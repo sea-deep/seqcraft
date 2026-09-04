@@ -37,11 +37,11 @@ describe('WorkspaceCenter View Switching', () => {
     expect(screen.getByRole('tab', { name: 'Map' }).getAttribute('aria-selected')).toBe('true');
   });
 
-  it('offers explicit import and demo paths when no document is loaded', () => {
+  it('offers clean import path when no document is loaded', () => {
     useWorkspaceStore.setState({ documents: [], activeDocumentId: null, openDocumentIds: [] });
     render(<WorkspaceCenter />);
 
     expect(screen.getByRole('button', { name: 'Import sequence' })).toBeDefined();
-    expect(screen.getByRole('button', { name: 'Open demo workspace' })).toBeDefined();
+    expect(screen.queryByRole('button', { name: 'Open demo workspace' })).toBeNull();
   });
 });

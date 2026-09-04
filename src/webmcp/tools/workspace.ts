@@ -174,7 +174,7 @@ export const seqcraftSelectFeatureTool: SeqCraftToolDefinition = {
       : ctx.workspace.documents.find(d => d.id === ctx.workspace.activeDocumentId);
 
     if (!doc) {
-      return createError('NO_ACTIVE_DOCUMENT', 'No active document available.');
+      return createError('NO_ACTIVE_DOCUMENT', 'No active document available.', 'Import or open a sequence document first.');
     }
 
     const feat = doc.features.find(f => f.id === input.featureId);
@@ -261,7 +261,7 @@ export const seqcraftFocusRegionTool: SeqCraftToolDefinition = {
       : ctx.workspace.documents.find(d => d.id === ctx.workspace.activeDocumentId);
 
     if (!doc) {
-      return createError('NO_ACTIVE_DOCUMENT', 'No active document to focus.');
+      return createError('NO_ACTIVE_DOCUMENT', 'No active document to focus.', 'Import or open a sequence document first.');
     }
 
     const prefView = input.preferredView || (input as any).view;

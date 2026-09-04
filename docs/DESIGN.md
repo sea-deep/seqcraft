@@ -584,8 +584,8 @@ Good:
 
 ```text
 No sequence loaded
-Import FASTA/GenBank or open the demo plasmid.
-[Import] [Open demo]
+Import a GenBank/FASTA file or fetch an accession from NCBI.
+[Import sequence]
 ```
 
 Bad:

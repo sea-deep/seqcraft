@@ -15,7 +15,7 @@ describe('GenomicHero Component', () => {
 
     expect(screen.getByText(/Design DNA without losing sight of a single base/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Launch SeqCraft/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Open pUC19 demo/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Explore pUC19/i })).toBeInTheDocument();
 
     // STRICT ZERO-GRADIENT CONTRACT VERIFICATION
     const html = container.innerHTML;

@@ -36,7 +36,7 @@ SeqCraft must be:
 ## Scientific engine
 
 - The exact hardened npm release of **`nucleotide-sequence`**
-- Pin/lock the released version used for the hackathon
+- Pin/lock the released version in production
 - Consume the package normally from npm; do not import its repository source
 - Do not add SeqCraft product concepts back into that package
 

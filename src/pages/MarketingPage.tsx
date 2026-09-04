@@ -57,10 +57,22 @@ export function MarketingPage() {
         <ProductDemonstrations />
       </main>
 
-      {/* Clean Minimalist Footer */}
-      <footer className="max-w-7xl mx-auto px-6 py-12 text-[12px] text-[var(--text-muted)] flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-[var(--border)]">
-        <span>© {new Date().getFullYear()} SeqCraft. Professional DNA engineering in the browser.</span>
-        <span className="font-mono text-[11px]">100% in-browser OPFS storage · Optional cloud identity</span>
+      {/* Footer */}
+      <footer className="max-w-7xl mx-auto px-6 py-8 text-[13px] text-[var(--text-muted)] flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-[var(--border)]">
+        <span>© {new Date().getFullYear()} SeqCraft</span>
+        <div className="flex items-center gap-6">
+          <Link to="/docs" className="hover:text-[var(--text)] transition-colors">
+            Documentation
+          </Link>
+          <a
+            href="https://github.com/sea-deep/seqcraft"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[var(--text)] transition-colors"
+          >
+            GitHub
+          </a>
+        </div>
       </footer>
     </div>
   );

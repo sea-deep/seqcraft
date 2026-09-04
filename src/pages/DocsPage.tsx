@@ -1,768 +1,382 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Copy, Check } from 'lucide-react';
-import { SeqCraftLogo } from '../components/ui/SeqCraftLogo';
+import { ArrowLeft, Check, Copy, Search } from 'lucide-react';
 import { AccountMenu } from '../components/account/AccountMenu';
+import { SeqCraftLogo } from '../components/ui/SeqCraftLogo';
+import { BUILTIN_ENZYMES } from '../data/restriction-enzymes';
+import { CAS_NUCLEASES } from '../domain/crispr';
+import { REGULATED_AGENTS } from '../scientific/biosecurity';
 import { useAuthenticatedUser } from '../platform/use-authenticated-user';
-import { useWebMCPToolCount } from '../webmcp/use-webmcp-status';
+import { ALL_SEQCRAFT_TOOLS } from '../webmcp/registry';
+import type { EffectClass, SeqCraftToolDefinition } from '../webmcp/types';
 
 interface SectionLink {
   id: string;
   title: string;
 }
 
+interface ToolReferenceRow {
+  tool: SeqCraftToolDefinition;
+  aliases: string[];
+}
+
 const SECTIONS: SectionLink[] = [
-  { id: 'coordinates', title: '1. Coordinates and Topology' },
-  { id: 'enzymology', title: '2. Restriction Enzymes' },
-  { id: 'thermodynamics', title: '3. Melting Temperature and PCR' },
+  { id: 'coordinates', title: '1. Coordinates and topology' },
+  { id: 'restriction', title: '2. Restriction and digestion' },
+  { id: 'primers', title: '3. Primers and PCR' },
   { id: 'translation', title: '4. Translation and ORFs' },
-  { id: 'golden-gate', title: '5. Golden Gate Assembly' },
+  { id: 'golden-gate', title: '5. Golden Gate' },
   { id: 'crispr', title: '6. CRISPR and MMEJ' },
-  { id: 'opentrons', title: '7. Opentrons Protocol Export' },
-  { id: 'biosecurity', title: '8. Biosecurity Motif Check' },
-  { id: 'storage', title: '9. Storage and Worker Model' },
-  { id: 'webmcp', title: '10. WebMCP Tool Reference' },
-  { id: 'api', title: '11. Programmatic API' },
+  { id: 'opentrons', title: '7. Opentrons export' },
+  { id: 'biosecurity', title: '8. Biosecurity screen' },
+  { id: 'storage', title: '9. Storage and privacy' },
+  { id: 'boundaries', title: '10. Model boundaries' },
+  { id: 'webmcp', title: '11. WebMCP reference' },
+  { id: 'api', title: '12. Programmatic API' },
 ];
+
+const EFFECT_LABELS: Record<EffectClass, string> = {
+  read: 'Read',
+  navigation: 'Navigation',
+  workspace_ephemeral: 'Workspace state',
+  document_metadata: 'Metadata',
+  annotation_mutation: 'Annotations',
+  sequence_mutation: 'Sequence',
+  document_destructive: 'Destructive',
+  export: 'Export',
+};
+
+const REVIEWED_TOOL_NAMES = new Set([
+  'seqcraft_edit_sequence',
+  'seqcraft_reverse_complement_region',
+  'seqcraft_rotate_origin',
+  'seqcraft_copy_region_between_documents',
+  'seqcraft_stage_domestication_candidate',
+  'seqcraft_restore_revision',
+  'seqcraft_prepare_restriction_clone',
+]);
+
+const TOOL_REFERENCE_ROWS = ALL_SEQCRAFT_TOOLS.reduce<ToolReferenceRow[]>((rows, tool) => {
+  const canonical = rows.find(row => row.tool.execute === tool.execute);
+  if (canonical) {
+    canonical.aliases.push(tool.name);
+  } else {
+    rows.push({ tool, aliases: [] });
+  }
+  return rows;
+}, []).sort((a, b) => a.tool.name.localeCompare(b.tool.name));
+
+const API_EXAMPLE = `import { Seq, Translation } from 'nucleotide-sequence';
+
+const dna = new Seq('DNA').read('ATGGGTCTCTAA');
+const reverseComplement = dna.reverseComplement();
+const protein = Translation.translate(dna, 1);
+const orfs = Translation.findOpenReadingFrames(dna, 10);`;
+
+function executionLabel(tool: SeqCraftToolDefinition): string {
+  if (REVIEWED_TOOL_NAMES.has(tool.name)) return 'Human review';
+  if (tool.name === 'seqcraft_execute_actions') return 'Depends on actions';
+  if (tool.effectClass === 'read') return 'Read only';
+  if (tool.effectClass === 'navigation' || tool.effectClass === 'workspace_ephemeral') return 'Immediate UI state';
+  if (tool.effectClass === 'export') return 'Returns artifact';
+  if (tool.effectClass === 'document_destructive') return 'Explicit confirmation';
+  return 'Immediate local change';
+}
+
+function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section id={id} className="scroll-mt-24 border-t border-[var(--border)] pt-8 first:border-t-0 first:pt-0">
+      <h2 className="text-[22px] font-semibold tracking-tight text-[var(--text)]">{title}</h2>
+      <div className="mt-4 space-y-4 text-[14px] leading-7 text-[var(--text-muted)]">{children}</div>
+    </section>
+  );
+}
+
+function Callout({ title, children, tone = 'neutral' }: { title: string; children: ReactNode; tone?: 'neutral' | 'warning' }) {
+  return (
+    <div className={`rounded-lg border p-4 ${tone === 'warning' ? 'border-amber-500/30 bg-amber-500/10' : 'border-[var(--border)] bg-[var(--panel-muted)]'}`}>
+      <h3 className="text-[13px] font-semibold text-[var(--text)]">{title}</h3>
+      <div className="mt-1 text-[13px] leading-6">{children}</div>
+    </div>
+  );
+}
+
+function Metric({ value, label }: { value: string | number; label: string }) {
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-4">
+      <div className="font-mono text-[22px] font-semibold text-[var(--accent)]">{value}</div>
+      <div className="mt-1 text-[12px] leading-5 text-[var(--text-muted)]">{label}</div>
+    </div>
+  );
+}
+
+function CodeBlock({ id, code, copiedId, onCopy }: { id: string; code: string; copiedId: string | null; onCopy: (id: string, code: string) => void }) {
+  const copied = copiedId === id;
+  return (
+    <div className="relative overflow-hidden rounded-lg border border-[var(--border)] bg-[#091612]">
+      <button
+        type="button"
+        onClick={() => onCopy(id, code)}
+        className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded border border-white/15 bg-white/5 px-2 py-1 text-[11px] text-white/70 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        aria-label={copied ? 'Copied code' : 'Copy code'}
+      >
+        {copied ? <Check size={12} /> : <Copy size={12} />}
+        {copied ? 'Copied' : 'Copy'}
+      </button>
+      <pre className="overflow-x-auto p-4 pr-20 text-[12px] leading-6 text-[#b8e3d4]"><code>{code}</code></pre>
+    </div>
+  );
+}
 
 export function DocsPage() {
   const auth = useAuthenticatedUser();
-  const toolCount = useWebMCPToolCount();
-  const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
+  const configuredToolCount = ALL_SEQCRAFT_TOOLS.length;
+  const [activeSection, setActiveSection] = useState(SECTIONS[0].id);
+  const [toolQuery, setToolQuery] = useState('');
+  const [effectFilter, setEffectFilter] = useState<'all' | EffectClass>('all');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copyStatus, setCopyStatus] = useState('');
 
-  const scrollToSection = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return;
+    const sections = SECTIONS.map(section => document.getElementById(section.id)).filter((element): element is HTMLElement => Boolean(element));
+    const observer = new IntersectionObserver(
+      entries => {
+        const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (visible?.target.id) setActiveSection(visible.target.id);
+      },
+      { rootMargin: '-96px 0px -65% 0px', threshold: [0, 1] },
+    );
+    sections.forEach(section => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
+
+  const filteredTools = useMemo(() => {
+    const query = toolQuery.trim().toLowerCase();
+    return TOOL_REFERENCE_ROWS.filter(({ tool, aliases }) => {
+      const matchesEffect = effectFilter === 'all' || tool.effectClass === effectFilter;
+      const searchText = `${tool.name} ${tool.title} ${tool.description} ${aliases.join(' ')}`.toLowerCase();
+      return matchesEffect && (!query || searchText.includes(query));
+    });
+  }, [effectFilter, toolQuery]);
+
+  async function copyCode(id: string, code: string) {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedId(id);
+      setCopyStatus('Code copied to clipboard.');
+      window.setTimeout(() => {
+        setCopiedId(null);
+        setCopyStatus('');
+      }, 1800);
+    } catch {
+      setCopyStatus('Clipboard access was unavailable. Select the code and copy it manually.');
     }
-  };
-
-  const copyToClipboard = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedSnippet(id);
-    setTimeout(() => setCopiedSnippet(null), 2000);
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans flex flex-col selection:bg-[var(--accent)] selection:text-[var(--accent-foreground)]">
-      {/* Top Bar */}
-      <nav className="flex items-center justify-between px-6 py-3 border-b border-[var(--border)] bg-[var(--panel)] sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="size-7 rounded bg-[var(--accent)] flex items-center justify-center">
-            <SeqCraftLogo size={18} />
-          </div>
-          <span className="font-semibold text-[15px] tracking-tight text-[var(--text)]">SeqCraft Documentation</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            to="/dashboard"
-            className="text-[13px] font-medium flex items-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
-          >
-            <ArrowLeft size={15} /> Workspace
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] selection:bg-[var(--accent)] selection:text-[var(--accent-foreground)]">
+      <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--panel)]/95 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-[1440px] items-center justify-between px-8">
+          <Link to="/" className="flex items-center gap-3 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+            <span className="grid size-8 place-items-center rounded-md bg-[var(--accent)]"><SeqCraftLogo size={19} /></span>
+            <span className="text-[15px] font-semibold tracking-tight">SeqCraft technical reference</span>
           </Link>
-          {auth.user ? (
-            <AccountMenu user={auth.user} />
-          ) : auth.status === 'checking' ? (
-            <div
-              className="size-7 animate-pulse rounded-full border border-[var(--border)] bg-[var(--panel-muted)]"
-              aria-label="Checking account"
-            />
-          ) : null}
-        </div>
-      </nav>
-
-      {/* Main Layout */}
-      <div className="max-w-6xl mx-auto w-full px-6 py-10 grid lg:grid-cols-[220px_1fr] gap-12">
-        {/* Functional Sidebar Navigation */}
-        <aside className="hidden lg:block">
-          <div className="sticky top-20 space-y-3 text-[13px]">
-            <div className="font-mono text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-semibold">
-              Contents
-            </div>
-            <nav className="space-y-1 border-l border-[var(--border)] pl-3">
-              {SECTIONS.map(s => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => scrollToSection(s.id)}
-                  className="block text-left w-full py-1 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors cursor-pointer text-[12px]"
-                >
-                  {s.title}
-                </button>
-              ))}
-            </nav>
+          <div className="flex items-center gap-4">
+            <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--text-muted)] hover:text-[var(--text)]">
+              <ArrowLeft size={15} /> Workspace
+            </Link>
+            {auth.user ? (
+              <AccountMenu user={auth.user} size="compact" />
+            ) : auth.status === 'checking' ? (
+              <div className="size-7 animate-pulse rounded-full border border-[var(--border)] bg-[var(--panel-muted)]" aria-label="Checking account" />
+            ) : null}
           </div>
+        </div>
+      </header>
+
+      <main className="mx-auto grid w-full max-w-[1440px] grid-cols-[230px_minmax(0,1fr)] gap-12 px-8 py-10">
+        <aside aria-label="Documentation contents">
+          <nav className="sticky top-24">
+            <p className="mb-3 font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">Contents</p>
+            <ol className="space-y-0.5">
+              {SECTIONS.map(section => (
+                <li key={section.id}>
+                  <a
+                    href={`#${section.id}`}
+                    aria-current={activeSection === section.id ? 'location' : undefined}
+                    className={`block rounded-md px-3 py-1.5 text-[12px] leading-5 transition-colors ${activeSection === section.id ? 'bg-[var(--accent-soft)] font-medium text-[var(--accent)]' : 'text-[var(--text-muted)] hover:bg-[var(--panel-muted)] hover:text-[var(--text)]'}`}
+                  >
+                    {section.title}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
         </aside>
 
-        {/* Content Stream */}
-        <main className="min-w-0 space-y-12 pb-24 text-[14px] leading-6 text-[var(--text-secondary)]">
-          <header className="border-b border-[var(--border)] pb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text)]">
-              SeqCraft Reference Manual
-            </h1>
-            <p className="mt-2 text-[14px] text-[var(--text-muted)]">
-              Technical specification of coordinates, biophysical models, assembly algorithms, storage layers, and WebMCP tool schemas.
+        <article className="min-w-0 max-w-[980px] pb-20">
+          <div className="mb-10 border-b border-[var(--border)] pb-9">
+            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">Implementation-backed documentation</p>
+            <h1 className="mt-3 max-w-3xl text-[38px] font-semibold leading-[1.12] tracking-[-0.035em]">What SeqCraft computes, stores, and asks a human to approve.</h1>
+            <p className="mt-4 max-w-3xl text-[15px] leading-7 text-[var(--text-muted)]">
+              A precise reference for coordinate conventions, scientific models, local-data boundaries, and every registered agent tool. Where SeqCraft uses a heuristic instead of a physical model, that boundary is stated explicitly.
             </p>
-          </header>
-
-          {/* Section 1: Coordinates and Topology */}
-          <section id="coordinates" className="scroll-mt-20 space-y-4">
-            <h2 className="text-lg font-bold text-[var(--text)] tracking-tight">
-              1. Coordinates and Topology
-            </h2>
-            <p>
-              SeqCraft enforces a strict separation between internal calculation coordinates and biological user-facing coordinates.
-            </p>
-
-            <div className="overflow-x-auto border border-[var(--border)] rounded">
-              <table className="w-full text-left font-mono text-[12px]">
-                <thead className="bg-[var(--panel-muted)] text-[var(--text)] border-b border-[var(--border)]">
-                  <tr>
-                    <th className="p-2.5">Context</th>
-                    <th className="p-2.5">Interval Schema</th>
-                    <th className="p-2.5">Index Base</th>
-                    <th className="p-2.5">Length Formula</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border)] bg-[var(--panel)]">
-                  <tr>
-                    <td className="p-2.5 font-semibold text-[var(--text)]">Internal engine</td>
-                    <td className="p-2.5 text-[var(--accent)]">[start0, end0Exclusive)</td>
-                    <td className="p-2.5">0-based half-open</td>
-                    <td className="p-2.5">end0Exclusive - start0</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 font-semibold text-[var(--text)]">UI & WebMCP tools</td>
-                    <td className="p-2.5 text-[var(--accent)]">[start1, end1]</td>
-                    <td className="p-2.5">1-based closed</td>
-                    <td className="p-2.5">end1 - start1 + 1</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div className="mt-7 grid grid-cols-4 gap-3">
+              <Metric value={BUILTIN_ENZYMES.length} label="restriction-enzyme definitions" />
+              <Metric value={CAS_NUCLEASES.length} label="CRISPR nuclease models" />
+              <Metric value={configuredToolCount} label="WebMCP tool identifiers" />
+              <Metric value="Local" label="sequence-data boundary" />
             </div>
+          </div>
 
-            <h3 className="font-semibold text-[var(--text)] text-[14px] pt-1">Origin-Spanning Features in Circular DNA</h3>
-            <p>
-              For circular molecules of length <code className="font-mono text-[12px]">L</code>, when an annotation crosses the index boundary (<code className="font-mono text-[12px]">start0 &gt; end0Exclusive</code>), it is partitioned into two distinct linear segments:
-            </p>
-            <div className="p-3 border border-[var(--border)] rounded bg-[var(--panel)] font-mono text-[12px] text-[var(--text)]">
-              Segment 1: [start0, L)<br />
-              Segment 2: [0, end0Exclusive)<br />
-              Total Length = (L - start0) + end0Exclusive
-            </div>
+          <div className="space-y-12">
+            <Section id="coordinates" title="1. Coordinates and topology">
+              <p>SeqCraft stores every interval as zero-based, half-open <code className="font-mono text-[var(--text)]">[start0, end0Exclusive)</code>. The interface and agent-facing range arguments use one-based, inclusive coordinates. Conversion happens only at the boundary: <code className="font-mono text-[var(--text)]">start0 = start1 - 1</code> and <code className="font-mono text-[var(--text)]">end0Exclusive = end1</code>.</p>
+              <Callout title="Circular origin rule">
+                On a circular construct of length L, zero and L identify the same physical boundary. A wrapped interval is represented and operated on as two linear segments; it must not be silently reordered into a non-wrapping interval. Rotation, replacement, deletion, and feature remapping use this convention.
+              </Callout>
+              <p>Linear constructs reject inverted or out-of-range selections. Circular constructs permit origin-spanning selections. User-visible coordinates remain one-based inclusive in the editor, inspectors, activity log, and WebMCP inputs.</p>
+            </Section>
 
-            <h3 className="font-semibold text-[var(--text)] text-[14px] pt-1">In-Place Mutation Coordinate Shifts</h3>
-            <p>
-              When modifying a sequence in-place, feature coordinates update according to these rules:
-            </p>
-            <ul className="list-disc pl-5 space-y-1 text-[13px]">
-              <li><strong>Insertion at index p of length ΔL:</strong> Features with <code className="font-mono text-[11px]">end0 &lt;= p</code> are unchanged. Features with <code className="font-mono text-[11px]">start0 &gt;= p</code> shift by <code className="font-mono text-[11px]">+ΔL</code>. Features where <code className="font-mono text-[11px]">start0 &lt; p &lt; end0</code> expand by <code className="font-mono text-[11px]">+ΔL</code>.</li>
-              <li><strong>Deletion from p to p + ΔL:</strong> Features completely enclosed within the deleted range are removed. Features partially overlapping are clipped to the new boundary. Features downstream shift by <code className="font-mono text-[11px]">-ΔL</code>.</li>
-              <li><strong>Origin rotation by offset k:</strong> New coordinate is computed as <code className="font-mono text-[11px]">x&apos; = (x - k) mod L</code>. Features crossing the new zero coordinate are split into two segments.</li>
-            </ul>
-          </section>
+            <Section id="restriction" title="2. Restriction and digestion">
+              <p>The built-in registry currently contains <strong className="text-[var(--text)]">{BUILTIN_ENZYMES.length} enzyme definitions</strong>, including Type II and Type IIS geometries. Recognition uses IUPAC-compatible motif matching on both strands. Cut positions and overhang polarity are derived from each registry entry and normalized against linear or circular topology.</p>
+              <Callout title="What the digest predicts" tone="warning">
+                The result is a sequence-geometry simulation, not a reaction-yield model. It does not model buffer compatibility, methylation sensitivity, star activity, partial digestion, incubation time, enzyme concentration, or vendor-specific high-fidelity behavior. Verify the planned reaction against the current supplier protocol.
+              </Callout>
+            </Section>
 
-          {/* Section 2: Restriction Enzymes */}
-          <section id="enzymology" className="scroll-mt-20 space-y-4 border-t border-[var(--border)] pt-8">
-            <h2 className="text-lg font-bold text-[var(--text)] tracking-tight">
-              2. Restriction Enzymes
-            </h2>
-            <p>
-              Recognition sequences are matched against sense and antisense strands using standard IUPAC degenerate base specifications:
-              <code className="font-mono text-[12px] ml-1">R=[A,G], Y=[C,T], S=[G,C], W=[A,T], K=[G,T], M=[A,C], B=[C,G,T], D=[A,G,T], H=[A,C,T], V=[A,C,G], N=[A,C,G,T]</code>.
-            </p>
+            <Section id="primers" title="3. Primers and PCR">
+              <p>Primer properties report length, GC content, molecular weight, and melting temperature. Primers from 14–20 nt use the Wallace estimate; other lengths use a nearest-neighbor estimate with the library defaults. Binding analysis searches both orientations using exact IUPAC-compatible matching.</p>
+              <p>In-silico PCR pairs exact forward and reverse binding loci and supports linear and circular templates. Ambiguous multi-binding configurations are surfaced rather than collapsed into a single confident amplicon.</p>
+              <Callout title="Not a primer-design oracle" tone="warning">
+                SeqCraft does not currently score mismatches, 3′ mismatch severity, hairpins, self- or heterodimers, salt-dependent competition, polymerase choice, extension time, or expected yield. Treat the output as a first-pass sequence check and validate candidate primers with a dedicated thermodynamic tool.
+              </Callout>
+            </Section>
 
-            <div className="overflow-x-auto border border-[var(--border)] rounded">
-              <table className="w-full text-left font-mono text-[12px]">
-                <thead className="bg-[var(--panel-muted)] text-[var(--text)] border-b border-[var(--border)]">
-                  <tr>
-                    <th className="p-2.5">Enzyme</th>
-                    <th className="p-2.5">Class</th>
-                    <th className="p-2.5">Recognition Motif</th>
-                    <th className="p-2.5">Sense Cut</th>
-                    <th className="p-2.5">Antisense Cut</th>
-                    <th className="p-2.5">End Type</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border)] bg-[var(--panel)]">
-                  <tr>
-                    <td className="p-2.5 font-semibold text-[var(--accent)]">EcoRI</td>
-                    <td className="p-2.5">Type II</td>
-                    <td className="p-2.5">5&apos;-G^AATTC-3&apos;</td>
-                    <td className="p-2.5">+1</td>
-                    <td className="p-2.5">+5</td>
-                    <td className="p-2.5 text-[var(--success)]">5&apos; Cohesive (AATT)</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 font-semibold text-[var(--accent)]">BamHI</td>
-                    <td className="p-2.5">Type II</td>
-                    <td className="p-2.5">5&apos;-G^GATCC-3&apos;</td>
-                    <td className="p-2.5">+1</td>
-                    <td className="p-2.5">+5</td>
-                    <td className="p-2.5 text-[var(--success)]">5&apos; Cohesive (GATC)</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 font-semibold text-[var(--accent)]">HindIII</td>
-                    <td className="p-2.5">Type II</td>
-                    <td className="p-2.5">5&apos;-A^AGCTT-3&apos;</td>
-                    <td className="p-2.5">+1</td>
-                    <td className="p-2.5">+5</td>
-                    <td className="p-2.5 text-[var(--success)]">5&apos; Cohesive (AGCT)</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 font-semibold text-[var(--accent)]">PstI</td>
-                    <td className="p-2.5">Type II</td>
-                    <td className="p-2.5">5&apos;-CTGCA^G-3&apos;</td>
-                    <td className="p-2.5">+5</td>
-                    <td className="p-2.5">+1</td>
-                    <td className="p-2.5 text-[var(--warning)]">3&apos; Cohesive (TGCA)</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 font-semibold text-[var(--accent)]">EcoRV</td>
-                    <td className="p-2.5">Type II</td>
-                    <td className="p-2.5">5&apos;-GAT^ATC-3&apos;</td>
-                    <td className="p-2.5">+3</td>
-                    <td className="p-2.5">+3</td>
-                    <td className="p-2.5 text-[var(--text-muted)]">Blunt</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 font-semibold text-[var(--accent)]">BsaI</td>
-                    <td className="p-2.5">Type IIS</td>
-                    <td className="p-2.5">5&apos;-GGTCTC(N1/N5)-3&apos;</td>
-                    <td className="p-2.5">+7</td>
-                    <td className="p-2.5">+11</td>
-                    <td className="p-2.5 text-[var(--bio-promoter)]">5&apos; Cohesive (4nt variable)</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <Section id="translation" title="4. Translation and ORFs">
+              <p>Translation uses NCBI genetic code table 1. ORF search scans all six reading frames with a default minimum of 30 codons and maps reverse-strand results back to the canonical sequence coordinate space. Circular mode extends the search across the origin and de-duplicates equivalent hits.</p>
+              <Callout title="Fixed biological assumptions" tone="warning">
+                Alternative genetic codes and caller-supplied start-codon sets are not implemented. ORFs are computational candidates, not gene calls: promoters, ribosome-binding sites, transcript context, splicing, RNA editing, and expression evidence are outside the model.
+              </Callout>
+            </Section>
 
-            <h3 className="font-semibold text-[var(--text)] text-[14px] pt-1">Cohesive End Ligation Rule</h3>
-            <p>
-              Two fragments are ligatable if their overhangs are exact reverse complements in 5&apos;→3&apos; orientation:
-            </p>
-            <div className="p-3 border border-[var(--border)] rounded bg-[var(--panel)] font-mono text-[12px] text-[var(--text)]">
-              Overhang_A_5&apos; ≡ ReverseComplement(Overhang_B_3&apos;)
-            </div>
-          </section>
+            <Section id="golden-gate" title="5. Golden Gate assembly">
+              <p>Golden Gate planning uses Type IIS cut geometry, exact overhang compatibility, part orientation, and circular-product construction. Domestication searches synonymous coding changes and stages any sequence-changing candidate for review before it can be committed.</p>
+              <p>Reading-frame preservation is checked for declared coding context, but biological function is not inferred. Non-coding regulatory motifs, RNA structure, codon-pair effects, expression-host codon usage, and cryptic sites may still be altered.</p>
+              <Callout title="Physical assembly boundary" tone="warning">
+                Overhang compatibility is necessary but not sufficient for reliable ligation. The planner does not predict overhang fidelity matrices, secondary structure, part concentration, ligase kinetics, re-cutting dynamics, or colony success rate.
+              </Callout>
+            </Section>
 
-          {/* Section 3: Melting Temperature and PCR */}
-          <section id="thermodynamics" className="scroll-mt-20 space-y-4 border-t border-[var(--border)] pt-8">
-            <h2 className="text-lg font-bold text-[var(--text)] tracking-tight">
-              3. Melting Temperature and PCR
-            </h2>
-            <p>
-              Melting temperatures are calculated using the nearest-neighbor thermodynamic parameters from SantaLucia (1998):
-            </p>
-
-            <div className="p-3 border border-[var(--border)] rounded bg-[var(--panel)] font-mono text-[12px] space-y-1.5 text-[var(--text)]">
-              <div>Tm = (ΔH° / (ΔS° + R · ln(Ct / 4))) - 273.15 + 16.6 · log10([Na+])</div>
-              <div className="text-[11px] text-[var(--text-muted)]">
-                ΔH°: enthalpy (kcal/mol) · ΔS°: entropy (cal/mol·K) · R: 1.9872 cal/mol·K · Ct: 250 nM primer · [Na+]: 50 mM salt
+            <Section id="crispr" title="6. CRISPR and MMEJ">
+              <p>The guide scanner uses the following explicit nuclease geometries:</p>
+              <div className="overflow-hidden rounded-lg border border-[var(--border)]">
+                <table className="w-full border-collapse text-left text-[12px]">
+                  <thead className="bg-[var(--panel-muted)] text-[var(--text)]">
+                    <tr><th className="px-3 py-2 font-semibold">Nuclease</th><th className="px-3 py-2 font-semibold">PAM</th><th className="px-3 py-2 font-semibold">PAM side</th><th className="px-3 py-2 font-semibold">Spacer</th><th className="px-3 py-2 font-semibold">Cut</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border)]">
+                    {CAS_NUCLEASES.map(nuclease => (
+                      <tr key={nuclease.id}><td className="px-3 py-2 font-medium text-[var(--text)]">{nuclease.id}</td><td className="px-3 py-2 font-mono">{nuclease.pamMotif}</td><td className="px-3 py-2">{nuclease.pamOrientation}</td><td className="px-3 py-2">{nuclease.spacerLengthBp} nt</td><td className="px-3 py-2">{nuclease.cleavageType}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </div>
+              <p>Guide scores combine sequence-level heuristics such as GC range and homopolymer penalties. MMEJ prediction searches local microhomology around the modeled cut and ranks deletion candidates by tract length and distance.</p>
+              <Callout title="Experimental limits" tone="warning">
+                Guide scores are not genome-wide off-target scores and do not include chromatin accessibility, cell type, delivery, repair-pathway state, allelic variation, or measured nuclease efficiency. MMEJ output is a hypothesis about possible junctions, not a frequency prediction.
+              </Callout>
+            </Section>
 
-            <h3 className="font-semibold text-[var(--text)] text-[14px] pt-1">PCR Amplicon Calculations</h3>
-            <ul className="list-disc pl-5 space-y-1 text-[13px]">
-              <li><strong>Linear template:</strong> Forward primer must hybridize to antisense strand (3&apos; pointing right); reverse primer must hybridize to sense strand (3&apos; pointing left). Amplicon length is <code className="font-mono text-[11px]">End_Rev - Start_Fwd</code>.</li>
-              <li><strong>Circular template:</strong> If <code className="font-mono text-[11px]">Start_Fwd &gt; End_Rev</code>, the amplicon spans the origin with length <code className="font-mono text-[11px]">(L - Start_Fwd) + End_Rev</code>.</li>
-            </ul>
-          </section>
+            <Section id="opentrons" title="7. Opentrons protocol export">
+              <p>The compiler emits Opentrons Python API 2.15 protocols for planned transfers. Bulk reagents and primers receive 10% overage; template volume receives 15%. Generated code is an editable artifact and is never sent to a robot by SeqCraft.</p>
+              <Callout title="Run a physical preflight" tone="warning">
+                The compiler cannot verify the connected robot, deck calibration, labware definitions, pipette installation, liquid classes, viscosity, dead volume, evaporation, contamination controls, or real inventory. Review the script in Opentrons App simulation and confirm every deck slot and volume before execution.
+              </Callout>
+            </Section>
 
-          {/* Section 4: Translation and ORFs */}
-          <section id="translation" className="scroll-mt-20 space-y-4 border-t border-[var(--border)] pt-8">
-            <h2 className="text-lg font-bold text-[var(--text)] tracking-tight">
-              4. Translation and Open Reading Frames
-            </h2>
-            <p>
-              Translations use NCBI Translation Table 1 (Standard Genetic Code).
-            </p>
-            <ul className="list-disc pl-5 space-y-1 text-[13px]">
-              <li><strong>Forward frames:</strong> +1 (offset 0), +2 (offset 1), +3 (offset 2).</li>
-              <li><strong>Reverse frames:</strong> -1 (offset 0), -2 (offset 1), -3 (offset 2) evaluated on the reverse complement.</li>
-              <li><strong>ORF boundaries:</strong> Begins with canonical start codon <code className="font-mono text-[11px]">ATG</code> (or alternative bacterial starts <code className="font-mono text-[11px]">GTG, TTG</code>) and ends with in-frame stop codons <code className="font-mono text-[11px]">TAA, TAG, TGA</code>.</li>
-            </ul>
+            <Section id="biosecurity" title="8. Biosecurity motif screen">
+              <p>The local screen compares both orientations against exact signature k-mers for <strong className="text-[var(--text)]">{REGULATED_AGENTS.length} reference entries</strong>. It runs in the browser; the sequence is not uploaded to SeqCraft's backend.</p>
+              <Callout title="Screening is not clearance" tone="warning">
+                This compact reference set can produce both false negatives and context-free positives. It does not replace provider screening, IGSC workflows, export-control review, institutional biosafety review, or applicable law. “No local match” is not a compliance conclusion.
+              </Callout>
+            </Section>
 
-            <h3 className="font-semibold text-[var(--text)] text-[14px] pt-1">CDS Mutation Classification</h3>
-            <div className="grid sm:grid-cols-4 gap-2.5 font-mono text-[11px]">
-              <div className="p-2.5 border border-[var(--border)] rounded bg-[var(--panel)]">
-                <div className="font-bold text-[var(--text)]">Silent</div>
-                <div className="text-[var(--text-muted)] text-[10px]">Amino acid unchanged</div>
+            <Section id="storage" title="9. Storage and privacy">
+              <div className="grid grid-cols-2 gap-3">
+                <Callout title="Browser-local data">
+                  Raw DNA/RNA sequences, feature annotations, primers, document revisions, constructs, and derived sequence analyses remain in memory and browser storage (OPFS/IndexedDB as available).
+                </Callout>
+                <Callout title="Server-side data">
+                  The optional account backend handles authentication and sequence-free project metadata. It is not the persistence layer for raw constructs.
+                </Callout>
               </div>
-              <div className="p-2.5 border border-[var(--border)] rounded bg-[var(--panel)]">
-                <div className="font-bold text-[var(--warning)]">Missense</div>
-                <div className="text-[var(--text-muted)] text-[10px]">Amino acid altered</div>
+              <p>Deleting account data clears the account and synced metadata, then clears the current browser's local workspace. Local workspaces on other devices remain on those devices. Export important constructs before clearing browser data or deleting an account.</p>
+            </Section>
+
+            <Section id="boundaries" title="10. Scientific model boundaries">
+              <p>SeqCraft is a design and inspection workbench. Its strongest guarantees concern deterministic sequence transforms, coordinate invariants, and explicit mutation review—not wet-lab outcome probability.</p>
+              <div className="overflow-hidden rounded-lg border border-[var(--border)]">
+                <table className="w-full border-collapse text-left text-[12px]">
+                  <thead className="bg-[var(--panel-muted)] text-[var(--text)]"><tr><th className="px-3 py-2 font-semibold">Area</th><th className="px-3 py-2 font-semibold">SeqCraft models</th><th className="px-3 py-2 font-semibold">Still requires external validation</th></tr></thead>
+                  <tbody className="divide-y divide-[var(--border)]">
+                    <tr><td className="px-3 py-2 font-medium text-[var(--text)]">Sequence operations</td><td className="px-3 py-2">Exact bases, topology, coordinates, revision checks</td><td className="px-3 py-2">Biological function and phenotype</td></tr>
+                    <tr><td className="px-3 py-2 font-medium text-[var(--text)]">Enzymes and assembly</td><td className="px-3 py-2">Recognition, cut geometry, compatible ends</td><td className="px-3 py-2">Kinetics, fidelity, reaction yield</td></tr>
+                    <tr><td className="px-3 py-2 font-medium text-[var(--text)]">Primers and guides</td><td className="px-3 py-2">Sequence heuristics and exact loci</td><td className="px-3 py-2">Genome context, structure, efficiency</td></tr>
+                    <tr><td className="px-3 py-2 font-medium text-[var(--text)]">Automation</td><td className="px-3 py-2">Transfer plan and generated script</td><td className="px-3 py-2">Hardware, deck, liquid, and operator preflight</td></tr>
+                  </tbody>
+                </table>
               </div>
-              <div className="p-2.5 border border-[var(--border)] rounded bg-[var(--panel)]">
-                <div className="font-bold text-[var(--danger)]">Nonsense</div>
-                <div className="text-[var(--text-muted)] text-[10px]">Premature stop (*)</div>
+            </Section>
+
+            <Section id="webmcp" title="11. WebMCP tool reference">
+              <p>SeqCraft configures <strong className="text-[var(--text)]">{configuredToolCount} tool identifiers</strong> through <code className="font-mono text-[var(--text)]">document.modelContext</code>. The reference below is generated from the same registry used at runtime, so names, descriptions, and effect classes do not drift into a separate hand-maintained list.</p>
+              <Callout title="Human-in-the-loop contract">
+                Persistent construct-altering operations marked “Human review” stage a transaction. The interface shows the proposed sequence diff, affected features, and invariant checks; only the user can apply or reject it. Metadata, annotations, navigation, exports, undo/redo, and explicitly confirmed document deletion have distinct execution policies shown below.
+              </Callout>
+              <div className="grid grid-cols-[minmax(0,1fr)_190px] gap-3">
+                <label className="relative block">
+                  <span className="sr-only">Search WebMCP tools</span>
+                  <Search aria-hidden="true" size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                  <input value={toolQuery} onChange={event => setToolQuery(event.target.value)} placeholder="Search tools, aliases, or purpose" className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--panel)] pl-9 pr-3 text-[12px] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15" />
+                </label>
+                <label>
+                  <span className="sr-only">Filter tools by effect</span>
+                  <select value={effectFilter} onChange={event => setEffectFilter(event.target.value as 'all' | EffectClass)} className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 text-[12px] outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15">
+                    <option value="all">All effect classes</option>
+                    {Object.entries(EFFECT_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </label>
               </div>
-              <div className="p-2.5 border border-[var(--border)] rounded bg-[var(--panel)]">
-                <div className="font-bold text-[var(--bio-misc)]">Frameshift</div>
-                <div className="text-[var(--text-muted)] text-[10px]">ΔL mod 3 ≠ 0</div>
+              <p className="font-mono text-[11px]" aria-live="polite">{filteredTools.length} canonical tools shown · {configuredToolCount} configured identifiers including aliases</p>
+              <div className="overflow-hidden rounded-lg border border-[var(--border)]">
+                <table className="w-full table-fixed border-collapse text-left text-[12px]">
+                  <thead className="bg-[var(--panel-muted)] text-[var(--text)]"><tr><th className="w-[31%] px-3 py-2 font-semibold">Tool</th><th className="w-[45%] px-3 py-2 font-semibold">Purpose</th><th className="w-[24%] px-3 py-2 font-semibold">Execution</th></tr></thead>
+                  <tbody className="divide-y divide-[var(--border)]">
+                    {filteredTools.map(({ tool, aliases }) => (
+                      <tr key={tool.name} className="align-top">
+                        <td className="px-3 py-3"><code className="break-all font-mono text-[11px] font-medium text-[var(--accent)]">{tool.name}</code>{aliases.length > 0 && <div className="mt-1 break-all text-[10px] leading-4 text-[var(--text-muted)]">Aliases: {aliases.join(', ')}</div>}</td>
+                        <td className="px-3 py-3 leading-5">{tool.description}</td>
+                        <td className="px-3 py-3"><span className="block font-medium text-[var(--text)]">{executionLabel(tool)}</span><span className="mt-0.5 block text-[10px]">{EFFECT_LABELS[tool.effectClass]}</span></td>
+                      </tr>
+                    ))}
+                    {filteredTools.length === 0 && <tr><td colSpan={3} className="px-4 py-10 text-center text-[var(--text-muted)]">No tools match this search and effect filter.</td></tr>}
+                  </tbody>
+                </table>
               </div>
-            </div>
-          </section>
+            </Section>
 
-          {/* Section 5: Golden Gate Assembly */}
-          <section id="golden-gate" className="scroll-mt-20 space-y-4 border-t border-[var(--border)] pt-8">
-            <h2 className="text-lg font-bold text-[var(--text)] tracking-tight">
-              5. Golden Gate Assembly
-            </h2>
-            <p>
-              Simulates multi-part directional assembly using Type IIS restriction endonucleases (BsaI, BsmBI, BbsI, PaqCI, SapI).
-            </p>
-            <ul className="list-disc pl-5 space-y-1 text-[13px]">
-              <li><strong>Junction analysis:</strong> Generates 4nt single-stranded overhangs. The assembly solver models fragment junctions as an undirected graph and verifies that a single closed cycle exists without orphan or degenerate junctions.</li>
-              <li><strong>Domestication:</strong> When internal recognition sequences are detected within a CDS, the domesticator evaluates synonymous codons to eliminate the recognition site while preserving 100% of the amino acid sequence.</li>
-            </ul>
-          </section>
-
-          {/* Section 6: CRISPR and MMEJ */}
-          <section id="crispr" className="scroll-mt-20 space-y-4 border-t border-[var(--border)] pt-8">
-            <h2 className="text-lg font-bold text-[var(--text)] tracking-tight">
-              6. CRISPR and MMEJ
-            </h2>
-            <p>
-              Scans target sequences for SpCas9 protospacer adjacent motifs (<code className="font-mono text-[12px]">5&apos;-NGG-3&apos;</code>).
-            </p>
-            <ul className="list-disc pl-5 space-y-1 text-[13px]">
-              <li><strong>Cut position:</strong> Cleavage occurs exactly 3 bp upstream of the PAM on both strands.</li>
-              <li><strong>Quality parameters:</strong> Scores 20nt spacer GC content (optimal range: 40%–60%) and flags poly-T tracts (≥4 consecutive Ts) that cause premature RNA Pol III termination.</li>
-              <li><strong>MMEJ forecasting:</strong> Scans 2–8 bp microhomology sequences flanking the double-strand break to calculate deletion sizes and forecast out-of-frame knockout probabilities.</li>
-            </ul>
-          </section>
-
-          {/* Section 7: Opentrons Protocol Export */}
-          <section id="opentrons" className="scroll-mt-20 space-y-4 border-t border-[var(--border)] pt-8">
-            <h2 className="text-lg font-bold text-[var(--text)] tracking-tight">
-              7. Opentrons Protocol Export
-            </h2>
-            <p>
-              Exports Python scripts compatible with Opentrons API v2.15 for OT-2 and Flex automated liquid handlers.
-            </p>
-            <ul className="list-disc pl-5 space-y-1 text-[13px]">
-              <li><strong>Dead volume:</strong> Adds 10% volume overage to all reagent master mix calculations.</li>
-              <li><strong>Thermocycler elongation:</strong> Calculated at 30 seconds per kilobase (30 s/kb) of target amplicon length.</li>
-              <li><strong>Labware:</strong> Source rack is <code className="font-mono text-[11px]">opentrons_24_tuberack_generic_2ml_screwcap</code>; destination plate is <code className="font-mono text-[11px]">nest_96_wellplate_100ul_pcr_full_skirt</code>.</li>
-            </ul>
-          </section>
-
-          {/* Section 8: Biosecurity Motif Check */}
-          <section id="biosecurity" className="scroll-mt-20 space-y-4 border-t border-[var(--border)] pt-8">
-            <h2 className="text-lg font-bold text-[var(--text)] tracking-tight">
-              8. Biosecurity Motif Check
-            </h2>
-            <p>
-              Runs client-side exact k-mer matching against 17 reference sequences from regulated agent databases.
-            </p>
-            <div className="p-3 border border-[var(--border)] rounded bg-[var(--panel)] text-[12px] text-[var(--text-muted)]">
-              <strong>Limitation notice:</strong> This check is an in-browser diagnostic tool. It is not a regulatory compliance determination and does not replace institutional oversight or commercial gene synthesis provider screening.
-            </div>
-          </section>
-
-          {/* Section 9: Storage and Worker Model */}
-          <section id="storage" className="scroll-mt-20 space-y-4 border-t border-[var(--border)] pt-8">
-            <h2 className="text-lg font-bold text-[var(--text)] tracking-tight">
-              9. Storage and Worker Model
-            </h2>
-            <ul className="list-disc pl-5 space-y-1 text-[13px]">
-              <li><strong>Sequence storage:</strong> Kept in browser Origin Private File System (OPFS) when available, with IndexedDB (<code className="font-mono text-[11px]">idb-keyval</code>) fallback.</li>
-              <li><strong>Cloud sync:</strong> The server receives only sequence-free metadata: document ID, name, topology, length, and storage key. Raw sequence bytes are never sent over the network.</li>
-              <li><strong>Web Workers:</strong> FASTA parsing (<code className="font-mono text-[11px]">fasta-importer.worker.ts</code>) and sequence diffing (<code className="font-mono text-[11px]">sequence-diff.worker.ts</code>) execute off the main thread.</li>
-              <li><strong>Virtualization:</strong> The linear sequence viewer computes coordinate-to-screen pixel positions using monospace <code className="font-mono text-[11px]">ch</code> units, giving O(1) viewport index resolution without measuring DOM text nodes.</li>
-            </ul>
-          </section>
-
-          {/* Section 10: WebMCP Tool Reference */}
-          <section id="webmcp" className="scroll-mt-20 space-y-4 border-t border-[var(--border)] pt-8">
-            <h2 className="text-lg font-bold text-[var(--text)] tracking-tight">
-              10. WebMCP Tool Reference
-            </h2>
-            <p>
-              SeqCraft exposes {toolCount} structured biological and workspace tools to browser-connected AI agents via <code className="font-mono text-[12px]">window.document.modelContext</code>.
-            </p>
-
-            <div className="overflow-x-auto border border-[var(--border)] rounded font-mono text-[11px]">
-              <table className="w-full text-left">
-                <thead className="bg-[var(--panel-muted)] text-[var(--text)] border-b border-[var(--border)]">
-                  <tr>
-                    <th className="p-2.5">Tool Name</th>
-                    <th className="p-2.5">Effect Class</th>
-                    <th className="p-2.5">Description</th>
-                    <th className="p-2.5">Approval</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border)] bg-[var(--panel)]">
-                  {/* Context & Capabilities */}
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_workspace_context</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Bootstrap state: active molecule, selection, features, transaction</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_capabilities</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Feature contracts, coordinate models, privacy rules</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_selected_context</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Selection coordinates, sequence slice, overlapping annotations</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_document_revision</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Canonical revision number and SHA-256 sequence hash</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_transaction_status</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Staged transaction lifecycle, invariant report, approval status</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-
-                  {/* Navigation & Selection */}
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_focus_region</td>
-                    <td className="p-2.5">navigation</td>
-                    <td className="p-2.5">Scroll and highlight nucleotide range [start1, end1]</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_select_range</td>
-                    <td className="p-2.5">navigation</td>
-                    <td className="p-2.5">Set workspace selection interval [start1, end1]</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_clear_selection</td>
-                    <td className="p-2.5">navigation</td>
-                    <td className="p-2.5">Clear active sequence selection</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_set_active_view</td>
-                    <td className="p-2.5">navigation</td>
-                    <td className="p-2.5">Switch view between 'map', 'sequence', and 'topology'</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_show_feature</td>
-                    <td className="p-2.5">navigation</td>
-                    <td className="p-2.5">Center viewport and select feature by ID or name</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_show_restriction_site</td>
-                    <td className="p-2.5">navigation</td>
-                    <td className="p-2.5">Navigate linear and 3D map views to restriction recognition site</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-
-                  {/* Documents */}
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_list_documents</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">List metadata for all open sequence documents</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_active_document</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Active construct length, topology, revision, feature count</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_set_active_document</td>
-                    <td className="p-2.5">workspace_ephemeral</td>
-                    <td className="p-2.5">Switch active document in workspace</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_create_document</td>
-                    <td className="p-2.5">document_destructive</td>
-                    <td className="p-2.5">Create new construct from raw sequence string</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_delete_document</td>
-                    <td className="p-2.5">document_destructive</td>
-                    <td className="p-2.5">Close and delete construct from workspace</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_duplicate_document</td>
-                    <td className="p-2.5">document_destructive</td>
-                    <td className="p-2.5">Create deep copy of an existing sequence document</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_update_document_metadata</td>
-                    <td className="p-2.5">document_metadata</td>
-                    <td className="p-2.5">Update name, topology (linear/circular), or alphabet</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_create_document_from_region</td>
-                    <td className="p-2.5">document_destructive</td>
-                    <td className="p-2.5">Extract sub-region into new independent sequence document</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_copy_region_between_documents</td>
-                    <td className="p-2.5">sequence_mutation</td>
-                    <td className="p-2.5">Stage inserting sequence slice into target document</td>
-                    <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
-                  </tr>
-
-                  {/* Features & Primers */}
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_list_features</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Return all feature annotations on construct</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_select_feature</td>
-                    <td className="p-2.5">navigation</td>
-                    <td className="p-2.5">Select a feature by ID in workspace store</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_mutate_feature</td>
-                    <td className="p-2.5">annotation_mutation</td>
-                    <td className="p-2.5">Create, update, or delete feature annotations</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_detect_known_features</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Scan plasmid against curated database of known elements</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_propose_annotation</td>
-                    <td className="p-2.5">annotation_mutation</td>
-                    <td className="p-2.5">Apply detected known annotation to document table</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_list_primers</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">List custom primers configured for target molecule</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_mutate_primer</td>
-                    <td className="p-2.5">annotation_mutation</td>
-                    <td className="p-2.5">Create, edit, or delete primers on construct</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_analyze_primer</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Calculate primer Tm, GC%, and binding loci</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_simulate_pcr</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Simulate linear/circular PCR amplicon sizes</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-
-                  {/* Digestion & Cloning */}
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_analyze_restriction_sites</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Scan sequence for restriction enzyme cut positions</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_simulate_digest</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Cleave construct and return fragment lengths & overhangs</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_simulate_golden_gate</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Simulate multi-part Type IIS assembly (BsaI, BsmBI, etc.)</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_domesticate_sequence</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Find synonymous mutations to abolish internal cut sites</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_stage_domestication_candidate</td>
-                    <td className="p-2.5">sequence_mutation</td>
-                    <td className="p-2.5">Stage candidate domestication mutation for approval</td>
-                    <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_prepare_restriction_clone</td>
-                    <td className="p-2.5">workspace_ephemeral</td>
-                    <td className="p-2.5">Stage directional restriction cloning proposal</td>
-                    <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
-                  </tr>
-
-                  {/* Sequence Mutations */}
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_edit_sequence</td>
-                    <td className="p-2.5">sequence_mutation</td>
-                    <td className="p-2.5">Insert, delete, or replace sequence in-place</td>
-                    <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_reverse_complement_region</td>
-                    <td className="p-2.5">sequence_mutation</td>
-                    <td className="p-2.5">Stage reverse-complementing sequence region</td>
-                    <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_rotate_origin</td>
-                    <td className="p-2.5">sequence_mutation</td>
-                    <td className="p-2.5">Re-index circular plasmid origin to new coordinate</td>
-                    <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
-                  </tr>
-
-                  {/* History & Analysis */}
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_undo</td>
-                    <td className="p-2.5">workspace_ephemeral</td>
-                    <td className="p-2.5">Revert last sequence or metadata mutation</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_redo</td>
-                    <td className="p-2.5">workspace_ephemeral</td>
-                    <td className="p-2.5">Re-apply last undone mutation</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_get_history</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Inspect snapshot undo/redo stack & event history</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_restore_revision</td>
-                    <td className="p-2.5">sequence_mutation</td>
-                    <td className="p-2.5">Stage restoring sequence to snapshot in history</td>
-                    <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_compare_documents</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Circular-invariant, reverse-complement sequence diff</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_find_orfs</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Scan 6 frames for open reading frames</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_find_crispr_targets</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Scan SpCas9 PAMs and forecast MMEJ repair</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_screen_biosecurity</td>
-                    <td className="p-2.5">read</td>
-                    <td className="p-2.5">Screen against curated pathogen k-mer signatures</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-
-                  {/* IO & Automation */}
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_import_sequence_text</td>
-                    <td className="p-2.5">document_destructive</td>
-                    <td className="p-2.5">Parse and import FASTA, GenBank, or raw sequence</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_export_document</td>
-                    <td className="p-2.5">export</td>
-                    <td className="p-2.5">Export GenBank (.gb), FASTA (.fasta), or JSON</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_generate_opentrons_protocol</td>
-                    <td className="p-2.5">export</td>
-                    <td className="p-2.5">Generate Opentrons Python protocol (API v2.15)</td>
-                    <td className="p-2.5 text-[var(--success)]">No</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2.5 text-[var(--accent)]">seqcraft_execute_actions</td>
-                    <td className="p-2.5">sequence_mutation</td>
-                    <td className="p-2.5">Execute batch sequence & annotation action plan</td>
-                    <td className="p-2.5 text-[var(--danger)] font-bold">Required</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* Section 11: Programmatic API */}
-          <section id="api" className="scroll-mt-20 space-y-4 border-t border-[var(--border)] pt-8">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[var(--text)] tracking-tight">
-                11. Programmatic API (nucleotide-sequence)
-              </h2>
-              <a
-                href="https://www.npmjs.com/package/nucleotide-sequence"
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-[12px] font-mono text-[var(--accent)] hover:underline"
-              >
-                npm i nucleotide-sequence <ExternalLink size={12} />
-              </a>
-            </div>
-            <p>
-              The sequence engine is published as a zero-dependency npm package. Usage in Node.js or browser scripts:
-            </p>
-
-            <div className="relative border border-[var(--border)] rounded bg-[var(--panel)] p-4 font-mono text-[12px] text-[var(--text)] overflow-x-auto">
-              <button
-                type="button"
-                onClick={() =>
-                  copyToClipboard(
-                    'ts-example',
-                    `import { Seq, Translation } from 'nucleotide-sequence';
-
-const seq = new Seq('GAATTCGAGCTCGGTACCCGGGGATCCTCTAGAGTCGACCTGCAGGCATGCAAGCTT', 'dna');
-const revComp = seq.reverseComplement();
-const orfs = Translation.findOrfs(seq.raw, { minLengthBp: 30 });
-const protein = Translation.translate(seq.raw, 1);`
-                  )
-                }
-                className="absolute top-3 right-3 p-1 rounded border border-[var(--border)] bg-[var(--bg)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors cursor-pointer"
-                title="Copy snippet"
-              >
-                {copiedSnippet === 'ts-example' ? <Check size={13} className="text-[var(--success)]" /> : <Copy size={13} />}
-              </button>
-              <pre className="text-[12px] leading-5">
-                <span className="text-[var(--accent)]">import</span> &#123; Seq, Translation &#125; <span className="text-[var(--accent)]">from</span> <span className="text-[var(--success)]">&apos;nucleotide-sequence&apos;</span>;{'\n\n'}
-                <span className="text-[var(--accent)]">const</span> seq = <span className="text-[var(--accent)]">new</span> <span className="text-[var(--text)]">Seq</span>(<span className="text-[var(--success)]">&apos;GAATTCGAGCTCGGTACCCGGGGATCCTCTAGAGTCGACCTGCAGGCATGCAAGCTT&apos;</span>, <span className="text-[var(--success)]">&apos;dna&apos;</span>);{'\n'}
-                <span className="text-[var(--accent)]">const</span> revComp = seq.<span className="text-[var(--accent)]">reverseComplement</span>();{'\n'}
-                <span className="text-[var(--accent)]">const</span> orfs = Translation.<span className="text-[var(--accent)]">findOrfs</span>(seq.raw, &#123; minLengthBp: <span className="text-[var(--warning)]">30</span> &#125;);{'\n'}
-                <span className="text-[var(--accent)]">const</span> protein = Translation.<span className="text-[var(--accent)]">translate</span>(seq.raw, <span className="text-[var(--warning)]">1</span>);
-              </pre>
-            </div>
-          </section>
-        </main>
-      </div>
+            <Section id="api" title="12. Programmatic API">
+              <p>SeqCraft's scientific wrappers use the installed <code className="font-mono text-[var(--text)]">nucleotide-sequence</code> package. The underlying API constructs a typed sequence with <code className="font-mono text-[var(--text)]">new Seq('DNA').read(...)</code> and passes that sequence object to translation helpers.</p>
+              <CodeBlock id="api-example" code={API_EXAMPLE} copiedId={copiedId} onCopy={copyCode} />
+              <p className="sr-only" aria-live="polite">{copyStatus}</p>
+              <p>For agents, prefer the registered WebMCP tools over reaching into internal modules. Tool schemas, availability checks, structured errors, activity records, abort signals, and mutation governance are enforced at that boundary.</p>
+            </Section>
+          </div>
+        </article>
+      </main>
     </div>
   );
 }

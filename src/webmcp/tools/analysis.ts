@@ -75,7 +75,7 @@ export const seqcraftCompareDocumentsTool: SeqCraftToolDefinition = {
 export const seqcraftFindOrfsTool: SeqCraftToolDefinition = {
   name: 'seqcraft_find_orfs',
   title: 'Find ORFs',
-  description: 'Search for open reading frames (ORFs) across all 6 reading frames (forward +1, +2, +3 and reverse -1, -2, -3) with minimum nucleotide/codon thresholds.',
+  description: 'Search for open reading frames across all six reading frames using NCBI genetic code table 1 and a configurable minimum codon count.',
   effectClass: 'read',
   inputSchema: {
     type: 'object',
@@ -88,17 +88,12 @@ export const seqcraftFindOrfsTool: SeqCraftToolDefinition = {
         type: 'integer',
         minimum: 10,
         description: 'Minimum ORF length in codons (default: 30 codons = 90 bp).'
-      },
-      startCodons: {
-        type: 'array',
-        items: { type: 'string' },
-        description: 'List of valid start codons (default: ["ATG"]).'
       }
     },
     additionalProperties: false
   },
   annotations: { readOnlyHint: true, untrustedContentHint: false },
-  execute: (input: { documentId?: string; minCodons?: number; startCodons?: string[] }, rawCtx) => {
+  execute: (input: { documentId?: string; minCodons?: number }, rawCtx) => {
     const ctx = resolveToolContext(rawCtx);
     ctx.signal?.throwIfAborted();
     const doc = input.documentId

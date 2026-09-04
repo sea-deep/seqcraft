@@ -255,7 +255,7 @@ export const seqcraftMutatePrimerTool: SeqCraftToolDefinition = {
 export const seqcraftAnalyzePrimerTool: SeqCraftToolDefinition = {
   name: 'seqcraft_analyze_primer',
   title: 'Analyze Primer',
-  description: 'Compute thermodynamic properties (melting temperature Tm, GC content, molecular weight, extinction coefficient, self-dimerization, hairpin delta G) and identify binding loci on the template construct.',
+  description: 'Compute melting temperature, GC content, molecular weight, and exact IUPAC-compatible binding loci on the template construct.',
   effectClass: 'read',
   inputSchema: {
     type: 'object',
@@ -326,7 +326,7 @@ export const seqcraftAnalyzePrimerTool: SeqCraftToolDefinition = {
 export const seqcraftSimulatePcrTool: SeqCraftToolDefinition = {
   name: 'seqcraft_simulate_pcr',
   title: 'Simulate PCR',
-  description: 'Simulate in silico PCR amplification on a template plasmid or linear DNA using two primers. Returns predicted amplicon products, length in base pairs, annealing temperatures, and primer dimer risks.',
+  description: 'Simulate exact-match in silico PCR on a linear or circular template. Returns predicted amplicon coordinates, lengths, GC content, and primer-pair melting temperatures.',
   effectClass: 'read',
   inputSchema: {
     type: 'object',
